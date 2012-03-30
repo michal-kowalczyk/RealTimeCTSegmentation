@@ -141,9 +141,10 @@ void MainWindow::updateFrame (){
         computeCT ();
 
         if (ui -> meaningulScalesCheckBox -> isChecked ()){
-            time9 -= clock ();
+            time9 = -clock ();
             MeaningfulScales ms(*segmentationResult);
             time9 += clock ();
+            time9 *= currentFrame;
             if (boxes)
                 delete boxes;
             boxes = new QImage (ms.GetResult());

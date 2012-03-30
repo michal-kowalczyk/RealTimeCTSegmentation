@@ -108,7 +108,7 @@ MeaningfulScales::MeaningfulScales(QImage image){
     qDebug () << "Sampling size max used: " << samplingSizeMax;
 
     QPen noNoise (QColor(0, 255, 0, 50));
-    QPen someNoise (QColor(255, 255, 0, 100));
+    QPen someNoise (QColor(255, 255, 0, 50));
     boxes = QImage (image.width(), image.height(), QImage::Format_ARGB32_Premultiplied);
     QPainter painter;
     painter.begin(&boxes);
@@ -124,7 +124,7 @@ MeaningfulScales::MeaningfulScales(QImage image){
 //          DrawingXFIG::drawPixel (args.check("-setFileNameFigure")? ofFig :cout, pt, 2, 2, samplingSizeMax, 50);
         } else{
             painter.setPen(someNoise);
-            painter.drawRect ((*it).x(), (*it).y(), noiseLevel, noiseLevel);
+            painter.drawRect ((*it).x(), (*it).y(), noiseLevel * 20, noiseLevel * 20);
      //     DrawingXFIG::drawPixel (args.check("-setFileNameFigure")? ofFig :cout, pt, 1, 1, noiseLevel, 50);
         }
         i++;
