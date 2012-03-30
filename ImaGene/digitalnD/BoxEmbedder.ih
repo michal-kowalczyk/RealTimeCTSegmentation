@@ -1,0 +1,181 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : BoxEmbedder.ih
+//
+// Creation : 2008/03/19
+//
+// Version : 2008/03/19
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in BoxEmbedder.h 
+//
+// History :
+//	2008/03/19 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class BoxEmbedder declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_BoxEmbedder(x)
+#define DEBUGCMD_BoxEmbedder(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_BoxEmbedder(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_BoxEmbedder(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Destructor. Does nothing.
+ */
+ImaGene::BoxEmbedder::~BoxEmbedder()
+{
+  if ( m_x1 != 0 ) delete[] m_x1;
+  if ( m_x2 != 0 ) delete[] m_x2;
+  if ( m_dh != 0 ) delete[] m_dh;
+}
+
+
+/**
+ * Constructor.
+ * The embedder is not valid yet.
+ * @see init
+ */
+ImaGene::BoxEmbedder::BoxEmbedder()
+  : Embedder(), m_x1( 0 ), m_x2( 0 ), m_dh( 0 )
+{
+}
+
+
+/**
+ * Constructor.
+ * @param space the digital space where the cells are defined.
+ */
+ImaGene::BoxEmbedder::BoxEmbedder( const KnSpace* space )
+  : Embedder( space ), m_x1( 0 ), m_x2( 0 ), m_dh( 0 )
+{
+}
+
+
+/**
+ * @return a clone of 'this'.
+ */
+ImaGene::Embedder* 
+ImaGene::BoxEmbedder::clone() const
+{
+  return new BoxEmbedder( this->space(), m_x1, m_dh, true );
+}
+
+/**
+ * Constructor. 
+ *
+ * @param space the digital space where the cells are defined.
+ *
+ * @param x1 the lower-bound of the coordinates of the embedding
+ * box.
+ *
+ * @param x2 when [dh] is 'false', it is the upper-bound of the
+ * coordinates of the embedding box, otherwise it is the vector
+ * representing the grid step of the embedding of [space].
+ *
+ * @param dh defines the initialization mode.
+ */
+ImaGene::BoxEmbedder::BoxEmbedder( const KnSpace* space,
+				   const float* x1, 
+				   const float* x2,
+				   bool dh )
+  : Embedder( space )
+{
+  m_x1 = new float[ space->dim() ];
+  m_x2 = new float[ space->dim() ];
+  m_dh = new float[ space->dim() ];
+  for ( uint i = 0; i < space->dim(); ++i )
+    m_x1[ i ] = x1[ i ];
+
+  if ( dh )
+    {
+      for ( uint i = 0; i < space->dim(); ++i )
+	m_dh[ i ] = x2[ i ];
+    }
+  else
+    {
+      for ( uint i = 0; i < space->dim(); ++i )
+	m_dh[ i ] = ( x2[ i ] - x1[ i ] ) / space->size( i );
+    }
+  for ( uint i = 0; i < space->dim(); ++i )
+    m_x2[ i ] = x1[ i ] + m_dh[ i ] * space->size( i );
+}
+    
+
+/**
+ * @return the lower bound for the coordinates in the box.
+ */
+const float* 
+ImaGene::BoxEmbedder::lowerBound() const
+{
+  return m_x1;
+}
+
+/**
+ * @return the upper bound for the coordinates in the box.
+ */
+const float* 
+ImaGene::BoxEmbedder::upperBound() const
+{
+  return m_x2;
+}
+
+/**
+ * @return the grid step in the box.
+ */
+const float* 
+ImaGene::BoxEmbedder::gridStep() const
+{
+  return m_dh;
+}
+
+/**
+ * @param x (updated) the coordinates are translated in the
+ * adjacent box along direction [i], positively or negatively
+ * according to [pos].
+ *
+ * @param i the coordinate axis where the adjacent box is taken.
+ *
+ * @param pos a boolean telling whether the adjacent box is
+ * further positively along the coordinate axis or negatively.
+ */
+void 
+ImaGene::BoxEmbedder::shiftToAdjacentBox( float* x, uint i, bool pos ) const
+{
+  if ( pos )
+    x[ i ] += m_x2[ i ] - m_x1[ i ];
+  else
+    x[ i ] -= m_x2[ i ] - m_x1[ i ];
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

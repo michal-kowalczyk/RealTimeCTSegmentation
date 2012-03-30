@@ -1,0 +1,140 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Frame2D.ih
+//
+// Creation : 2004/11/24
+//
+// Version : 2004/11/24
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Frame2D.h 
+//
+// History :
+//	2004/11/24 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Frame2D declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Frame2D(x)
+#define DEBUGCMD_Frame2D(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Frame2D(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_Frame2D(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/**
+ * Constructor. The object is not valid.
+ */
+ImaGene::Frame2D::Frame2D()
+  : m_ks( 0 )
+{
+}
+
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+ImaGene::Frame2D::Frame2D( const Frame2D & other )
+  : m_ks( other.m_ks ), 
+    m_x( other.m_x ), m_y( other.m_y ),
+    m_surfel( other.m_surfel ), 
+    m_tdir( other.m_tdir ), m_odir( other.m_odir ), 
+    m_tpos( other.m_tpos ), m_opos( other.m_opos ), 
+    m_tsign( other.m_tsign ), m_osign( other.m_osign ),
+    m_x0( other.m_x0 ), m_y0( other.m_y0 )
+{
+}
+
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ */
+ImaGene::Frame2D & 
+ImaGene::Frame2D::operator=( const Frame2D & other )
+{
+  if ( this != &other )
+    {
+      m_ks = other.m_ks; 
+      m_x = other.m_x; m_y = other.m_y;
+      m_surfel = other.m_surfel; 
+      m_tdir = other.m_tdir; m_odir = other.m_odir; 
+      m_tpos = other.m_tpos; m_opos = other.m_opos; 
+      m_tsign = other.m_tsign; m_osign = other.m_osign;
+      m_x0 = other.m_x0; m_y0 = other.m_y0;
+    }
+  return *this;
+}
+
+/**
+ * @return the associated digital space.
+ */
+INLINE ImaGene::KnSpace* 
+ImaGene::Frame2D::space() const
+{
+  return m_ks;
+}
+
+
+/**
+ * @return the first axis.
+ */
+uint
+ImaGene::Frame2D::x() const
+{
+  return m_x;
+}
+
+
+/**
+ * @return the second axis.
+ */
+uint
+ImaGene::Frame2D::y() const
+{
+  return m_y;
+}
+
+ 
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'Frame2D'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'Frame2D' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, const Frame2D & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

@@ -1,0 +1,99 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : ExplicitDigitalSurface.ih
+//
+// Creation : 2011/05/04
+//
+// Version : 2011/05/04
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in ExplicitDigitalSurface.h 
+//
+// History :
+//	2011/05/04 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class ExplicitDigitalSurface declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_ExplicitDigitalSurface(x)
+#define DEBUGCMD_ExplicitDigitalSurface(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_ExplicitDigitalSurface(x) if(!(x)) \
+    { cerr << "Assertion failed : (" << #x << ')' << endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << endl; abort();}
+#define DEBUGCMD_ExplicitDigitalSurface(x) x
+#endif // else defined(NO_DEBUG)
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * @return a pointer on the digital space in which the factory is embedded.
+ */
+inline
+const ImaGene::KnSpace* 
+ImaGene::ExplicitDigitalSurface::space() const
+{
+  return &( m_badj.space() );
+}
+
+
+/**
+ * @return the bel adjacency chosen for this surface.
+ */
+inline
+const ImaGene::BelAdjacency & 
+ImaGene::ExplicitDigitalSurface::belAdjacency() const
+{
+  return m_badj;
+}
+
+  
+/**
+ * @return the object as a set of spels.
+ */
+inline
+const ImaGene::KnRCellSet &
+ImaGene::ExplicitDigitalSurface::surface() const
+{
+  return m_surfels;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'ExplicitDigitalSurface'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'ExplicitDigitalSurface' to write.
+ * @return the output stream after the writing.
+ */
+inline
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		     const ExplicitDigitalSurface & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

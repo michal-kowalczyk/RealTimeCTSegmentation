@@ -1,0 +1,66 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : KnTools.ih
+//
+// Creation : 2003/07/24
+//
+// Version : 2003/07/24
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in KnTools.h 
+//
+// History :
+//	2003/07/24 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class KnTools declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_KnTools(x)
+#define DEBUGCMD_KnTools(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_KnTools(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_KnTools(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'KnTools'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'KnTools' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, const KnTools & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene

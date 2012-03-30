@@ -1,0 +1,226 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : C4CIteratorOnExplicitDigitalSurface.ih
+//
+// Creation : 2011/05/04
+//
+// Version : 2011/05/04
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in C4CIteratorOnExplicitDigitalSurface.h 
+//
+// History :
+//	2011/05/04 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class C4CIteratorOnExplicitDigitalSurface declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_C4CIteratorOnExplicitDigitalSurface(x)
+#define DEBUGCMD_C4CIteratorOnExplicitDigitalSurface(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_C4CIteratorOnExplicitDigitalSurface(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+		<< "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+		<< "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_C4CIteratorOnExplicitDigitalSurface(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+///////////////////////////////////////////////////////////////////////////////
+// Standard services - public :
+
+/**
+ * Destructor. 
+ */
+inline
+C4CIteratorOnExplicitDigitalSurface::~C4CIteratorOnExplicitDigitalSurface()
+{
+}
+
+/**
+ * Constructor.
+ * The 4-connected contour is then defined by the bel [b] on the boundary of
+ * the object [obj], given a direction of tracking [k] and a bel adjacency.
+ * @param badj a bel adjacency defined in a digital space.
+ * @param b any bel of the object [obj].
+ * @param k any direction different from 'b.orthDir()'.
+ * @param obj any set of spels in [ks].
+ */
+inline
+C4CIteratorOnExplicitDigitalSurface::C4CIteratorOnExplicitDigitalSurface
+(  const ExplicitDigitalSurface & eds,
+   Kn_sid b, 
+   uint k )
+{
+  m_tracker.init( &eds );
+  m_tracker.move( b );
+  m_dir = k;
+}
+
+
+/**
+ * @return a clone of the current iterator.
+ */
+inline
+C4CIterator* 
+C4CIteratorOnExplicitDigitalSurface::clone() const
+{
+  const ExplicitDigitalSurface* eds = 
+    static_cast<const ExplicitDigitalSurface*>( m_tracker.surface() );
+  C4CIteratorOnExplicitDigitalSurface* it = 
+    new C4CIteratorOnExplicitDigitalSurface( *eds,
+					     m_tracker.current(),
+					     m_dir );
+  return it;
+}
+
+
+
+/**
+ * @param other any other iterator.
+ * @return 'true' if [other] points to the same location as 'this'.
+ */
+inline
+bool
+C4CIteratorOnExplicitDigitalSurface::equals( const C4CIterator & other ) const
+{
+  const C4CIteratorOnSurface* it = 
+    dynamic_cast<const C4CIteratorOnSurface*>( &other );
+  return ( it != 0 ) && ( current() == it->current() );
+}
+
+
+
+// ------------------- Implementation of abstract services ------------------
+
+/**
+ * @return the current bel the iterator is pointing at.
+ */
+inline
+Kn_sid
+C4CIteratorOnExplicitDigitalSurface::current() const
+{
+  return m_tracker.current();
+}
+
+
+/**
+ * @return the current track direction.
+ */
+inline
+uint 
+C4CIteratorOnExplicitDigitalSurface::trackDir() const
+{
+  return m_dir;
+}
+
+
+/**
+ * @return the current orthogonal direction.
+ */
+inline
+uint
+C4CIteratorOnExplicitDigitalSurface::orthDir() const
+{
+  return m_tracker.orthDir();
+}
+
+
+
+/**
+ * Moves the iterator on the 4-connected contour to the next position.
+ * @return 0 if the move was impossible, 1 if it was a move toward the interior, 2 if it was a straight movement, 3 if it was a move toward the exterior.
+ * NB: If the Contour4Iterator is moving over a digital surface, then 'next'
+ * means moving along a direct tracking direction.
+ */
+inline
+uint
+C4CIteratorOnExplicitDigitalSurface::next()
+{
+  const KnSpace* K = m_tracker.surface()->space();
+  uint other_dir = orthDir();
+  Kn_sid adj_bel = 
+    m_tracker.adjacent( trackDir(), K->sdirect( current(), trackDir() ) );
+  uint last_code = m_tracker.lastCode();
+  if ( last_code )
+    {
+      m_tracker.move( adj_bel );
+      if ( orthDir() != other_dir )
+	{
+	  ASSERT_C4CIteratorOnExplicitDigitalSurface( orthDir() == m_dir );
+	  m_dir = other_dir;
+	}
+    }
+  return last_code;
+}
+
+
+/**
+ * Moves the iterator on the 4-connected contour to the previous position.
+ * @return 0 if the move was impossible, 1 if it was a move toward the interior, 2 if it was a straight movement, 3 if it was a move toward the exterior.
+ * NB: If the Contour4Iterator is moving over a digital surface, then 
+ * 'previous' means moving along an indirect tracking direction.
+ */
+inline
+uint 
+C4CIteratorOnExplicitDigitalSurface::previous()
+{
+  const KnSpace* K = m_tracker.surface()->space();
+  uint other_dir = orthDir();
+  Kn_sid adj_bel = 
+    m_tracker.adjacent( trackDir(), ! K->sdirect( current(), trackDir() ) );
+  uint last_code = m_tracker.lastCode();
+  if ( last_code )
+    {
+      m_tracker.move( adj_bel );
+      if ( orthDir() != other_dir )
+	{
+	  ASSERT_C4CIteratorOnExplicitDigitalSurface( orthDir() == m_dir );
+	  m_dir = other_dir;
+	}
+    }
+  return last_code;
+}
+
+
+ 
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'C4CIteratorOnExplicitDigitalSurface'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'C4CIteratorOnExplicitDigitalSurface' to write.
+ * @return the output stream after the writing.
+ */
+inline
+std::ostream&
+operator<<( std::ostream & that_stream, 
+	    const C4CIteratorOnExplicitDigitalSurface & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene
+

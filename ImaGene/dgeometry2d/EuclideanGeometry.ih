@@ -1,0 +1,50 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : EuclideanGeometry.ih
+//
+// Creation : 2004/01/22
+//
+// Version : 2004/01/22
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in EuclideanGeometry.h 
+//
+// History :
+//	2004/01/22 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class EuclideanGeometry declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_EuclideanGeometry(x)
+#define DEBUGCMD_EuclideanGeometry(x)
+#else //defined(NO_DEBUG)
+#include <iostream>
+#define ASSERT_EuclideanGeometry(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_EuclideanGeometry(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

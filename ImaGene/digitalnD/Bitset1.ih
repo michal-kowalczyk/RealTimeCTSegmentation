@@ -1,0 +1,554 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Bitset1.ih
+//
+// Creation : 2002/08/01
+//
+// Version : 2002/08/01
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Bitset1.h 
+//
+// History :
+//	2002/08/01 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Bitset1 declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Bitset1(x)
+#define DEBUGCMD_Bitset1(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Bitset1(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_Bitset1(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+// ------------------------- Standard services ------------------------------
+  /**
+     Resets the set to zero bits.
+  */
+  inline
+  void 
+  Bitset1::clear()
+  {
+    reset();
+  }
+
+/**
+ * @return the number of bits stored in the bitset.
+ */
+Kn_size 
+Bitset1::size() const
+{
+  return m_size;
+}
+
+
+
+// ------------------------- Access services -----------------------------
+
+/**
+ * @return the pointer of the first word of data.
+ * NB: the data are valid from 'data()' till 'data()+nbWord()'.
+ */
+_word_ptr
+Bitset1::data() const
+{
+  return m_data;
+}
+
+/**
+ * @return the number of used words.
+ */
+Kn_size 
+Bitset1::nbWords() const
+{
+  return m_nb_words;
+}
+
+
+
+// ------------------------- Bit access services ----------------------------
+
+/**
+ * Non-const access to bit, eg <code> b[ i ] = true </code>
+ * @param pos a position (from 0 to size()-1)
+ * @return a reference on the bit at position [pos].
+ */
+Bitset1::reference 
+Bitset1::operator[]( Kn_size pos )
+{
+  return reference( *this, pos );
+}
+
+/**
+ * Const access to bit, eg <code> cout << b[ i ] </code>
+ * @param pos a position (from 0 to size()-1)
+ * @return a boolean 'true' for 1, 'false' for 0.
+ */
+bool 
+Bitset1::operator[]( Kn_size pos ) const
+{
+  return uncheckedTest( pos );
+}
+
+/**
+ * Sets all bits.
+ * @return a reference to 'this'.
+ */
+Bitset1 & 
+Bitset1::set()
+{
+  doWordSet( m_data, m_data + m_nb_words );
+  return *this;
+}
+
+/**
+ * Sets the bit at position [pos].
+ * @param pos any position (between 0 and size()-1).
+ * @return a reference to 'this'.
+ */
+Bitset1 & 
+Bitset1::set( Kn_size pos )
+{
+  if ( pos < size() )
+    uncheckedSet( pos );
+  return *this;
+}
+
+/**
+ * Sets the bit to [val] at position [pos].
+ * @param pos any position (between 0 and size()-1).
+ * @param val a value of 0 is 0, a value != 0 is 1.
+ * @return a reference to 'this'.
+ */
+Bitset1 & 
+Bitset1::set( Kn_size pos, int val )
+{
+  if ( pos < size() )
+    uncheckedSet( pos, val );
+  return *this;
+}
+
+/**
+ * Resets all bits.
+ * @return a reference to 'this'.
+ */
+Bitset1 & 
+Bitset1::reset()
+{
+  doWordReset( m_data, m_data + m_nb_words );
+  return *this;
+}
+
+/**
+ * Resets the bit at position [pos].
+ * @param pos any position (between 0 and size()-1).
+ * @return a reference to 'this'.
+ */
+Bitset1 & 
+Bitset1::reset( Kn_size pos )
+{
+  if ( pos < size() )
+    uncheckedReset( pos );
+  return *this;
+}
+
+/**
+ * Flips all bits.
+ * @return a reference to 'this'.
+ */
+Bitset1 & 
+Bitset1::flip()
+{
+  doWordFlip( m_data, m_data + m_nb_words );
+  return *this;
+}
+
+/**
+ * Flips the bit at position [pos].
+ * @param pos any position (between 0 and size()-1).
+ * @return a reference to 'this'.
+ */
+Bitset1 & 
+Bitset1::flip( Kn_size pos )
+{
+  if ( pos < size() )
+    uncheckedFlip( pos );
+  return *this;
+}
+
+/**
+ * Returns the value of the bit at position [pos].
+ * @param pos any position (between 0 and size()-1).
+ * @return 'true' if this bit was set, 'false' otherwise.
+ */
+bool 
+Bitset1::test( Kn_size pos ) const
+{
+  return ( pos < size() )
+    && uncheckedTest( pos );
+}
+
+
+
+// ------------------------- Operations -------------------------------------
+
+/**
+ * Assignment.
+ * @param other the object to clone.
+ * @return a reference on 'this'.
+ */
+Bitset1 & 
+Bitset1::operator=( const Bitset1 & other )
+{
+  if ( this != &other )
+    {
+      if ( other.m_nb_words > m_nb_alloc_words )
+	{
+	  delete[] m_data;
+	  m_data = new _word[ other.m_nb_words ];
+	  m_nb_alloc_words = other.m_nb_words;
+	}
+      doWordCopy( other.m_data, other.m_data + other.m_nb_words, m_data );
+      m_nb_words = other.m_nb_words;
+      m_size = other.m_size;
+    }
+  return *this;
+}
+
+/**
+ * Assignment with AND operation. Sizes must be identical.
+ * @param other the object to do AND with.
+ * @return a reference on 'this'.
+ */
+Bitset1 & 
+Bitset1::operator&=( const Bitset1 & other )
+{
+  ASSERT_Bitset1( size() == other.size() );
+  doWordAnd( other.m_data, other.m_data + m_nb_words, m_data );
+  return *this;
+}
+
+/**
+ * Assignment with OR operation. Sizes must be identical.
+ * @param other the object to do OR with.
+ * @return a reference on 'this'.
+ */
+Bitset1 & 
+Bitset1::operator|=( const Bitset1 & other )
+{
+  ASSERT_Bitset1( size() == other.size() );
+  doWordOr( other.m_data, other.m_data + m_nb_words, m_data );
+  return *this;
+}
+
+/**
+ * Assignment with XOR operation. Sizes must be identical.
+ * @param other the object to do XOR with.
+ * @return a reference on 'this'.
+ */
+Bitset1 & 
+Bitset1::operator^=( const Bitset1 & other )
+{
+  ASSERT_Bitset1( size() == other.size() );
+  doWordXor( other.m_data, other.m_data + m_nb_words, m_data );
+  return *this;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Comparisons ------------------------------------
+
+/**
+ * Equality comparison. Sizes must be identical.
+ * @param other the object to compare with.
+ * @return a reference on 'this'.
+ */
+bool
+Bitset1::operator==( const Bitset1 & other ) const
+{
+  ASSERT_Bitset1( size() == other.size() );
+  return doWordEq( m_data, m_data + m_nb_words, other.m_data );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Internals --------------------------------------
+
+/**
+ * Non-const accessor to word.
+ * @param pos any position (between 0 and size()-1).
+ * @return the reference of the word at position [pos].
+ */
+_word & 
+Bitset1::getWord( Kn_size pos )
+{
+  return m_data[ _W_WHICHWORD( pos ) ];
+}
+
+/**
+ * Const accessor to word.
+ * @param pos any position (between 0 and size()-1).
+ * @return the value of the word at position [pos].
+ */
+_word
+Bitset1::getWord( Kn_size pos ) const
+{
+  return m_data[ _W_WHICHWORD( pos ) ];
+}
+
+/**
+ * Sets the bit at position [pos].
+ * May cause segmentation fault if out of range.
+ * @param pos any position (between 0 and size()-1).
+ */
+void
+Bitset1::uncheckedSet( Kn_size pos )
+{
+  getWord( pos ) |= _W_MASKBIT( pos );
+}
+
+/**
+ * Sets the bit to [val] at position [pos].
+ * May cause segmentation fault if out of range.
+ * @param pos any position (between 0 and size()-1).
+ * @param val a value of 0 is 0, a value != 0 is 1.
+ */
+void
+Bitset1::uncheckedSet( Kn_size pos, int val )
+{
+  if ( val )
+    getWord( pos ) |= _W_MASKBIT( pos );
+  else
+    getWord( pos ) &= ~_W_MASKBIT( pos );
+}
+
+/**
+ * Resets the bit at position [pos].
+ * May cause segmentation fault if out of range.
+ * @param pos any position (between 0 and size()-1).
+ */
+void
+Bitset1::uncheckedReset( Kn_size pos )
+{
+  getWord( pos ) &= ~_W_MASKBIT( pos );
+}
+
+/**
+ * Flips the bit at position [pos].
+ * May cause segmentation fault if out of range.
+ * @param pos any position (between 0 and size()-1).
+ */
+void
+Bitset1::uncheckedFlip( Kn_size pos )
+{
+  getWord( pos ) ^= _W_MASKBIT( pos );
+}
+
+/**
+ * Returns the value of the bit at position [pos].
+ * May cause segmentation fault if out of range.
+ * @param pos any position (between 0 and size()-1).
+ * @return 'true' if this bit was set, 'false' otherwise.
+ */
+bool
+Bitset1::uncheckedTest( Kn_size pos ) const
+{
+  return ( getWord( pos ) & _W_MASKBIT( pos ) ) != _W_ZERO;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline static methods                                   //
+
+
+/**
+ * Resets the words between [dst_beg] and [dst_end].
+ * @param dst_beg a pointer on the first word to reset.
+ * @param dst_end a pointer on the word after the last one to reset.
+ */
+void
+Bitset1::doWordReset( _word_ptr dst_beg,
+		      _word_ptr dst_end )
+{
+  while ( dst_beg != dst_end )
+    *(dst_beg++) = _W_ZERO;
+}
+
+/**
+ * Sets the words between [dst_beg] and [dst_end].
+ * @param dst_beg a pointer on the first word to set.
+ * @param dst_end a pointer on the word after the last one to set.
+ */
+void
+Bitset1::doWordSet( _word_ptr dst_beg,
+		    _word_ptr dst_end )
+{
+  while ( dst_beg != dst_end )
+    *(dst_beg++) = ~_W_ZERO;
+}
+
+/**
+ * Flips the words between [dst_beg] and [dst_end].
+ * @param dst_beg a pointer on the first word to flip.
+ * @param dst_end a pointer on the word after the last one to flip.
+ */
+void
+Bitset1::doWordFlip( _word_ptr dst_beg,
+		     _word_ptr dst_end )
+{
+  while ( dst_beg != dst_end )
+    {
+      *dst_beg = ~ *dst_beg;
+      ++dst_beg;
+    }
+}
+
+/**
+ * Performs the copy of the words between [src_beg] and [src_end] into 
+ * [dst_beg] and following words.
+ * @param src_beg a pointer on the first word which to perform copy with.
+ * @param src_end a pointer on the word after the last one which to perform copy with.
+ * @param dst_beg a pointer on the first word which holds the result of the copy operation.
+ */
+void
+Bitset1::doWordCopy( _ro_word_ptr src_beg,
+		     _ro_word_ptr src_end,
+		     _word_ptr dst_beg )
+{
+  while ( src_beg != src_end )
+    *(dst_beg++) = *(src_beg++);
+}
+
+/**
+ * Performs the copy of the flipped words between [src_beg] and [src_end] into 
+ * [dst_beg] and following words.
+ * @param src_beg a pointer on the first word which to perform flipped copy with.
+ * @param src_end a pointer on the word after the last one which to perform flipped copy with.
+ * @param dst_beg a pointer on the first word which holds the result of the flipped copy operation.
+ */
+void
+Bitset1::doWordCopyFlipped( _ro_word_ptr src_beg,
+			    _ro_word_ptr src_end,
+			    _word_ptr dst_beg )
+{
+  while ( src_beg != src_end )
+    *(dst_beg++) = ~ *(src_beg++);
+}
+
+/**
+ * Performs the bit AND operation with the words between [src_beg] and 
+ * [src_end] into [dst_beg] and following words.
+ * @param src_beg a pointer on the first word which to perform and with.
+ * @param src_end a pointer on the word after the last one which to perform and with.
+ * @param dst_beg a pointer on the first word which holds the result of the and operation.
+ */
+void
+Bitset1::doWordAnd( _ro_word_ptr src_beg,
+		    _ro_word_ptr src_end,
+		    _word_ptr dst_beg )
+{
+  while ( src_beg != src_end )
+    *(dst_beg++) &= *(src_beg++);
+}
+
+/**
+ * Performs the bit OR operation with the words between [src_beg] and 
+ * [src_end] into [dst_beg] and following words.
+ * @param src_beg a pointer on the first word which to perform or with.
+ * @param src_end a pointer on the word after the last one which to perform or with.
+ * @param dst_beg a pointer on the first word which holds the result of the or operation.
+ */
+void
+Bitset1::doWordOr( _ro_word_ptr src_beg,
+		   _ro_word_ptr src_end,
+		   _word_ptr dst_beg )
+{
+  while ( src_beg != src_end )
+    *(dst_beg++) |= *(src_beg++);
+}
+
+/**
+ * Performs the bit XOR operation with the words between [src_beg] and 
+ * [src_end] into [dst_beg] and following words.
+ * @param src_beg a pointer on the first word which to perform xor with.
+ * @param src_end a pointer on the word after the last one which to perform xor with.
+ * @param dst_beg a pointer on the first word which holds the result of the xor operation.
+ */
+void
+Bitset1::doWordXor( _ro_word_ptr src_beg,
+		    _ro_word_ptr src_end,
+		    _word_ptr dst_beg )
+{
+  while ( src_beg != src_end )
+    *(dst_beg++) ^= *(src_beg++);
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Static comparison services ---------------------
+
+/**
+ * Performs the equality comparison with the words between [src1_beg] and 
+ * [src1_end] and the words starting from [src2_beg] and following words.
+ * @param src1_beg a pointer on the first word of the first series of data.
+ * @param src1_end a pointer on the word after the last one of the first series of data.
+ * @param src2_beg a pointer on the first word of the second series of data.
+ */
+bool
+Bitset1::doWordEq( _ro_word_ptr src1_beg,
+		   _ro_word_ptr src1_end,
+		   _ro_word_ptr src2_beg )
+{
+  while ( src1_beg != src1_end )
+    if ( *(src1_beg++) != *(src2_beg++) )
+      return false;
+  return true;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'Bitset1'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'Bitset1' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, const Bitset1 & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene
+

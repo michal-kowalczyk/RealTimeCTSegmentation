@@ -1,0 +1,279 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : CubicalComplex.ih
+//
+// Creation : 2008/03/13
+//
+// Version : 2008/03/13
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in CubicalComplex.h 
+//
+// History :
+//	2008/03/13 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class CubicalComplex declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_CubicalComplex(x)
+#define DEBUGCMD_CubicalComplex(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_CubicalComplex(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_CubicalComplex(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+// class CubicalCellData
+/////////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- Standard services ------------------------------
+
+/**
+ * Constructor.
+ */
+ImaGene::CubicalCellData::CubicalCellData()
+  : m_data( 0 )
+{
+}
+
+/**
+ * Copy constructor.
+ * 
+ * @param other the data to clone.
+ */
+ImaGene::CubicalCellData::CubicalCellData( const CubicalCellData & other )
+  : m_data( other.m_data )
+{
+}
+
+/**
+ * Destructor.
+ */
+ImaGene::CubicalCellData::~CubicalCellData()
+{
+}
+
+/**
+ * Assignment.
+ *
+ * @param other the data to clone.
+ * @return a reference on this.
+ */
+ImaGene::CubicalCellData & 
+ImaGene::CubicalCellData::operator=( const CubicalCellData & other )
+{
+  m_data = other.m_data;
+  return *this;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- Cubical cell data services ---------------------
+
+/**
+ * @param flag a valid flag for cubical cell.
+ * @return 'true' if the data is marked.
+ * @see REMOVED,COLLAPSABLE
+ */
+bool 
+ImaGene::CubicalCellData::isFlagged( uint flag ) const
+{
+  return m_data & flag;
+}
+
+/**
+ * Sets the flag [flag].
+ *
+ * @param flag a valid flag for cubical cell.
+ * @see REMOVED,COLLAPSABLE
+ */
+void 
+ImaGene::CubicalCellData::setFlag( uint flag )
+{
+  m_data |= flag;
+}
+
+/**
+ * Resets the flag [flag].
+ *
+ * @param flag a valid flag for cubical cell.
+ * @see REMOVED,COLLAPSABLE
+ */
+void 
+ImaGene::CubicalCellData::resetFlag( uint flag )
+{
+  m_data &= ~flag;
+}
+
+/**
+ * Assign the value [v] to this data.
+ *
+ * @param v an integer number (may be slightly trunked).
+ * @see VALBITS
+ */
+void 
+ImaGene::CubicalCellData::setValue( int v )
+{
+  m_data = ( m_data & ~( ( 1 << VALBITS ) - 1 ) )
+    & v;
+}
+
+/**
+ * Access the value [v] stored in this data.
+ *
+ * @return an integer number (with VALBITS significant bits)
+ * @see VALBITS
+ */
+int 
+ImaGene::CubicalCellData::getValue() const
+{
+  return m_data & ( ( 1 << VALBITS ) - 1 );
+}
+    
+
+
+/**
+ * @return the dimension of the space in which lies this cubical complex.
+ */
+uint
+ImaGene::CubicalComplex::dim() const
+{
+  return m_dim;
+}
+
+// ----------------------- Standard services ------------------------------
+
+/**
+ * @return an iterator on the first cell.
+ */
+ImaGene::CubicalComplex::iterator 
+ImaGene::CubicalComplex::begin()
+{
+  return m_cells.begin();
+}
+
+/**
+ * @return an iterator pointing just after the last cell.
+ */
+ImaGene::CubicalComplex::iterator 
+ImaGene::CubicalComplex::end()
+{
+  return m_cells.end();
+}
+
+/**
+ * @return an iterator on the first cell.
+ */
+ImaGene::CubicalComplex::const_iterator 
+ImaGene::CubicalComplex::begin() const
+{
+  return m_cells.begin();
+}
+
+/**
+ * @return an iterator pointing just after the last cell.
+ */
+ImaGene::CubicalComplex::const_iterator 
+ImaGene::CubicalComplex::end() const
+{
+  return m_cells.end();
+}
+
+
+/**
+ * Adds the cell [c] to the complex.
+ *
+ * @param c a cell lying in the adequate space.
+ * @param d an optional data to associate with [c].
+ * @return an iterator on the cell in the subcomplex.
+ */
+ImaGene::CubicalComplex::iterator
+ImaGene::CubicalComplex::add( const CubicalCell & c,
+			      const CubicalCellData & d )
+{
+  iterator it = m_cells.lower_bound( c );
+
+  if ( ( it == end() ) || ( c.invLess( it->first, m_dim ) ) )
+    // it->first is greater than or equivalent to c.
+    it = m_cells.insert( it, std::make_pair( c, d ) );
+  else
+    it->second = d;
+  return it;
+
+}
+
+
+/**
+ * Finds the iterator in the complex that points on the cell [c].
+ *
+ * @param c a cell lying in the adequate space.
+ *
+ * @return an iterator on the cell in the subcomplex or 'end()' if
+ * not found.
+ */
+ImaGene::CubicalComplex::iterator 
+ImaGene::CubicalComplex::find( const CubicalCell & c )
+{
+  return m_cells.find( c );
+}
+ 
+
+/**
+ * Removes from 'this' complex the cell defined by iterator [it].
+ *
+ * @param it an iterator on a cell of 'this'.
+ */
+void
+ImaGene::CubicalComplex::erase( iterator it )
+{
+  m_cells.erase( it );
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'CubicalComplex'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'CubicalComplex' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		     const CubicalComplex & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

@@ -1,0 +1,107 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : NormalOnSurfaceComputerByUmbrellas.ih
+//
+// Creation : 2009/05/18
+//
+// Version : 2009/05/18
+//
+// Author : Laurent Provot
+//
+// Summary : Implementation of inline methods defined in NormalOnSurfaceComputerByUmbrellas.h 
+//
+// History :
+//	2003/02/28 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class NormalOnSurfaceComputerByUmbrellas declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <cmath>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_NormalOnSurfaceComputerByUmbrellas(x)
+#define DEBUGCMD_NormalOnSurfaceComputerByUmbrellas(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_NormalOnSurfaceComputerByUmbrellas(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_NormalOnSurfaceComputerByUmbrellas(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+// ------------------------- Standard services ------------------------------
+
+/**
+ * Changes the order of the normal vector estimator
+ * @param order the number of "rings" of umbrellas taken into account to estimate the normal vector.
+ */
+void 
+NormalOnSurfaceComputerByUmbrellas::setOrder( uint order )
+{
+  m_order = order;
+}
+
+/**
+ * @return the order to consider for computation.
+ */
+uint
+NormalOnSurfaceComputerByUmbrellas::order() const
+{
+  return m_order;
+}
+
+/**
+ * Changes the order of the normal vector estimator
+ * @param order the number of "rings" of umbrellas taken into account to estimate the normal vector.
+ */
+void
+NormalOnSurfaceComputerByUmbrellas::setWeighted( bool weighted )
+{
+  m_weighted = weighted;
+}
+
+/**
+ * @return whether or not the computation is a weighted summation or not.
+ */
+bool
+NormalOnSurfaceComputerByUmbrellas::isWeighted() const
+{
+  return m_weighted;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'NormalOnSurfaceComputerByUmbrellas'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'NormalOnSurfaceComputerByUmbrellas' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, const NormalOnSurfaceComputerByUmbrellas & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene

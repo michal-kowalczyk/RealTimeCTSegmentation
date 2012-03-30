@@ -1,0 +1,88 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : FreemanFrame2D.ih
+//
+// Creation : 2005/04/20
+//
+// Version : 2005/04/20
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in FreemanFrame2D.h 
+//
+// History :
+//	2005/04/20 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class FreemanFrame2D declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_FreemanFrame2D(x)
+#define DEBUGCMD_FreemanFrame2D(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_FreemanFrame2D(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_FreemanFrame2D(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/**
+ * Constructor. The object is not valid.
+ */
+ImaGene::FreemanFrame2D::FreemanFrame2D()
+{
+}
+
+
+/**
+ * Initializes the frame with a Freeman move [fcode], 0 east, 1
+ * north, 2 west, 3 south.
+ * The Freeman move/code represents the local frame. The inside
+ * lies to the left (ie. ccw) of the Freeman move.
+ *
+ * @param fc a 4-connected Freeman move/code.
+ */
+void
+ImaGene::FreemanFrame2D::init( uint fc )
+{
+  m_fc = fc;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'FreemanFrame2D'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'FreemanFrame2D' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const FreemanFrame2D & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

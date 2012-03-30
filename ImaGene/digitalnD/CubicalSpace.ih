@@ -1,0 +1,241 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : CubicalSpace.ih
+//
+// Creation : 2008/03/20
+//
+// Version : 2008/03/20
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in CubicalSpace.h 
+//
+// History :
+//	2008/03/20 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class CubicalSpace declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_CubicalSpace(x)
+#define DEBUGCMD_CubicalSpace(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_CubicalSpace(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_CubicalSpace(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * @return the dimension of the cubical space.
+ */
+uint
+ImaGene::CubicalSpace::dim() const
+{
+  return m_dim;
+}
+
+/**
+ * Copy constructor.
+ * @param other the cell iterator to clone.
+ */
+ImaGene::CubicalSpaceScanner::CubicalSpaceScanner
+( const CubicalSpaceScanner & other )
+  : m_space( other.m_space ), 
+    m_cell( other.m_cell, other.m_space->dim() ),
+    m_stop( other.m_stop, other.m_space->dim() )
+{
+}
+    
+/**
+ * Assignment.
+ * @param other the cell iterator to copy.
+ * @return a reference on 'this'.
+ */
+ImaGene::CubicalSpaceScanner& 
+ImaGene::CubicalSpaceScanner::operator=( const CubicalSpaceScanner & other )
+{
+  if ( this != &other )
+    {
+      m_space = other.m_space;
+      m_cell.assign( other.m_cell, m_space->dim() );
+      m_stop.assign( other.m_stop, m_space->dim() );
+    }
+  return *this;
+}
+    
+/**
+ * Destructor. Does nothing.
+ */
+ImaGene::CubicalSpaceScanner::~CubicalSpaceScanner()
+{
+}
+
+/**
+ * Constructor.
+ *
+ * @param space the cubical space to scan.
+ */
+ImaGene::CubicalSpaceScanner::CubicalSpaceScanner
+( const CubicalSpace & space )
+  : m_space( & space )
+{
+}
+
+/**
+ * All cells of the same level and topology as start will be
+ * scanned. The starting cell is generally some power of 2.
+ * 
+ * @param start the starting cell.
+ */
+void
+ImaGene::CubicalSpaceScanner::init( const CubicalCell & start )
+{
+  m_cell.init( start, m_space->dim() );
+  m_stop.init( start, m_space->dim() );
+  for ( uint i = 0; i < m_space->dim(); ++i )
+    {
+      m_stop[ i ] = 0x1LL << ( KnUtils::getMSB( m_stop[ i ] ) + 1 );
+    }
+}
+    
+// ------------------------- iteration services ------------------------
+    
+/**
+ * @return the current cell (oriented or not depending on the set).
+ * @see CubicalSpaceScanner::get
+ */
+const ImaGene::CubicalCell & 
+ImaGene::CubicalSpaceScanner::operator*() const
+{
+  return m_cell;
+}
+    
+/**
+ * @return the current cell (oriented or not depending on the set).
+ * @see CubicalSpaceScanner::operator*
+ */
+const ImaGene::CubicalCell & 
+ImaGene::CubicalSpaceScanner::get() const
+{
+  return m_cell;
+}
+
+
+/**
+ * @return the cell after the last one
+ */
+const ImaGene::CubicalCell & 
+ImaGene::CubicalSpaceScanner::end() const
+{
+  return m_stop;
+}
+    
+/**
+ * Goes to the next cell in the set.
+ * @return 'true' is there is one, 'false' otherwise.
+ */
+bool
+ImaGene::CubicalSpaceScanner::next()
+{
+  for ( uint i = 0; i < m_space->dim(); ++i )
+    {
+      m_cell[ i ] += 2;
+      if ( m_cell[ i ] >= m_stop[ i ] )
+	m_cell[ i ] = ( ( m_stop[ i ] >> 1 ) & ~0x1LL ) | ( m_cell[ i ] & 0x1 );
+      else return true;
+    }
+  return false;
+}
+    
+/**
+ * Equality operator.
+ *
+ * @param other the scanner to compare with (must be defined in
+ * the same set).
+ *
+ * @return 'true' if their current positions coincide.
+ */
+bool 
+ImaGene::CubicalSpaceScanner::operator==
+( const CubicalSpaceScanner & other ) const
+{
+  ASSERT_CubicalSpace( m_space == other.m_space );
+  return m_cell.equals( other.m_cell, m_space->dim() );
+}
+    
+/**
+ * Inequality operator.
+ *
+ * @param other the scanner to compare with (must be defined in
+ * the same set).
+ *
+ * @return 'true' if their current positions differs.
+ */
+bool 
+ImaGene::CubicalSpaceScanner::operator!=
+( const CubicalSpaceScanner & other ) const
+{
+  return ! this->operator==( other );
+}
+    
+/**
+ * Less operator.
+ *
+ * @param other the scanner to compare with (must be defined in
+ * the same set).
+ *
+ * @return 'true' if the current position of 'this' is before
+ * the current position of [other].
+ */
+bool 
+ImaGene::CubicalSpaceScanner::operator<
+( const CubicalSpaceScanner & other ) const
+{
+  for ( uint i = m_space->dim(); i != 0; )
+    {
+      --i;
+      if ( m_cell[ i ] < other.m_cell[ i ] ) return true;
+      if ( m_cell[ i ] > other.m_cell[ i ] ) return false;
+    }
+  return false;
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'CubicalSpace'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'CubicalSpace' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const CubicalSpace & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

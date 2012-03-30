@@ -1,0 +1,452 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : K2Space.ih
+//
+// Creation : 2008/12/15
+//
+// Version : 2008/12/15
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in K2Space.h 
+//
+// History :
+//	2008/12/15 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class K2Space declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_K2Space(x)
+#define DEBUGCMD_K2Space(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_K2Space(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl	    \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_K2Space(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+  
+  /////////////////////////////////////////////////////////////////////////////
+  // Implementation of inline methods                                        //
+  /////////////////////////////////////////////////////////////////////////////
+  // Standard services - public :
+
+
+  // ------------------------- Basic services ------------------------------
+  
+  /**
+   * @return the width of the space (number of pixels along x-axis).
+   */
+  uint K2Space::width() const
+  {
+    return m_size[ 0 ];
+  }
+  /**
+   * @return the height of the space (number of pixels along x-axis).
+   */
+  uint K2Space::height() const
+  {
+    return m_size[ 1 ];
+  }
+
+  /**
+   * Creates the pointel at coordinate (x,y) (which has Khalimsky
+   * coordinates (2x,2y).
+   *
+   * @param x its x coordinate
+   * @param y its y coordinate
+   * @return the unsigned code of this pointel.
+   */
+  Kn_uid K2Space::upointel( uint x, uint y ) const
+  {
+    Kn_uid id = x + ( y << m_uid_coord[ 1 ].shift );
+    return id;
+  }
+
+  /**
+   * Creates the pointel at coordinate (x,y) (which has Khalimsky
+   * coordinates (2x,2y), and assign to it an orientation.
+   *
+   * @param x its x coordinate
+   * @param y its y coordinate
+   * @param s the sign is Kn_Types::POS or Kn_Types::NEG.
+   * @return the signed code of this pointel.
+   */
+  Kn_sid K2Space::spointel( uint x, uint y, Kn_sign s ) const
+  {
+    Kn_sid id = x + ( y << m_sid_coord[ 1 ].shift );
+    id |= s & m_sid_sign.mask;
+    return id;
+  }
+
+  /**
+   * Creates the pixel at coordinate (x,y) (which has Khalimsky
+   * coordinates (2x+1,2y+1).
+   *
+   * @param x its x coordinate
+   * @param y its y coordinate
+   * @return the unsigned code of this pixel.
+   */
+  Kn_uid K2Space::upixel( uint x, uint y ) const
+  {
+    Kn_uid id = x + ( y << m_uid_coord[ 1 ].shift );
+    id |= 0x3 << m_uid_dir[ 0 ].shift;
+    return id;
+  }
+
+  /**
+   * Creates the pixel at coordinate (x,y) (which has Khalimsky
+   * coordinates (2x+1,2y+1), and assign to it an orientation.
+   *
+   * @param x its x coordinate
+   * @param y its y coordinate
+   * @param s the sign is Kn_Types::POS or Kn_Types::NEG.
+   * @return the signed code of this pixel.
+   */
+  Kn_sid K2Space::spixel( uint x, uint y, Kn_sign s ) const
+  {
+    Kn_sid id = x + ( y << m_uid_coord[ 1 ].shift );
+    id |= 0x3 << m_uid_dir[ 0 ].shift;
+    id |= s & m_sid_sign.mask;
+    return id;
+  }
+
+  /**
+   * Creates a linel whose base is (x,y) and directed according to the
+   * Freeman code fc.
+   * - 0: linel from (x,y) to (x+1,y)
+   * - 1: linel from (x,y) to (x,y+1)
+   * - 2: linel from (x,y) to (x-1,y)
+   * - 3: linel from (x,y) to (x,y-1)
+   *
+   * @param x its x coordinate
+   * @param y its y coordinate
+   * @return the unsigned code of this linel.
+   */
+  Kn_uid K2Space::ulinel( uint x, uint y, uint fc ) const
+  {
+    Kn_uid bel;
+    switch ( fc )
+      {
+      case 0: 
+	ASSERT_K2Space( ( x < size( 0 ) ) && "The linel of Freeman code 0 is outside of the digital space." );
+	bel = m_fc_lut[ 0 ].ulinel + upointel( x, y );
+	break;
+      case 1:
+	ASSERT_K2Space( ( y < size( 1 ) ) && "The linel of Freeman code 1 is outside of the digital space." );
+	bel = m_fc_lut[ 1 ].ulinel + upointel( x, y );
+	break;
+      case 2:
+	ASSERT_K2Space( x != 0 && "The linel of Freeman code 2 is outside of the digital space." );
+	bel = m_fc_lut[ 2 ].ulinel + upointel( x - 1, y );
+	break;
+      case 3:
+	ASSERT_K2Space( y != 0 && "The linel of Freeman code 3 is outside of the digital space." );
+	bel = m_fc_lut[ 3 ].ulinel + upointel( x, y - 1 );
+	break;
+      default:
+	bel = 0;
+      }
+    return bel;
+    // Kn_uid pointel = upointel( x, y );
+    // switch ( fc )
+    //   {
+    //   case 0: 
+    // 	bel = uincident( pointel, 0, true );
+    // 	break;
+    //   case 1:
+    // 	bel = uincident( pointel, 1, true );
+    // 	break;
+    //   case 2:
+    // 	bel = uincident( pointel, 0, false );
+    // 	break;
+    //   case 3:
+    // 	bel = uincident( pointel, 1, false );
+    // 	break;
+    //   default:
+    // 	bel = 0;
+    //   }
+  }
+  
+  /**
+   * Creates a linel whose base is (x,y) and directed according to the
+   * Freeman code fc.
+   * - 0: linel from (x,y) to (x+1,y)
+   * - 1: linel from (x,y) to (x,y+1)
+   * - 2: linel from (x,y) to (x-1,y)
+   * - 3: linel from (x,y) to (x,y-1)
+   * 
+   * The linel is oriented positively in the direction given by the
+   * Freeman code, meaning that the pointed pointel has positive
+   * orientation in the lower boundary of this linel. For instance, l
+   * = slinel(3,2,0) is the linel of Khalimsky coordinate (7,4), going
+   * from pointels (3,2) to (4,2), and its lower boundary is the
+   * positive pointel (4,2) and the negative pointel (3,2).
+   *
+   * @param x its x coordinate
+   * @param y its y coordinate
+   * @return the signed code of this linel.
+   */
+  Kn_sid K2Space::slinel( uint x, uint y, uint fc ) const
+  {
+    Kn_sid bel;
+    switch ( fc )
+      {
+      case 0: 
+	ASSERT_K2Space( ( x < size( 0 ) ) && "The linel of Freeman code 0 is outside of the digital space." );
+	bel = m_fc_lut[ 0 ].slinel + (Kn_sid) upointel( x, y );
+	break;
+      case 1:
+	ASSERT_K2Space( ( y < size( 1 ) ) && "The linel of Freeman code 1 is outside of the digital space." );
+	bel = m_fc_lut[ 1 ].slinel + (Kn_sid) upointel( x, y );
+	break;
+      case 2:
+	ASSERT_K2Space( x != 0 && "The linel of Freeman code 2 is outside of the digital space." );
+	bel = m_fc_lut[ 2 ].slinel + (Kn_sid) upointel( x - 1, y );
+	break;
+      case 3:
+	ASSERT_K2Space( y != 0 && "The linel of Freeman code 3 is outside of the digital space." );
+	bel = m_fc_lut[ 3 ].slinel + (Kn_sid) upointel( x, y - 1 );
+	break;
+      default:
+	bel = 0;
+      }
+    return bel;
+    // Kn_sid pointel = spointel( x, y, KnTypes::NEG );
+    // switch ( fc )
+    //   {
+    //   case 0: 
+    // 	bel = sincident( pointel, 0, true );
+    // 	break;
+    //   case 1:
+    // 	bel = sincident( pointel, 1, true );
+    // 	break;
+    //   case 2:
+    // 	bel = sincident( pointel, 0, false );
+    // 	break;
+    //   case 3:
+    // 	bel = sincident( pointel, 1, false );
+    // 	break;
+    //   default:
+    // 	bel = 0;
+    //   }
+  }
+
+  /**
+   * From the Khalimsky coordinates of a point in Kn, builds its unsigned code.
+   * @param x its x coordinate
+   * @param y its y coordinate
+   * @return the unsigned code of this point.
+   *
+   * Example: ukcode( 4, 3 ) codes the vertical linel
+   of coordinate (2,1).
+  */
+  Kn_uid K2Space::ukcode( uint x, uint y ) const
+  {
+    Kn_uid id = ( x >> 1 ) + ( ( y >> 1 ) << m_uid_coord[ 1 ].shift );
+    id |= ( ( x & 1 ) + ( ( y & 1 ) << 1 ) ) << m_uid_dir[ 0 ].shift;
+    return id;
+  }
+
+  /**
+   * From the Khalimsky coordinates of a point in Kn, builds its signed code.
+   * @param x its x coordinate
+   * @param y its y coordinate
+   * @param s the sign is Kn_Types::POS or Kn_Types::NEG.
+   * @return the signed code of this point.
+   *
+   * Example: skcode( 4, 3, Kn_Types::POS ) codes the vertical linel
+   of coordinate (2,1), with some orientation.
+  */
+  Kn_sid K2Space::skcode( uint x, uint y, Kn_sign s ) const
+  {
+    Kn_sid id = ( x >> 1 ) + ( ( y >> 1 ) << m_uid_coord[ 1 ].shift );
+    id |= ( ( x & 1 ) + ( ( y & 1 ) << 1 ) ) << m_uid_dir[ 0 ].shift;
+    id |= s & m_sid_sign.mask;
+    return id;
+  }
+
+  // ------------------------- Cell decoding services -------------------------
+
+  /**
+   * @param p any unsigned cell.
+   * @return the x (or 0-th) (digital) coordinate of p
+   */
+  uint K2Space::ux( Kn_uid p ) const
+  {
+    return Field_select( p, m_uid_coord[ 0 ] );
+  }
+
+  /**
+   * @param p any unsigned cell.
+   * @return the y (or 1-th) (digital) coordinate of p
+   */
+  uint K2Space::uy( Kn_uid p ) const
+  {
+    return Field_valueOf( p, m_uid_coord[ 1 ] );
+  }
+
+  /**
+   * @param p any signed cell.
+   * @return the x (or 0-th) (digital) coordinate of p
+   */
+  uint K2Space::sx( Kn_sid p ) const
+  {
+    return Field_select( p, m_sid_coord[ 0 ] );
+  }
+  /**
+   * @param p any signed cell.
+   * @return the y (or 1-th) (digital) coordinate of p
+   */
+  uint K2Space::sy( Kn_sid p ) const
+  {
+    return Field_valueOf( p, m_sid_coord[ 1 ] );
+  }
+
+  // ------------------------- Cell topology services -------------------------
+
+  /**
+   * @param p any unsigned cell.
+   * @return the dimension of the cell [p].
+   * NB: optimized in dimension 2.
+   */
+  uint K2Space::udim( Kn_uid p ) const
+  {
+    switch( utopology( p ) )
+      {
+      case 0: return 0;
+      case 1: 
+      case 2: return 1;
+      case 3: return 2;
+      }
+    return 0;
+  }
+
+  /**
+   * @param p any signed cell.
+   * @return the dimension of the cell [p].
+   * NB: optimized in dimension 2.
+   */
+  uint K2Space::sdim( Kn_sid p ) const
+  {
+    switch( stopology( p ) )
+      {
+      case 0: return 0;
+      case 1: 
+      case 2: return 1;
+      case 3: return 2;
+      }
+    return 0;
+  }
+
+  /**
+   * @param b any unsigned cell.
+   * @return 'true' if [b] is a linel (spans one coordinate).
+   */
+  bool K2Space::uisLinel( Kn_uid b ) const
+  {
+    uint t = utopology( b );
+    return ( t == 1 ) || ( t == 2 );
+  }
+
+  /**
+   * @param b any signed cell.
+   * @return 'true' if [b] is a linel (spans one coordinate).
+   */
+  bool K2Space::sisLinel( Kn_sid b ) const
+  {
+    uint t = stopology( b );
+    return ( t == 1 ) || ( t == 2 );
+  }
+
+  /**
+   * Given an unsigned linel [s], returns its orthogonal direction (ie,
+   * the coordinate where the linel is closed).
+   *
+   * @param s an unsigned linel
+   * @return the orthogonal direction of [s]
+   */
+  uint K2Space::uorthDir( Kn_uid s ) const
+  {
+    ASSERT_K2Space( uisLinel( s ) && "[K2Space::uorthDir( Kn_uid s )] Only linels have one orthogonal direction." );
+    return ( Field_select( s, m_uid_dir[ 0 ] ) ) ? 1 : 0;
+  }
+
+  /**
+   * Given a signed linel [s], returns its orthogonal direction (ie,
+   * the coordinate where the linel is closed).
+   *
+   * @param s a signed linel
+   * @return the orthogonal direction of [s]
+   */
+  uint K2Space::sorthDir( Kn_sid s ) const
+  {
+    ASSERT_K2Space( sisLinel( s ) && "[K2Space::sorthDir( Kn_sid s )] Only linels have one orthogonal direction." );
+    return ( Field_select( s, m_sid_dir[ 0 ] ) ) ? 1 : 0;
+  }
+
+  /**
+   * Given an unsigned linel [s], returns its tangent direction (ie,
+   * the coordinate where the linel is open).
+   *
+   * @param s an unsigned linel
+   * @return the tangent direction of [s]
+   */
+  uint K2Space::utanDir( Kn_uid s ) const
+  {
+    ASSERT_K2Space( uisLinel( s ) && "[K2Space::uorthDir( Kn_uid s )] Only linels have one tangent direction." );
+    return ( Field_select( s, m_uid_dir[ 0 ] ) ) ? 0 : 1;
+  }
+
+  /**
+   * Given a signed linel [s], returns its tangent direction (ie,
+   * the coordinate where the linel is open).
+   *
+   * @param s a signed linel
+   * @return the tangent direction of [s]
+   */
+  uint K2Space::stanDir( Kn_sid s ) const
+  {
+    ASSERT_K2Space( sisLinel( s ) && "[K2Space::sorthDir( Kn_sid s )] Only linels have one tangent direction." );
+    return ( Field_select( s, m_sid_dir[ 0 ] ) ) ? 0 : 1;
+  }
+
+
+
+ 
+  /////////////////////////////////////////////////////////////////////////////
+  // Implementation of inline functions and external operators               //
+
+  /**
+   * Overloads 'operator<<' for displaying objects of class 'K2Space'.
+   * @param that_stream the output stream where the object is written.
+   * @param that_object_to_display the object of class 'K2Space' to write.
+   * @return the output stream after the writing.
+   */
+  std::ostream&
+  operator<<( std::ostream & that_stream, 
+	      const K2Space & that_object_to_display )
+  {
+    that_object_to_display.selfDisplay( that_stream );
+    return that_stream;
+  }
+  
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene
+

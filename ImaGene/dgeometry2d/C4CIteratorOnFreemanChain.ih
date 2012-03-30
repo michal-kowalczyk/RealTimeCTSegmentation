@@ -1,0 +1,163 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : C4CIteratorOnFreemanChain.ih
+//
+// Creation : 2008/05/22
+//
+// Version : 2008/05/22
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in C4CIteratorOnFreemanChain.h 
+//
+// History :
+//	2008/05/22 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class C4CIteratorOnFreemanChain declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_C4CIteratorOnFreemanChain(x)
+#define DEBUGCMD_C4CIteratorOnFreemanChain(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_C4CIteratorOnFreemanChain(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_C4CIteratorOnFreemanChain(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Destructor. 
+ */
+ImaGene::C4CIteratorOnFreemanChain::~C4CIteratorOnFreemanChain()
+{
+}
+
+
+/**
+ * Default Constructor.
+ * The object is not valid.
+ */
+ImaGene::C4CIteratorOnFreemanChain::C4CIteratorOnFreemanChain()
+  : m_it()
+{
+}
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+ImaGene::C4CIteratorOnFreemanChain::C4CIteratorOnFreemanChain
+( const C4CIteratorOnFreemanChain & other )
+  : m_it( other.m_it ), m_loop( other.m_loop )
+{
+}
+
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ * Forbidden by default.
+ */
+ImaGene::C4CIteratorOnFreemanChain & 
+ImaGene::C4CIteratorOnFreemanChain::operator=
+( const C4CIteratorOnFreemanChain & other )
+{
+  if ( this != &other )
+    {
+      m_it = other.m_it;
+      m_loop = other.m_loop;
+    }
+  return *this;
+}
+
+
+/**
+ * @return the iterator on FreemanChain.
+ */
+const ImaGene::FreemanChain::const_iterator & 
+ImaGene::C4CIteratorOnFreemanChain::getIterator() const
+{
+  return m_it;
+}
+
+
+/**
+ * @return a clone of the current iterator.
+ */
+ImaGene::C4CIterator* 
+ImaGene::C4CIteratorOnFreemanChain::clone() const
+{
+  return new C4CIteratorOnFreemanChain( *this );
+}
+
+/**
+ * @param other any other iterator.
+ * @return 'true' if [other] points to the same location as 'this'.
+ */
+bool
+ImaGene::C4CIteratorOnFreemanChain::equals( const C4CIterator & other ) const
+{
+  const C4CIteratorOnFreemanChain* c4c = 
+    dynamic_cast<const C4CIteratorOnFreemanChain*>( &other );
+  return ( c4c != 0 ) && ( m_it == c4c->m_it );
+}
+
+
+
+/**
+ * Initializes the iterator as following the sequence of Freeman
+ * moves [s] with initial index position [pos].
+ *
+ * @param it an iterator in a Freeman chain code.
+ *
+ * @param loop when 'true', the chain loops, otherwise it has a
+ * beginning and an end.
+ */
+void
+ImaGene::C4CIteratorOnFreemanChain::init
+( const FreemanChain::const_iterator & it, bool loop )
+{
+  m_it = it;
+  m_loop = loop;
+}
+
+
+
+ 
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'C4CIteratorOnFreemanChain'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'C4CIteratorOnFreemanChain' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const C4CIteratorOnFreemanChain & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

@@ -1,0 +1,200 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Vector.ih
+//
+// Creation : 2005/01/04
+//
+// Version : 2005/01/04
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Vector.h 
+//
+// History :
+//	2005/01/04 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Vector declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Vector(x)
+#define DEBUGCMD_Vector(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Vector(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_Vector(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/**
+ * Returns the size of the vector (i.e. the number of its
+ * coefficients).
+ */
+uint
+ImaGene::Vector::size(void) const
+{
+  return m_size;
+}
+
+
+
+/**
+ * Returns the  \a i-th coefficient of the vector.
+ *
+ * \pre The \a i index must lie between \a 0 and \a size() .
+ *
+ * \param i is the index of the retrieved coefficient.
+ */
+const float& 
+ImaGene::Vector::ro(uint i) const
+{
+  return m_data[ i ];
+}
+
+
+
+/**
+ * Returns a non-const reference to the \a i-th element of the
+ * vector.
+ *
+ * \pre The \a i index must lie between \a 0 and \a size() .
+ *
+ * \param i is the index of the retrieved coefficient.
+ */
+float& 
+ImaGene::Vector::rw(uint i)
+{
+  return m_data[ i ];
+}
+
+
+/**
+ * @return the address at which datas are stored. Be careful when
+ * using this method.
+ */
+float* 
+ImaGene::Vector::data() const
+{
+  return m_data;
+}
+
+
+/**
+ * Resets all the values to zero.
+ */
+void
+ImaGene::Vector::zero()
+{
+  for ( uint i = 0; i < m_size; ++i )
+    m_data[ i ] = 0.0f;
+}
+
+
+/**
+ * Assigns the values stored starting at address [data] to the vector.
+ *
+ * @pre data must be an array of size at least 'size()'.
+ * @param data the address of the first value to assign.
+ */
+void
+ImaGene::Vector::assign( float* data )
+{
+  for ( uint i = 0; i < m_size; ++i )
+    m_data[ i ] = data[ i ];
+}
+
+
+
+
+
+/**
+ * Destructor. 
+ */
+ImaGene::Vector2D::~Vector2D()
+{
+}
+
+
+/**
+ * @return a const reference on the first value.
+ */
+const float& 
+ImaGene::Vector2D::x(void) const
+{
+  return m_static_data[ 0 ];
+}
+
+
+
+/**
+ * @return a const reference on the second value.
+ */
+const float& 
+ImaGene::Vector2D::y(void) const
+{
+  return m_static_data[ 1 ];
+}
+
+
+
+/**
+ * @return a reference on the first value.
+ */
+float& 
+ImaGene::Vector2D::x(void)
+{
+  return m_static_data[ 0 ];
+}
+
+
+
+/**
+ * @return a reference on the second value.
+ */
+float& 
+ImaGene::Vector2D::y(void)
+{
+  return m_static_data[ 1 ];
+}
+
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'Vector'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'Vector' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const Vector & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

@@ -1,0 +1,50 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : C4CIterator.ih
+//
+// Creation : 2004/12/01
+//
+// Version : 2004/12/01
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in C4CIterator.h 
+//
+// History :
+//	2004/12/01 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class C4CIterator declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_C4CIterator(x)
+#define DEBUGCMD_C4CIterator(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_C4CIterator(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_C4CIterator(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

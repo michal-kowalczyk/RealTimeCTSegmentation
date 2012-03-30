@@ -1,0 +1,131 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : GridEmbedder.ih
+//
+// Creation : 2004/02/04
+//
+// Version : 2004/02/04
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in GridEmbedder.h 
+//
+// History :
+//	2004/02/04 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class GridEmbedder declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_GridEmbedder(x)
+#define DEBUGCMD_GridEmbedder(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_GridEmbedder(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_GridEmbedder(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/**
+ * Destructor. Does nothing.
+ */
+ImaGene::GridEmbedder::~GridEmbedder()
+{
+  if ( m_center != 0 )
+    delete m_center;
+  if ( m_tmp != 0 )
+    delete m_tmp;
+}
+
+
+/**
+ * Constructor.
+ * The embedder is not valid yet.
+ * @see init
+ */
+ImaGene::GridEmbedder::GridEmbedder()
+  : Embedder(), m_center( 0 ), m_tmp( 0 )
+{
+}
+
+
+/**
+ * Constructor.
+ * @param space the digital space where the cells are defined.
+ */
+ImaGene::GridEmbedder::GridEmbedder( const KnSpace* space )
+  : Embedder( space ), m_center( 0 ), m_tmp( 0 )
+{
+}
+
+/**
+ * Copy constructor.
+ * @param other the other grid embedder to copy
+ */
+ImaGene::GridEmbedder::GridEmbedder( const GridEmbedder & other )
+  : Embedder( other.space() ), m_dh( other.m_dh )
+{
+  m_center = new Vector( *other.m_center );
+  m_tmp = new Vector( *other.m_center );
+}
+
+
+/**
+ * Sets the center of the space.
+ * @param xcenter a vector with same dimension as the digital space.
+ */
+void
+ImaGene::GridEmbedder::setCenter( const Vector & xcenter )
+{
+  if ( m_center != 0 ) delete m_center;
+  m_center = new Vector( xcenter );
+  if ( m_tmp != 0 ) delete m_tmp;
+  m_tmp = new Vector( xcenter );
+}
+
+
+/**
+ * Sets the resolution of the space.
+ * @param scale the resolution of the space (the closer to zero, the finer is the grid).
+ */
+void
+ImaGene::GridEmbedder::setScale( float scale )
+{
+  m_dh = scale;
+}
+
+
+/**
+ * @return a clone of 'this'.
+ */
+ImaGene::Embedder* 
+ImaGene::GridEmbedder::clone() const
+{
+  return new GridEmbedder( *this );
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

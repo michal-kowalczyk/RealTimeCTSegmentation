@@ -1,0 +1,659 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : KnCharSet.ih
+//
+// Creation : 2002/08/02
+//
+// Version : 2002/08/02
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in KnCharSet.h 
+//
+// History :
+//	2002/08/02 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class KnCharSet declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_KnCharSet(x)
+#define DEBUGCMD_KnCharSet(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_KnCharSet(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_KnCharSet(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+// ------------------------- Standard services ----------------------------
+
+/**
+ * Constructor.
+ * @param ptr_s a pointer on a set or '0'.
+ * @param c the offset in [ptr_s] of the starting cell or 'INVALID_CELL'
+ */
+KnCharSet::cell_iterator::cell_iterator( const KnCharSet* ptr_s,
+					 Kn_gid c )
+  : m_set( ptr_s ), m_current( c )
+{
+}
+
+/**
+ * Copy constructor.
+ * @param other the cell iterator to clone.
+ */
+KnCharSet::cell_iterator::cell_iterator( const cell_iterator & other )
+  : m_set( other.m_set ), m_current( other.m_current )
+{
+}
+
+
+/**
+ * Assignment.
+ * @param other the cell iterator to copy.
+ * @return a reference on 'this'.
+ */
+KnCharSet::cell_iterator& 
+KnCharSet::cell_iterator::operator=( const cell_iterator & other )
+{
+  m_set = other.m_set;
+  m_current = other.m_current;
+  return *this;
+}
+
+
+/**
+ * Destructor. Does nothing.
+ */
+KnCharSet::cell_iterator::~cell_iterator()
+{
+}
+
+
+// ------------------------- iteration services ---------------------------
+
+/**
+ * @return the current cell (oriented or not depending on the set).
+ * @see KnCharSet::cell_iterator::get
+ */
+Kn_gid 
+KnCharSet::cell_iterator::operator*() const
+{
+  return get();
+}
+
+
+/**
+ * @return the current cell (oriented or not depending on the set).
+ * @see KnCharSet::cell_iterator::operator*
+ */
+Kn_gid 
+KnCharSet::cell_iterator::get() const
+{
+  return m_current + m_set->m_min;
+}
+
+
+/**
+ * Pre-increment.
+ * Goes to the next cell in the set.
+ * @see KnCharSet::cell_iterator::next
+ */
+KnCharSet::cell_iterator& 
+KnCharSet::cell_iterator::operator++()
+{
+  next();
+  return *this;
+}
+
+/**
+ * Goes to the next cell in the set.
+ * @see KnCharSet::cell_iterator::operator++
+ */
+void 
+KnCharSet::cell_iterator::next()
+{
+  m_current = m_set->ro().findNext( m_current, INVALID_CELL );
+}
+
+/**
+ * Equality operator.
+ * @param other the cell iterator to compare with (must be defined in the same set).
+ * @return 'true' if their current positions coincide.
+ */
+bool 
+KnCharSet::cell_iterator::operator==( const cell_iterator & other ) const
+{
+  ASSERT_KnCharSet( m_set == other.m_set );
+  return m_current == other.m_current;
+}
+
+
+/**
+ * Inequality operator.
+ * @param other the cell iterator to compare with (must be defined in the same set).
+ * @return 'true' if their current positions differs.
+ */
+bool 
+KnCharSet::cell_iterator::operator!=( const cell_iterator & other ) const
+{
+  ASSERT_KnCharSet( m_set == other.m_set );
+  return m_current != other.m_current;
+}
+
+
+/**
+ * Inferior operator.
+ * @param other the cell iterator to compare with (must be defined in the same set).
+ * @return 'true' if the current position of 'this' is before the current position of [other].
+ */
+bool 
+KnCharSet::cell_iterator::operator<( const cell_iterator & other ) const
+{
+  ASSERT_KnCharSet( m_set == other.m_set );
+  return m_current < other.m_current;
+}
+
+
+
+
+
+// ------------------------- Standard services ------------------------------
+
+/**
+ * Destructor. 
+ */
+KnCharSet::~KnCharSet()
+{
+  // Nothing to do.
+}
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+KnCharSet::KnCharSet( const KnCharSet & other )
+  : Shared<Bitset1>( other ),
+    m_sanitizer( other.m_sanitizer ),
+    m_min( other.m_min ),
+    m_max1( other.m_max1 )
+{
+  // The bitset is not copied yet.
+}
+
+/**
+ * Assignment.
+ * @param other the object to clone.
+ * @return a reference on 'this'.
+ */
+KnCharSet & 
+KnCharSet::operator=( const KnCharSet & other )
+{
+  if ( &other != this )
+    {
+      Shared<Bitset1>::operator=( other );
+      m_sanitizer = other.m_sanitizer;
+      m_min = other.m_min;
+      m_max1 = other.m_max1;
+    }
+  return *this;
+}
+
+  inline
+  void
+  KnCharSet::clear()
+  {
+    rw().clear();
+  }
+
+/**
+ * @return other any set.
+ * @return 'true' if 'this' is compatible with [other] for set operations.
+ */
+bool
+KnCharSet::isCompatibleWith( const KnCharSet & other ) const
+{
+  return ( m_min == other.m_min ) && ( m_max1 == other.m_max1 );
+}
+
+
+/**
+ * @return elem any element.
+ * @return 'true' if [elem] is compatible with 'this' for set operations.
+ */
+bool 
+KnCharSet::isCompatibleWith( Kn_gid elem ) const
+{
+  return ( m_min <= elem ) && ( elem < m_max1 );
+}
+
+
+/**
+ * @return the number of elements of the set.
+ */
+Kn_size
+KnCharSet::nbElements() const
+{
+  return ro().nbElements();
+}
+
+/**
+ * @return the cell with smallest id that can be stored in 'this'.
+ */
+Kn_gid 
+KnCharSet::min() const
+{
+  return m_min;
+}
+
+/**
+ * @return the cell with biggest id that can be stored in 'this'.
+ */
+Kn_gid 
+KnCharSet::max() const
+{
+  return m_max1 - 1;
+}
+
+  
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Set comparison services ------------------------
+
+/**
+ * @param other the object to compare with.
+ * @return 'true' if the two sets contain the same elements.
+ */
+bool
+KnCharSet::operator==( const KnCharSet & other ) const
+{
+  return ro() == other.ro();
+}
+
+/**
+ * @param other the object to compare with.
+ * @return 'true' if the two sets are different.
+ */
+bool
+KnCharSet::operator!=( const KnCharSet & other ) const
+{
+  return ! ( ro() == other.ro() );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Set services -----------------------------------
+
+
+/**
+ * Non-const access to element, eg <code> b[ i ] = true </code>
+ * @param elem an elem (between 'min()' and 'max()').
+ * @return a reference on the element.
+ * NB: if [elem] is outside the set, may cause trouble.
+ */
+KnCharSet::reference
+KnCharSet::operator[]( Kn_gid elem )
+{
+  return rw().operator[]( elem - m_min );
+}
+
+/**
+ * Const access to element, eg <code> cout << b[ i ] </code>
+ * @param elem an elem (between 'min()' and 'max()').
+ * @return a boolean 'true' for 1, 'false' for 0.
+ * NB: if [elem] is outside the set, may cause trouble.
+ */
+bool
+KnCharSet::operator[]( Kn_gid elem ) const
+{
+  return ro().operator[]( elem - m_min );
+}
+
+/**
+ * Protected const access to element, eg <code> cout << b[ i ] </code>
+ * @param elem an elem (between 'min()' and 'max()').
+ * @return a boolean 'true' for 1, 'false' for 0.
+ */
+bool
+KnCharSet::at( Kn_gid elem ) const
+{
+  if ( ( elem < m_min ) 
+       || ( elem >= m_max1 ) )
+    return false;
+  return ro().operator[]( elem - m_min );
+}
+
+
+
+// ------------------------- Set ops services -------------------------------
+
+/**
+ * Creates the set union of 'this' and [other].
+ * @param other the object with which to merge.
+ * @return the set union of 'this' and [other].
+ */
+KnCharSet
+KnCharSet::operator+( const KnCharSet & other ) const
+{
+  ASSERT_KnCharSet( this->isCompatibleWith( other ) );
+
+  KnCharSet add( *this );
+  add.rw() |= other.ro();
+  return add;
+}
+
+/**
+ * Union of the set [other] with 'this'.
+ * @param other the object with which to merge.
+ * @return a reference on 'this'.
+ */
+KnCharSet&
+KnCharSet::operator+=( const KnCharSet & other )
+{
+  ASSERT_KnCharSet( this->isCompatibleWith( other ) );
+  
+  rw() |= other.ro();
+  return *this;
+}
+
+/**
+ * The element [elem] is added to 'this'.
+ * @param elem the element to add to 'this'
+ * @return a reference on 'this'.
+ */
+KnCharSet&
+KnCharSet::operator+=( Kn_gid elem )
+{
+  ASSERT_KnCharSet( this->isCompatibleWith( elem ) );
+
+  rw().set( elem - m_min );
+  return *this;
+}
+
+/**
+ * Creates the set substraction of 'this' and [other].
+ * @param other the object to substract.
+ * @return the set substraction of 'this' and [other].
+ */
+KnCharSet
+KnCharSet::operator-( const KnCharSet & other ) const
+{
+  ASSERT_KnCharSet( this->isCompatibleWith( other ) );
+
+  // A - B = ( A + B ) ^ B
+  KnCharSet sub( *this + other );
+  sub.rw() ^= other.ro();
+  return sub;
+}
+
+/**
+ * Substraction of [other] to 'this'.
+ * @param other the object to substract.
+ * @return a reference on 'this'.
+ */
+KnCharSet&
+KnCharSet::operator-=( const KnCharSet & other )
+{
+  // A - B = ( A + B ) ^ B
+  ( rw() |= other.ro() ) ^= other.ro();
+  return *this;
+}
+
+/**
+ * The element [elem] is removed from 'this'.
+ * @param elem the element to remove from 'this'
+ * @return a reference on 'this'.
+ */
+KnCharSet&
+KnCharSet::operator-=( Kn_gid elem )
+{
+  ASSERT_KnCharSet( this->isCompatibleWith( elem ) );
+
+  rw().reset( elem - m_min );
+  return *this;
+}
+
+/**
+ * Creates the set symmetric difference of 'this' and [other].
+ * @param other the object to substract symmetrically.
+ * @return the set symmetric difference of 'this' and [other].
+ */
+KnCharSet
+KnCharSet::operator^( const KnCharSet & other ) const
+{
+  ASSERT_KnCharSet( this->isCompatibleWith( other ) );
+
+  KnCharSet symdiff( *this );
+  symdiff.rw() ^= other.ro();
+  return symdiff;
+}
+
+/**
+ * Symmetric difference of [other] to 'this'.
+ * @param other the object to substract symmetrically.
+ * @return a reference on 'this'.
+ */
+KnCharSet&
+KnCharSet::operator^=( const KnCharSet & other )
+{
+  ASSERT_KnCharSet( this->isCompatibleWith( other ) );
+
+  rw() ^= other.ro();
+  return *this;
+}
+
+/**
+ * The element [elem] is removed from 'this' if it was in 'this'. Otherwise
+ * the element is added to 'this'. Ie symmetric difference.
+ * @param elem the element to remove/add from 'this'
+ * @return a reference on 'this'.
+ */
+KnCharSet&
+KnCharSet::operator^=( Kn_gid elem )
+{
+  ASSERT_KnCharSet( this->isCompatibleWith( elem ) );
+
+  rw().flip( elem - m_min );
+  return *this;
+}
+
+/**
+ * Creates the set intersection of 'this' and [other].
+ * @param other the object with which to create an intersection.
+ * @return the set union of 'this' and [other].
+ */
+KnCharSet
+KnCharSet::operator*( const KnCharSet & other ) const
+{
+  ASSERT_KnCharSet( this->isCompatibleWith( other ) );
+
+  KnCharSet inter( *this );
+  inter.rw() &= other.ro();
+  return inter;
+}
+
+/**
+ * Intersection of the set [other] with 'this'.
+ * @param other the object with which to intersect.
+ * @return a reference on 'this'.
+ */
+KnCharSet&
+KnCharSet::operator*=( const KnCharSet & other )
+{
+  ASSERT_KnCharSet( this->isCompatibleWith( other ) );
+
+  rw() &= other.ro();
+  return *this;
+}
+
+/**
+ * Complement of the set.
+ * @return the complement of 'this'.
+ */
+KnCharSet
+KnCharSet::operator~() const
+{
+  Bitset1 flipped( ro(), true );
+  return KnCharSet( flipped, m_sanitizer, m_min, m_max1 - 1 );
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Scanning services ------------------------------
+
+/**
+ * To scan a set do:
+ * <pre> 
+ * KnCharSet s1 = ...
+ * for ( KnCharSet::cell_iterator p = s1.begin(); p != s1.end(); ++p )
+ *   cout << " " << *p;
+ * cout << endl;
+ * </pre>
+ * @return the iterator pointing on the first cell belonging to 'this' or the iterator equal to 'end()' if the set is empty.
+ * @see KnCharSet::cell_iterator,end
+ * @TODO Create a 'const_cell_iterator'.
+ */
+KnCharSet::cell_iterator
+KnCharSet::begin() const
+{
+  return cell_iterator( this, ro().findFirst( INVALID_CELL ) );
+}
+
+
+/**
+ * @return the iterator pointing on the element after the last cell of the set.
+ * @see KnCharSet::cell_iterator,begin
+ * @TODO Create a 'const_cell_iterator'.
+ */
+KnCharSet::cell_iterator 
+KnCharSet::end() const
+{
+  return cell_iterator( this, INVALID_CELL );
+}
+
+
+
+/**
+ * @return the first unsigned cell belonging to 'this'.
+ */
+Kn_uid
+KnCharSet::ubegin() const
+{
+  return m_min + ro().findFirst( m_max1 - m_min );
+}
+
+
+/**
+ * @param prev any cell that can belong to 'this'.
+ * @return the unsigned cell after [prev] belonging to 'this'.
+ */
+Kn_uid
+KnCharSet::unext( Kn_uid prev ) const
+{
+  return m_min + ro().findNext( prev - m_min,
+				m_max1 - m_min );
+}
+
+
+/**
+ * @return the unsigned cell that is returned when 'ubegin' or 'unext' have failed.
+ * @see ubegin,unext
+ */
+Kn_uid 
+KnCharSet::uend() const
+{
+  return m_max1;
+}
+
+/**
+ * @return the first signed cell belonging to 'this'.
+ */
+Kn_sid
+KnCharSet::sbegin() const
+{
+  return m_min + ro().findFirst( m_max1 - m_min );
+}
+
+/**
+ * @param prev any cell that can belong to 'this'.
+ * @return the signed cell after [prev] belonging to 'this'.
+ */
+Kn_sid 
+KnCharSet::snext( Kn_sid prev ) const
+{
+  return m_min + ro().findNext( prev - m_min,
+				m_max1 - m_min );
+}
+
+/**
+ * @return the signed cell that is returned when 'sbegin' or 'snext' have failed.
+ * @see sbegin,snext
+ */
+Kn_sid 
+KnCharSet::send() const
+{
+  return m_max1;
+}
+  
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Protected services -----------------------------
+
+
+/**
+ * Clears up all unused bits and words of the bitset. Generally called after
+ * a flipping operation on the whole set.
+ */
+void
+KnCharSet::doSanitize()
+{
+  
+  m_sanitizer.ro().sanitize( this->rw().data(),
+			     this->rw().data() + this->rw().nbWords() - 1 );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'KnCharSet'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'KnCharSet' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, const KnCharSet & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene
+

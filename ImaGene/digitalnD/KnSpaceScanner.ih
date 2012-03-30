@@ -1,0 +1,166 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : KnSpaceScanner.ih
+//
+// Creation : 2002/07/27
+//
+// Version : 2002/07/27
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in KnSpaceScanner.h 
+//
+// History :
+//	2002/07/27 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class KnSpaceScanner declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+#include "ImaGene/digitalnD/KnSpace.h"
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_KnSpaceScanner(x)
+#define DEBUGCMD_KnSpaceScanner(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_KnSpaceScanner(x) if(!(x)) \
+    { cerr << "Assertion failed : (" << #x << ')' << endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << endl; abort();}
+#define DEBUGCMD_KnSpaceScanner(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Iteration services -----------------------------
+
+/**
+ * @return the code of the first element that will be scanned (ie the lower bound).
+ * @see lower_bound
+ */
+Kn_uid 
+KnSpaceScanner::begin() const
+{
+  return lower_bound;
+}
+
+/**
+ * Given an element [c] of the space and a dimension [k], returns the element
+ * that is the projection of [c] on the lower_bound in the direction of the
+ * dimension [k].
+ * @param c a cell.
+ * @param k any dimension.
+ * @return the cell with the same coordinates as [c] except in the dimension [k] where the coordinate is identical to the one of the lower bound.
+ */
+Kn_uid 
+KnSpaceScanner::first( Kn_uid c, uint k ) const
+{
+  return space.ugetBound( c, lower_bound, k );
+}
+
+/**
+ * Given an element [c] of the space and a dimension [k], returns the element
+ * that is the projection of [c] on the upper_bound in the direction of the
+ * dimension [k].
+ * @param c a cell.
+ * @param k any dimension.
+ * @return the cell with the same coordinates as [c] except in the dimension [k] where the coordinate is identical to the one of the upper bound.
+ */
+Kn_uid 
+KnSpaceScanner::last( Kn_uid c, uint k ) const
+{
+  return space.ugetBound( c, upper_bound, k );
+}
+
+/**
+ * This code should be added to the iterating cell when a [k]-dimensional
+ * row is finished (see class definition). In fact it is the difference 
+ * between the code of the next [k]-dimensional row and the code of the
+ * element just after the last of the preceding row.
+ * @param k any dimension.
+ * @return the code to add to the iterating cell at the end of a [k]-dimensional row.
+ */
+Kn_uid 
+KnSpaceScanner::gotonext( uint k ) const
+{
+  return m_gotonext[ k ];
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Generic iteration services ---------------------
+
+/**
+ * Generic increment the cell [p] to its next position (as classically done 
+ * in a scanning).
+ * Exemple: <pre> 
+ * KnSpace kn( ... );
+ * Kn_uid first, last; // lower and upper bounds 
+ * KnSpaceScanner scanner( kn, first, last );
+ * Kn_uid p = scanner.first();
+ * do 
+ *   { // ... whatever [p] is the current cell
+ *   }
+ * while ( scanner.uincrInBounds( p ) ); 
+ * </pre>
+ * @param p any cell.
+ * @return true if p is still within the bounds, false if the scanning is finished.
+ */
+bool
+KnSpaceScanner::increment( Kn_uid & p ) const
+{
+  uint k;
+  if ( p == space.ugetBoundX( p, upper_bound ) )
+    {
+      if ( p == upper_bound ) return false;
+      p = space.ugetBoundX( p, lower_bound );
+      for ( k = 1; k < space.dim(); ++k )
+	{
+	  if ( p == space.ugetBound( p, upper_bound, k ) )
+	    p = space.ugetBound( p, lower_bound, k );
+	  else  
+	    { 
+	      p = space.ugetIncr( p, k );
+	      break;
+	    }
+	}
+      return true;
+    }
+  space.uincrX( p );
+  return true;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'KnSpaceScanner'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'KnSpaceScanner' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, const KnSpaceScanner & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene

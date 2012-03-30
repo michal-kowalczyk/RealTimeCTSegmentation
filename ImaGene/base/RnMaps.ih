@@ -1,0 +1,243 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : RnMaps.ih
+//
+// Creation : 2003/07/24
+//
+// Version : 2003/07/24
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in RnMaps.h 
+//
+// History :
+//	2003/07/24 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class RnMaps declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_RnMaps(x)
+#define DEBUGCMD_RnMaps(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_RnMaps(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_RnMaps(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+///////////////////////////////////////////////////////////////////////////////
+// class RnMap
+///////////////////////////////////////////////////////////////////////////////
+
+  /**
+   * Defines a 3D translation mapping.
+   * @param x0 the x-displacement defining the mapping.
+   * @param y0 the x-displacement defining the mapping.
+   * @param z0 the x-displacement defining the mapping.
+   * @return the corresponding mapping.
+   */
+  ImaGene::RnMap
+  ImaGene::RnMap::makeTranslation3D( float x0, float y0, float z0 )
+  {
+    Vector t( 3 );
+    t.rw( 0 ) = x0;
+    t.rw( 1 ) = y0;
+    t.rw( 2 ) = z0;
+    return RnMap::makeTranslationMap( t );
+  }
+
+  /**
+   * Defines a 3D ellipsoid aligned with axes.
+   * @param a the half-radius along the x-coordinate.
+   * @param b the half-radius along the y-coordinate.
+   * @param c the half-radius along the z-coordinate.
+   * @return the implicit mapping of the ellipsoid.
+   */
+  ImaGene::RnMap
+  ImaGene::RnMap::makeEllipsoid3D( float a, float b, float c )
+  {
+    Vector scale( 3 );
+    scale.rw( 0 ) = 1.0 / a;
+    scale.rw( 1 ) = 1.0 / b;
+    scale.rw( 2 ) = 1.0 / c;
+    RnMap g = RnMap::makeScalingMap( scale );
+    RnMap f = RnMap::makeImplicitSphere( 1.0 );
+    return f( g );
+  }
+
+  /**
+   * Defines a half-space going through <x0,y0,z0> with normal <a,b,c>
+   *
+   * @param x0 the x-position of some point of the half-space.
+   * @param y0 the y-position of some point of the half-space.
+   * @param z0 the z-position of some point of the half-space.
+   * @param a the x-coordinate of the normal vector.
+   * @param b the y-coordinate of the normal vector.
+   * @param c the z-coordinate of the normal vector.
+   * @return the implicit mapping of the ellipsoid.
+   */
+  ImaGene::RnMap
+  ImaGene::RnMap::makeHalfSpace3D( float x0, float y0, float z0,
+				   float a, float b, float c )
+  {
+    Vector n( 3 );
+    n.rw( 0 ) = a;
+    n.rw( 1 ) = b;
+    n.rw( 2 ) = c;
+    RnMap f = RnMap::makeImplicitHalfSpace( n );
+    return f( makeTranslation3D( -x0, -y0, -z0 ) );
+  }
+
+/**
+ * @return a reference to the implementation of the map.
+ */
+const RnMapImp& 
+RnMap::imp() const
+{
+  return *m_ptr_f;
+}
+
+
+/**
+ * @return the dimension of mapping domain (0 is any).
+ */
+uint
+RnMap::dimIn() const
+{
+  return m_ptr_f->dimIn();
+}
+
+
+/**
+ * @return the dimension of mapping range (0 is same as in).
+ */
+uint
+RnMap::dimOut() const
+{
+  return m_ptr_f->dimOut();
+}
+
+  
+/**
+ * Mapping operator.
+ * @param x the in-vector
+ * @return the out vector.
+ */
+Vector
+RnMap::eval( const Vector & x ) const
+{
+  return m_ptr_f->eval( x );
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// class RnMapImp
+///////////////////////////////////////////////////////////////////////////////
+
+// /**
+//  * Destructor. 
+//  */
+// RnMapImp::~RnMapImp()
+// {
+// }
+
+
+// ///////////////////////////////////////////////////////////////////////////////
+// // class RnImplicitMap
+// ///////////////////////////////////////////////////////////////////////////////
+
+// // ------------------------- mapping services ------------------------------
+
+// /**
+//  * @return the dimension of mapping domain (0 is any).
+//  */
+// uint
+// RnImplicitMap::dimIn() const
+// {
+//   return m_transformation->dimIn();
+// }
+
+
+// /**
+//  * @return the dimension of mapping range.
+//  */
+// uint
+// RnImplicitMap::dimOut() const
+// {
+//   return m_transformation->dimOut();
+// }
+
+// /**
+//  * Mapping operator.
+//  * @param x the in-vector
+//  * @return the scalar result.
+//  */
+// float 
+// RnImplicitMap::eval( const Vector & x ) const
+// {
+//   Vector v = m_implicit_map->eval( m_transformation->eval( x ) );
+//   return v.ro( 0 );
+// }
+
+  
+
+///////////////////////////////////////////////////////////////////////////////
+// class RnMapIdentity
+///////////////////////////////////////////////////////////////////////////////
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// class RnMapComposer
+///////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// class RnMapTranslater
+///////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// class RnMapMatrixMultiplier
+///////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// class RnMapImplicitSphere
+///////////////////////////////////////////////////////////////////////////////
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene

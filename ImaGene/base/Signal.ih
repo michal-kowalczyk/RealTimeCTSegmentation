@@ -1,0 +1,473 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Signal.ih
+//
+// Creation : 2007/03/10
+//
+// Version : 2007/03/10
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Signal.h 
+//
+// History :
+//	2007/03/10 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Signal declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Signal(x)
+#define DEBUGCMD_Signal(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Signal(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_Signal(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/** 
+ * Constructor.
+ */
+template <typename T>
+ImaGene::SignalData<T>::SignalData()
+{
+  data = 0;
+}
+
+/** 
+ * Constructor.  
+ *
+ * @param s the number of data in the signal.
+ * @param z the index of the zero-th element.
+ * @param p 'true' if the signal is periodic.
+ * @param def the default value.
+ */
+template <typename T>
+void
+ImaGene::SignalData<T>::init
+( uint s, int z, bool p, const T& def )
+{
+  if ( data != 0 ) delete[] data;
+  size = s; zero = z; periodic = p;
+  data = new T[ size + 1 ];
+  data[ size ] = def;
+}
+
+/** 
+ * Constructor.  
+ *
+ * @param t the array containing initial data.
+ * @param s the number of data in the signal.
+ * @param z the index of the zero-th element.
+ * @param p 'true' if the signal is periodic.
+ * @param def the default value.
+ */
+template <typename T>
+void
+ImaGene::SignalData<T>::init
+( const T* t, uint s, int z, bool p, const T& def )
+{
+  if ( data != 0 ) delete[] data;
+  size = s; zero = z; periodic = p;
+  data = new T[ size + 1 ];
+  for ( uint i = 0; i < size; ++i, ++t )
+    data[ i ] = *t;
+  data[ size ] = def;
+}
+
+
+/** 
+ * Constructor.  
+ *
+ * @param s the number of data in the signal.
+ * @param z the index of the zero-th element.
+ * @param p 'true' if the signal is periodic.
+ * @param def the default value.
+ */
+template <typename T>
+ImaGene::SignalData<T>::SignalData
+( uint s, int z, bool p, const T& def )
+  : size( s ), zero( z ), periodic( p )
+{
+  data = new T[ size + 1 ];
+  data[ size ] = def;
+}
+
+/** 
+ * Constructor.  
+ *
+ * @param t the array containing initial data.
+ * @param s the number of data in the signal.
+ * @param z the index of the zero-th element.
+ * @param p 'true' if the signal is periodic.
+ * @param def the default value.
+ */
+template <typename T>
+ImaGene::SignalData<T>::SignalData
+( const T* t, uint s, int z, bool p, const T& def )
+  : size( s ), zero( z ), periodic( p )
+{
+  data = new T[ size + 1 ];
+  for ( uint i = 0; i < size; ++i, ++t )
+    data[ i ] = *t;
+  data[ size ] = def;
+}
+
+
+/** 
+ * Destructor.
+ */
+template <typename T>
+ImaGene::SignalData<T>::~SignalData()
+{
+  if ( data != 0 ) delete[] data;
+}
+
+/** 
+ * Copy constructor.
+ * @param other the data to clone.
+ */
+template <typename T>
+ImaGene::SignalData<T>::SignalData
+( const SignalData & other )
+  : size( other.size ), zero( other.zero ), periodic( other.periodic )
+{
+  if ( other.data != 0 )
+    {
+      data = new T[ size + 1 ];
+      for ( uint i = 0; i <= size; ++i )
+	data[ i ] = other.data[ i ];
+    }
+  else
+    data = 0;
+}
+
+/** 
+ * Assignment.
+ * @param other the data to clone.
+ * @return 'this'.
+ */
+template <typename T>
+ImaGene::SignalData<T> &
+ImaGene::SignalData<T>::operator=
+( const SignalData & other )
+{
+  if ( this != &other ) 
+    {
+      if ( other.data == 0 )
+	{
+	  if ( data != 0 )
+	    delete[] data;
+	  data = 0;
+	}
+      else
+	{
+	  if ( size < other.size ) 
+	    {
+	      delete[] data;
+	      data = new T[ other.size + 1 ];
+	    }
+	  size = other.size;
+	  zero = other.zero;
+	  periodic = other.periodic;
+	  for ( uint i = 0; i <= size; ++i )
+	    data[ i ] = other.data[ i ];
+	}
+    }
+  return *this;
+}
+
+
+/** 
+ * Default value.
+ * @return the default value.
+ */
+template <typename T>
+const T&
+ImaGene::SignalData<T>::defaut() const
+{ 
+  ASSERT_Signal( data != 0 );
+  return data[ size ];
+}
+
+
+  
+/////////////////////////////////////////////////////////////////////////////
+// class Signal
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Constructor.
+ * @param size the size of the signal.
+ * @param z the index of the zero-th element.
+ * @param periodic 'true' if the signal is periodic.
+ * @param def the default value.
+ */
+template <typename T>
+ImaGene::Signal<T>::Signal
+( uint size, int z, bool periodic, const T & def )
+  : m_data( SignalData<T>() )
+{
+  m_data.rw().init( size, z, periodic, def );
+}
+
+
+/**
+ * Constructor.
+ * @param t the array containing initial data.
+ * @param size the size of the signal.
+ * @param z the index of the zero-th element.
+ * @param periodic 'true' if the signal is periodic.
+ * @param def the default value.
+ */
+template <typename T>
+ImaGene::Signal<T>::Signal
+( const T* t, uint size, int z, bool periodic, 
+  const T & def )
+  : m_data( SignalData<T>() )
+{
+  m_data.rw().init( t, size, z, periodic, def );
+}
+
+
+
+/**
+ * Destructor. 
+ */
+template <typename T>
+ImaGene::Signal<T>::~Signal()
+{
+}
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ * Forbidden by default.
+ */
+template <typename T>
+ImaGene::Signal<T>::Signal( const Signal & other )
+  : m_data( other.m_data )
+{
+}
+      
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ * Forbidden by default.
+ */
+template <typename T>
+ImaGene::Signal<T> & 
+ImaGene::Signal<T>::operator=( const Signal & other )
+{
+  if ( this != & other )
+    m_data = other.m_data;
+  return *this;
+
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- Signal services ----------------------------
+
+
+/** 
+ * Protected rw access to value. If index is out of bound, return 0
+ * if not periodic or the correct value otherwise.
+ * 
+ * @param i the index in the signal .
+ * 
+ * @return the i-th value in the signal.
+ */      
+template <typename T>
+T & 
+ImaGene::Signal<T>::operator[]( int i )
+{
+  SignalData<T> & sd = m_data.rw();
+  int idx = i + sd.zero;
+  if ( ( idx >= 0 ) && ( idx < (int) sd.size ) )
+    return sd.data[ idx ];
+  else if ( sd.periodic )
+    return sd.data[ ( idx + sd.size ) % sd.size ];
+  else
+    return sd.data[ sd.size ];
+}
+
+/** 
+ * Protected ro access to value. If index is out of bound, return 0
+ * if not periodic or the correct value otherwise.
+ * 
+ * @param i the index in the signal .
+ * 
+ * @return the i-th value in the signal.
+ */      
+template <typename T>
+const T & 
+ImaGene::Signal<T>::operator[]( int i ) const
+{
+  SignalData<T> & sd = m_data.ro();
+  int idx = i + sd.zero;
+  if ( ( idx >= 0 ) && ( idx < (int) sd.size ) )
+    return sd.data[ idx ];
+  else if ( sd.periodic )
+    return sd.data[ ( idx + sd.size ) % sd.size ];
+  else
+    return sd.data[ sd.size ];
+}
+
+
+/** 
+ * The signal becomes a constant signal of value [val].
+ * 
+ * @param val the value of the whole signal.
+ */      
+template <typename T>
+void
+ImaGene::Signal<T>::setAll( const T & val )
+{
+  SignalData<T> & sd = m_data.rw();
+  for ( uint i = 0; i <= sd.size; ++i )
+    sd.data[ i ] = val;
+}
+
+
+/** 
+ * External product of a signal by a scalar value.
+ * 
+ * @param l the external value.
+ * 
+ * @return the signal where each term has been multiplied by [l].
+ */
+template <typename T>
+void
+ImaGene::Signal<T>::multiply( const T & l )
+{
+  SignalData<T> & sd = m_data.rw();
+  for ( uint i = 0; i <= sd.size; ++i )
+    sd.data[ i ] *= l;
+}
+
+
+/** 
+ * Convolution product of two signals (F = this).
+ * F*G( a ) = sum F(a-i)G(i) 
+ * 
+ * @param G the second signal (not periodic)
+ * 
+ * @return the signal that is the convolution of F and G, of type F.
+ */
+template <typename T>
+ImaGene::Signal<T> 
+ImaGene::Signal<T>::operator*( const Signal<T>& G )
+{
+  const SignalData<T>& Fd = m_data.ro();
+  const SignalData<T>& Gd = G.m_data.ro();
+
+  
+  uint size = Fd.periodic ? Fd.size : Fd.size + Gd.size - 1;
+  int zero = Fd.periodic ? Fd.zero : Fd.zero + Gd.zero;
+  Signal<T> FG( size, zero, Fd.periodic, Fd.defaut() );
+  SignalData<T>& FGd = FG.m_data.rw();
+
+  if ( Fd.periodic )
+    {
+      for ( int a = 0; a < (int) FGd.size; ++a )
+	{
+	  T sum = T( 0 );
+	  for ( uint i = 0; i < Gd.size; ++i )
+	    {
+	      sum += this->operator[]( a - ( i - Gd.zero ) ) 
+		* Gd.data[ i ];
+	    }
+	  FG[ a ] = sum;
+	}
+    }
+  else
+    {
+      for ( uint a = 0; a < FGd.size; ++a )
+	{
+	  T sum = T( 0 );
+	  for ( uint i = 0; i < Gd.size; ++i )
+	    {
+	      sum += this->operator[]( a - ( Fd.zero + Gd.zero ) 
+				       - ( i - Gd.zero ) ) 
+		* Gd.data[ i ];
+	    }
+	  FGd.data[ a ] = sum;
+	}
+    }
+  return FG;
+}
+
+
+
+
+/** 
+ * @return the binomial signal of order 2.
+ */
+template <typename T>
+ImaGene::Signal<T> 
+ImaGene::Signal<T>::H2()
+{
+  Signal<T> H( 3, 1, false, T( 0 ) );
+  H[ -1 ] = 1;
+  H[ 0 ] = 2;
+  H[ 1 ] = 1;
+  return H;
+}
+
+/** 
+ * @return the right difference signal.
+ */
+template <typename T>
+ImaGene::Signal<T> 
+ImaGene::Signal<T>::Delta()
+{
+  Signal<T> D( 2, 0, false, T( 0 ) );
+  D[ 0 ] = -1;
+  D[ 1 ] = 1;
+  return D;
+}
+
+/** 
+ * @return the binomial signal of order 2n.
+ */
+template <typename T>
+ImaGene::Signal<T> 
+ImaGene::Signal<T>::H2n( uint n )
+{
+  if ( n <= 1 ) return H2();
+  else return H2n( n - 1 ) * H2(); 
+}
+
+/** 
+ * @return the differential operator with binomial weights of order 2n.
+ */
+template <typename T>
+ImaGene::Signal<T> 
+ImaGene::Signal<T>::D2n( uint n )
+{
+  return H2n( n ) * Delta(); 
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

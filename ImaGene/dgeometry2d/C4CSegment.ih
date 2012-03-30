@@ -1,0 +1,360 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : C4CSegment.ih
+//
+// Creation : 2003/11/05
+//
+// Version : 2003/11/05
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in C4CSegment.h 
+//
+// History :
+//	2003/11/05 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class C4CSegment declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <cmath>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_C4CSegment(x)
+#define DEBUGCMD_C4CSegment(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_C4CSegment(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_C4CSegment(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/**
+ * Destructor. 
+ */
+C4CSegment::~C4CSegment()
+{
+}
+
+
+/**
+ * Default constructor. The segment is NOT valid.
+ * @see init
+ */
+C4CSegment::C4CSegment()
+{
+}
+
+
+/**
+ * @return 'true' if the segment is the trivial (0,1,0) and composed of the
+ * two points (0,0) and (1,0). For instance, 'true' after call to 'init'.
+ */
+bool
+C4CSegment::isTrivial() const
+{
+  return ( ! isBackRetractable() ) && ( ! isFrontRetractable() );
+}
+
+
+/**
+ * @return 'true' if the segment can be retracted at the back ( C_n
+ * != (0,0) ).
+ */
+bool
+C4CSegment::isBackRetractable() const
+{
+  return ( m_c_n.x() != 0 ) || ( m_c_n.y() != 0 );
+}
+
+
+/**
+ * @return 'true' if the segment can be retracted at the front ( C'_n
+ * != (1,0) ).
+ */
+bool
+C4CSegment::isFrontRetractable() const
+{
+  return ( m_cp_n.x() != 1 ) || ( m_cp_n.y() != 0 );
+}
+
+
+/**
+ * @return the number of points of the segment (at least 2).
+ */
+uint
+C4CSegment::size() const
+{
+  int nb_y = m_cp_n.y() - m_c_n.y();
+  return m_cp_n.x() - m_c_n.x() + ( nb_y >= 0 ? nb_y : -nb_y ) + 1;
+}
+
+/** 
+ * Assuming point (0,0) touching the origin surfel has index 0,
+ * returns the relative index on the digital contour of the digital
+ * point [v] (which must lie on the segment). It is easy to see that
+ * it corresponds to its L1-norm.
+ * 
+ * @param v the coordinate of a point on the segment.
+ * 
+ * @return its index relative to point (0,0), positive for positive x,
+ * negative otherwise.
+ */
+int
+C4CSegment::relIndex( const Vector2i & v ) const
+{
+  if ( v.x() > 0 )
+    return v.norm1();
+  return -v.norm1();
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Other geometric services -----------------------
+
+/**
+ * The length depends on the normal to the segment and the "natural"
+ * orientation of the reference frame.
+ * Defined as b/sqrt(a*a+b*b).
+ * @return the corrected length associated with this line segment.
+ */
+float
+C4CSegment::correctedLength() const
+{
+  return m_b / sqrt( (float) ( m_a*m_a + m_b*m_b ) );
+}
+
+
+/**
+ * The length depends only the normal to the segment.
+ * Defined as sqrt(a*a+b*b)/(|a|+|b|).
+ * @return the corrected length associated with this line segment.
+ */
+float
+C4CSegment::averagedLength() const
+{
+  return sqrt( (float) ( m_a*m_a + m_b*m_b ) ) 
+    / ( ( m_a >= 0 ? m_a : -m_a ) + m_b );
+}
+
+  
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Accessors --------------------------------------
+
+/**
+ * @return the current discrete line segment as a discrete line (a,b,mu).
+ */
+DLine
+C4CSegment::getLine() const
+{
+  return DLine( m_a, m_b, m_mu );
+}
+
+
+/**
+ * @return the current tangent vector associated to the segment (b,a).
+ */
+Vector2i
+C4CSegment::getTangent() const
+{
+  return Vector2i( m_b, m_a );
+}
+
+
+/**
+ * @return coefficient a in (a,b,mu) characterizing the line segment.
+ */
+int
+C4CSegment::a() const
+{
+  return m_a;
+}
+
+/**
+ * @return coefficient b in (a,b,mu) characterizing the line segment.
+ */
+int
+C4CSegment::b() const
+{
+  return m_b;
+}
+
+/**
+ * @return coefficient mu in (a,b,mu) characterizing the line segment.
+ */
+int
+C4CSegment::mu() const
+{
+  return m_mu;
+}
+
+/**
+ * @return local coordinates of positive extremity C'_n.
+ */
+Vector2i
+C4CSegment::cp_n() const
+{
+  return m_cp_n;
+}
+
+/**
+ * @return local coordinates of negative extremity C_n.
+ */
+Vector2i
+C4CSegment::c_n() const
+{
+  return m_c_n;
+}
+
+
+/**
+ * @return the number of upper leaning points.
+ */
+uint 
+C4CSegment::nbU() const
+{
+  return ( m_up.x() - m_u.x() ) / m_b + 1;
+}
+
+/**
+ * @return local coordinates of upper leaning point closest to
+ * negative extremity (U).
+ */
+Vector2i 
+C4CSegment::u() const
+{
+  return m_u;
+}
+
+/**
+ * @return local coordinates of upper leaning point closest to
+ * positive extremity (U').
+ */
+Vector2i 
+C4CSegment::up() const
+{
+  return m_up;
+}
+
+/**
+ * @return the number of lower leaning points.
+ */
+uint 
+C4CSegment::nbL() const
+{
+  return ( m_lp.x() - m_l.x() ) / m_b + 1;
+}
+
+
+/**
+ * @return local coordinates of lower leaning point closest to
+ * negative extremity (L).
+ */
+Vector2i 
+C4CSegment::l() const
+{
+  return m_l;
+}
+
+/**
+ * @return local coordinates of lower leaning point closest to
+ * positive extremity (L').
+ */
+Vector2i 
+C4CSegment::lp() const
+{
+  return m_lp;
+}
+
+/**
+ * This method has sense only for segments defined on the boundary
+ * of the digitization of (at least locally) convex shape.
+ *
+ * @return 'true' if this segment has at least two upper leaning points. 
+ */
+bool 
+C4CSegment::isULU() const
+{
+  return nbU() >= 2;
+}
+
+/**
+ * This method has sense only for segments defined on the boundary
+ * of the digitization of (at least locally) convex shape.
+ *
+ * @return 'true' if this segment has only one upper leaning point.
+ */
+bool 
+C4CSegment::isLUL() const
+{
+  return nbU() < 2;
+}
+    
+
+/**
+ * An upper-Christoffel word is a C4CSegment whose path is between
+ * two upper leaning point.
+ *
+ * @return 'true' if this segment is an upper christoffel word
+ * (eventually horizontal).
+ */
+bool
+C4CSegment::isUpperChristoffel() const
+{
+  return ( m_u == m_c_n ) && ( m_up == m_cp_n );
+}
+
+/**
+ * A lower-Christoffel word is a C4CSegment whose path is between
+ * two lower leaning point.
+ *
+ * @return 'true' if this segment is a lower christoffel word
+ * (eventually horizontal).
+ */
+bool
+C4CSegment::isLowerChristoffel() const
+{
+  return ( m_l == m_c_n ) && ( m_lp == m_cp_n );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'C4CSegment'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'C4CSegment' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, const C4CSegment & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene
+

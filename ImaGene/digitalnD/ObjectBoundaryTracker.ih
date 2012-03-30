@@ -1,0 +1,66 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : ObjectBoundaryTracker.ih
+//
+// Creation : 2005/01/11
+//
+// Version : 2005/01/11
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in ObjectBoundaryTracker.h 
+//
+// History :
+//	2005/01/11 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class ObjectBoundaryTracker declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_ObjectBoundaryTracker(x)
+#define DEBUGCMD_ObjectBoundaryTracker(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_ObjectBoundaryTracker(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_ObjectBoundaryTracker(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'ObjectBoundaryTracker'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'ObjectBoundaryTracker' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const ObjectBoundaryTracker & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

@@ -1,0 +1,312 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : KnUtils.ih
+//
+// Creation : 2002/07/22
+//
+// Version : 2002/07/22
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in KnUtils.h 
+//
+// History :
+//	2002/07/22 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class KnUtils declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_KnUtils(x)
+#define DEBUGCMD_KnUtils(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_KnUtils(x) if(!(x)) \
+    { cerr << "Assertion failed : (" << #x << ')' << endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << endl; abort();}
+#define DEBUGCMD_KnUtils(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * @param v any value.
+ * @return the number of bits set to 1 in [v].
+ */
+uint
+KnUtils::countSetBits( uint8 v )
+{
+  return m_bit_count[ v ];
+}
+
+/**
+ * @param v any value.
+ * @return the number of bits set to 1 in [v].
+ */
+uint
+KnUtils::countSetBits( uint16 v )
+{
+  return m_bit_count[ v & 0xff ]
+    + m_bit_count[ v >> 8 ];
+}
+
+/**
+ * @param v any value.
+ * @return the number of bits set to 1 in [v].
+ */
+uint
+KnUtils::countSetBits( uint32 v )
+{
+  uint16 vh = v >> 16;
+  v &= 0xffff;
+  return m_bit_count[ v & 0xff ]
+    + m_bit_count[ v >> 8 ]
+    + m_bit_count[ vh & 0xff ]
+    + m_bit_count[ vh >> 8 ];
+}
+
+/**
+ * @param v any value.
+ * @return the number of bits set to 1 in [v].
+ */
+uint
+KnUtils::countSetBits( uint64 v )
+{
+  uint nb = 0;
+  uint8* ptr = (uint8*) &v;
+  uint8* ptr_end = ptr+8;
+  while ( ptr != ptr_end )
+    {
+      nb += m_bit_count[ *ptr ];
+      ++ptr;
+    }
+  return nb;
+}
+
+/**
+ * @param v any value.
+ * @return the least-significant bit set to 1 in [v].
+ */
+uint
+KnUtils::getLSB( uint8 v )
+{
+  return m_lsb[ v ];
+}
+
+/**
+ * @param v any value.
+ * @return the least-significant bit set to 1 in [v].
+ */
+uint 
+KnUtils::getLSB( uint16 v )
+{
+  if ( v & 0x00ff ) return m_lsb[ v & 0x00ff ];
+  v >>= 8;
+  return m_lsb[ v ];
+}
+
+/**
+ * @param v any value.
+ * @return the least-significant bit set to 1 in [v].
+ */
+uint 
+KnUtils::getLSB( uint32 v )
+{
+  if ( v & 0x000000ff ) return m_lsb[ v & 0x000000ff ];
+  v >>= 8;
+  if ( v & 0x000000ff ) return m_lsb[ v & 0x000000ff ];
+  v >>= 8;
+  if ( v & 0x000000ff ) return m_lsb[ v & 0x000000ff ];
+  v >>= 8;
+  return m_lsb[ v ];
+}
+
+/**
+ * @param v any value.
+ * @return the least-significant bit set to 1 in [v].
+ */
+uint 
+KnUtils::getLSB( uint64 v )
+{
+  if ( v & 0xffffffffL ) return getLSB( (uint32) ( v & 0xffffffffL ) );
+  v >>= 32;
+  return getLSB( (uint32) v );
+}
+
+/**
+ * NB: Faster if most-significant bit is high.
+ * @param v any value.
+ * @return the most-significant bit set to 1 in [v].
+ */
+int
+KnUtils::getMSBbySup( uint32 v )
+{
+  register int i = 31;
+  if ( v == 0 )
+    return -1;
+  while ( ~v & 0x80000000 )
+    --i, v <<= 1;
+  return i;
+}
+
+/**
+ * NB: Faster if most-significant bit is low.
+ * @param v any value.
+ * @return the most-significant bit set to 1 in [v].
+ */
+int
+KnUtils::getMSBbyInf( uint32 v )
+{
+  register int    i = -1;
+  while ( v )
+    ++i, v >>= 1;
+  return i;
+}
+
+/**
+ * NB: Relatively constant time.
+ * @param v any value.
+ * @return the most-significant bit set to 1 in [v], (0) if 0
+ */
+int
+KnUtils::getMSBbyLog( uint32 v )
+{
+  register int i = (v & 0xffff0000) ? 16 : 0;
+  if ( (v >>= i) & 0xff00 )
+    i |= 8, v >>= 8;
+  if ( v & 0xf0 )
+    i |= 4, v >>= 4;
+  if ( v & 0xc )
+    i |= 2, v >>= 2;
+  return ( i | ( v >> 1 ) );
+}
+
+/**
+ * Calls 'getMSBbyLog'.
+ * @param v any value.
+ * @return the most-significant bit set to 1 in [v], (0) if 0
+ */
+int 
+KnUtils::getMSB( uint32 v )
+{
+  return getMSBbyLog( v );
+}
+
+
+/**
+ * NB: Relatively constant time.
+ * @param v any value.
+ * @return the most-significant bit set to 1 in [v], (0) if 0
+ */
+int
+KnUtils::getMSBbyLog( uint64 v )
+{
+  register int i;
+  if ( v & 0xffffffff00000000LL )
+    {
+      i = 32;
+      v >>= i;
+    }
+  else i = 0;
+
+//   i += (v & 0xffff0000) ? 16 : 0;
+//   if ( (v >>= i) & 0xff00 )
+//     i |= 8, v >>= 8;
+  if ( v & 0xffff0000 )
+    i |= 16, v >>= 16;
+  if ( v & 0xff00 )
+    i |= 8, v >>= 8;
+  if ( v & 0xf0 )
+    i |= 4, v >>= 4;
+  if ( v & 0xc )
+    i |= 2, v >>= 2;
+  return ( i | ( v >> 1 ) );
+}
+
+/**
+ * Calls 'getMSBbyLog'.
+ * @param v any value.
+ * @return the most-significant bit set to 1 in [v], (0) if 0
+ */
+int 
+KnUtils::getMSB( uint64 v )
+{
+  return getMSBbyLog( v );
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- General services ------------------------------
+
+/**
+ * @param x any floating point number.
+ * @return the square of [x] ('x*x').
+ */
+float
+KnUtils::sqr( float x )
+{
+  return x*x;
+}
+
+/**
+ * Swaps the value of [x] and [y]
+ * @param x any unsigned int.
+ * @param y any unsigned int.
+ */
+void
+KnUtils::swap( uint & x, uint & y )
+{
+  uint tmp = x;
+  x = y;
+  y = tmp;
+}
+
+/**
+ * Swaps the value of [x] and [y]
+ * @param x any bool.
+ * @param y any bool.
+ */
+void
+KnUtils::swap( bool & x, bool & y )
+{
+  bool tmp = x;
+  x = y;
+  y = tmp;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'KnUtils'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'KnUtils' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, const KnUtils & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene

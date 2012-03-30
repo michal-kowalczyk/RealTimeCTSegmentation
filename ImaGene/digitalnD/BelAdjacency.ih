@@ -1,0 +1,379 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : BelAdjacency.ih
+//
+// Creation : 2003/02/06
+//
+// Version : 2003/02/06
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in BelAdjacency.h 
+//
+// History :
+//	2003/02/06 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class BelAdjacency declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include "ImaGene/digitalnD/KnCharSet.h"
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_BelAdjacency(x)
+#define DEBUGCMD_BelAdjacency(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_BelAdjacency(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_BelAdjacency(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Destructor. Does nothing.
+ */
+BelAdjacency::bel_iterator::~bel_iterator()
+{
+}
+
+/**
+ * Assignment.
+ * @param other the bel iterator to copy.
+ * @return a reference on 'this'.
+ */
+BelAdjacency::bel_iterator& 
+BelAdjacency::bel_iterator::operator=
+( const BelAdjacency::bel_iterator & other )
+{
+  if ( this != &other )
+    {
+      ASSERT_BelAdjacency( ( &m_ks ) == ( &other.m_ks ) );
+      
+      m_bel = other.m_bel;
+      // m_tangent_dir = other.m_tangent_dir;
+      m_orth_dir = other.m_orth_dir;
+      m_track_dir = other.m_track_dir;
+      m_vox_int = other.m_vox_int;
+      m_vox_ext = other.m_vox_ext;
+      m_interior = other.m_interior;
+      m_orth_direct = other.m_orth_direct;
+      m_track_direct = other.m_track_direct;
+    }
+  return *this;
+}
+
+
+
+/**
+ * @return the current bel.
+ */
+Kn_sid 
+BelAdjacency::bel_iterator::current() const
+{
+  return m_bel;
+}
+
+
+// /**
+//  * @return the tangent direction.
+//  */
+// uint
+// BelAdjacency::bel_iterator::tangentDir() const
+// {
+//   return m_tangent_dir;
+// }
+
+/**
+ * @return the current track direction.
+ */
+uint 
+BelAdjacency::bel_iterator::trackDir() const
+{
+  return m_track_dir;
+}
+
+/**
+ * @return the current orthogonal direction.
+ */
+uint
+BelAdjacency::bel_iterator::orthDir() const
+{
+  return m_orth_dir;
+}
+
+/**
+ * @return 'true' if the track direction follows the positive direction of its axis.
+ */
+bool
+BelAdjacency::bel_iterator::isTrackDirPositive() const
+{
+  return m_track_direct;
+}
+
+
+/**
+ * @return 'true' if the orthogonal direction follows the positive direction of its axis.
+ */
+bool 
+BelAdjacency::bel_iterator::isOrthDirPositive() const
+{
+  return m_orth_direct;
+}
+
+
+/**
+ * @param other any other bel iterator.
+ * @return 'true' if the bel iterators are pointing on the same bel and direction, 'false' otherwise.
+ */
+bool
+BelAdjacency::bel_iterator::operator==
+( const BelAdjacency::bel_iterator & other ) const
+{
+  return ( m_bel == other.m_bel ) && ( m_track_dir == other.m_track_dir );
+}
+
+
+
+// ------------------------- Follower services ----------------------------
+    
+/**
+ * @param i a number between 1 and 3.
+ * @return the [i]-th direct follower of 'current()'.
+ */ 
+Kn_sid
+BelAdjacency::bel_iterator::directFollower( int i ) const
+{
+  ASSERT_BelAdjacency( ( i >= 1 ) && ( i <= 3 ) );
+  switch( i ) {
+  case 1: return directFollower1();
+  case 2: return directFollower2();
+  case 3: return directFollower3();
+  default: break;
+  }
+  return current();
+}
+
+/**
+ * @return the first direct follower of 'current()'.
+ */ 
+Kn_sid
+BelAdjacency::bel_iterator::directFollower1() const
+{
+  return m_ks.sincident( m_ks.signsPos( m_vox_int ), // is int
+			 m_track_dir, m_track_direct );
+}
+
+/**
+ * @return the second direct follower of 'current()'.
+ */ 
+Kn_sid
+BelAdjacency::bel_iterator::directFollower2() const
+{
+  return m_ks.sadjacent( m_bel, m_track_dir, m_track_direct );
+}
+
+/**
+ * @return the third direct follower of 'current()'.
+ */ 
+Kn_sid
+BelAdjacency::bel_iterator::directFollower3() const
+{
+  return m_ks.sincident( m_ks.signsNeg( m_vox_ext ),
+			 m_track_dir, m_track_direct );
+}
+
+/**
+ * @param i a number between 1 and 3.
+ * @param pos when 'true', indicates to look for the follower along the positive direction of the tracking axis, otherwise along the negative direction.
+ * @return the [i]-th follower of 'current()'.
+ */ 
+Kn_sid
+BelAdjacency::bel_iterator::follower( int i, bool pos ) const
+{
+  ASSERT_BelAdjacency( ( i >= 1 ) && ( i <= 3 ) );
+  switch( i ) {
+  case 1: return follower1( pos );
+  case 2: return follower2( pos );
+  case 3: return follower3( pos );
+  default: break;
+  }
+  return current();
+}
+
+/**
+ * @param pos when 'true', indicates to look for the follower along the positive direction of the tracking axis, otherwise along the negative direction.
+ * @return the first follower of 'current()'.
+ */ 
+Kn_sid
+BelAdjacency::bel_iterator::follower1( bool pos ) const
+{
+  return m_ks.sincident( m_ks.signsPos( m_vox_int ), // is int
+			 m_track_dir, pos );
+}
+
+/**
+ * @param pos when 'true', indicates to look for the follower along the positive direction of the tracking axis, otherwise along the negative direction.
+ * @return the second follower of 'current()'.
+ */ 
+Kn_sid
+BelAdjacency::bel_iterator::follower2( bool pos ) const
+{
+  return m_ks.sadjacent( m_bel, m_track_dir, pos );
+}
+
+/**
+ * @param pos when 'true', indicates to look for the follower along the positive direction of the tracking axis, otherwise along the negative direction.
+ * @return the third follower of 'current()'.
+ */ 
+Kn_sid
+BelAdjacency::bel_iterator::follower3( bool pos ) const
+{
+  return m_ks.sincident( m_ks.signsNeg( m_vox_ext ),
+			 m_track_dir, pos );
+}
+
+
+
+// ------------------------- Track services ----------------------------
+
+
+/**
+ * Go to the next direct or indirect adjacent bel on the boundary of [obj].
+ * @param obj a set of unoriented spels. This set must have an empty intersection with the image border.
+ * @param indirect when 'false', looks for direct followers, otherwise looks for indirect followers.
+ * @return 1 if the move was the first interior, 2 if it was the second interior, 3 if it was the third interior.
+ */
+uint 
+BelAdjacency::bel_iterator::nextOnBdry( const KnCharSet & obj, bool indirect )
+{
+  // Check that [b] is a bel.
+  ASSERT_BelAdjacency( ( obj[ m_vox_int ] ) && ( ! obj[ m_vox_ext ] ) );
+
+  // Check if it goes outside the space.
+  ASSERT_BelAdjacency( ! ( ( indirect ^ m_track_direct )
+			   && m_ks.uisMax( m_vox_int, m_track_dir ) ) );
+  // Check if it goes outside the space.
+  ASSERT_BelAdjacency( ! ( ( indirect ^ ! m_track_direct ) 
+			   && m_ks.uisMin( m_vox_int, m_track_dir ) ) );
+  if ( m_interior )
+    return nextIntOnBdry( obj, indirect );
+  return nextExtOnBdry( obj, indirect );
+}
+
+/**
+ * Go to the next direct or indirect adjacent bel on the boundary of [obj].
+ * @param obj a set of unoriented spels. This set can have a non-empty intersection with the image border.
+ * @param indirect when 'false', looks for direct followers, otherwise looks for indirect followers.
+ * @return 0 if the move was impossible (no bels in this direction), 1 if it was the first interior, 2 if it was the second interior, 3 if it was the third interior.
+ */
+uint 
+BelAdjacency::bel_iterator::nextOnAnyBdry( const KnCharSet & obj, 
+					   bool indirect )
+{
+  // Check that [b] is a bel.
+  ASSERT_BelAdjacency( ( obj[ m_vox_int ] ) && ( ! obj[ m_vox_ext ] ) );
+
+  // Check if it goes outside the space.
+  if ( ( indirect ^ m_track_direct ) 
+       && m_ks.uisMax( m_vox_int, m_track_dir ) )
+    return 0;
+  // Check if it goes outside the space.
+  else if ( ( indirect ^ ! m_track_direct ) 
+	    && m_ks.uisMin( m_vox_int, m_track_dir ) )
+    return 0;
+  
+  if ( m_interior )
+    return nextIntOnBdry( obj, indirect );
+  return nextExtOnBdry( obj, indirect );
+}
+
+
+// ------------------------- Geometry services ----------------------------
+
+// /**
+//  * Computes the deltas between the 1-low incident cells of [m_bel] along
+//  * tangent and orthogonal coordinates (defined at init).
+//  * @param delta (returns) the delta along tangent coordinate (+1/-1) for x and along orthogonal coordinate (+1/-1) for y.
+//  */
+// void
+// BelAdjacency::bel_iterator::getDelta( Vector2i & delta ) const
+// {
+//   if ( m_track_dir == m_tangent_dir )
+//     {
+//       delta.x() = m_track_direct ? 1 : -1;
+//       delta.y() = 0;
+//     }
+//   else
+//     {
+//       delta.x() = 0;
+//       delta.y() = m_track_direct ? 1 : -1;
+//     }
+// }
+
+// /**
+//  * Computes the deltas between the 1-low incident cells of [m_bel] along
+//  * tangent and orthogonal coordinates (defined at init).
+//  * @param dx (returns) the delta along tangent coordinate (+1/-1).
+//  * @param dy (returns) the delta along orthogonal coordinate (+1/-1).
+//  */
+// void
+// BelAdjacency::bel_iterator::getDelta( int & dx, int & dy ) const
+// {
+//   if ( m_track_dir == m_tangent_dir )
+//     {
+//       dx = m_track_direct ? 1 : -1;
+//       dy = 0;
+//     }
+//   else
+//     {
+//       dx = 0;
+//       dy = m_track_direct ? 1 : -1;
+//     }
+// }
+
+
+/**
+ * @return a const reference to the space where the BelAdjacency is defined.
+ */
+const KnSpace & 
+BelAdjacency::space() const
+{
+  return m_ks;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'BelAdjacency'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'BelAdjacency' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, const BelAdjacency & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene
+

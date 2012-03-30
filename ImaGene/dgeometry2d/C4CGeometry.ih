@@ -1,0 +1,54 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : C4CGeometry.ih
+//
+// Creation : 2003/02/11
+//
+// Version : 2003/02/11
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in C4CGeometry.h 
+//
+// History :
+//	2003/02/11 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class C4CGeometry declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_C4CGeometry(x)
+#define DEBUGCMD_C4CGeometry(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_C4CGeometry(x) if(!(x)) \
+    { cerr << "Assertion failed : (" << #x << ')' << endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << endl; abort();}
+#define DEBUGCMD_C4CGeometry(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene
+

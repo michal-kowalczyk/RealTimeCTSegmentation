@@ -1,0 +1,406 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : StandardHashTable.ih
+//
+// Creation : 2004/12/21
+//
+// Version : 2004/12/21
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in StandardHashTable.h 
+//
+// History :
+//	2004/12/21 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class StandardHashTable declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+#include "ImaGene/mathutils/Mathutils.h"
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_StandardHashTable(x)
+#define DEBUGCMD_StandardHashTable(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_StandardHashTable(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_StandardHashTable(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+
+/**
+ * Destructor. 
+ */
+template <class Value>
+ImaGene::StandardHashTable<Value>::~StandardHashTable()
+{
+  clear();
+}
+
+
+/**
+ * Constructor.
+ * The object is empty.
+ */
+template <class Value>
+ImaGene::StandardHashTable<Value>::StandardHashTable()
+  : m_entries( 0 ), m_k( 0 ), m_first( 0 ), m_n( 0 ), m_size( 0 )
+{
+}
+
+
+/**
+ * Initializes the hash table for a given set of keys [m] and for
+ * an approximate number of values [n].
+ *
+ * @param m no key can be bigger than this number.
+ * @param n the number of lists in the hashtable.
+ * @param k the maximum number of cells in the hashtable (same order as [n]).
+ */
+template <class Value>
+void
+ImaGene::StandardHashTable<Value>::init( uint m, uint n, uint k )
+{
+  clear();
+  m_p = Mathutils::greaterPrime( (unsigned long long) m );
+  std::cout << "m=" << m << " n=" << n << " p=" << m_p << std::endl;
+  do
+    m_a = Mathutils::random( m_p );
+  while ( m_a == 0 );
+  
+  m_b = Mathutils::random( m_p );
+  std::cout << "a=" << m_a << " b=" << m_b << std::endl;
+
+  m_n = n;
+  m_k = k;
+  m_entries = new StandardHashTableEntry[ k ];
+  m_first = new uint[ n ];
+  ASSERT_StandardHashTable( ( m_entries != 0 ) && ( m_first != 0 ) );
+  for ( uint i = 0; i < m_n; ++i )
+    m_first[ i ] = m_k;
+  for ( uint i = 0; i < m_k; ++i )
+    m_entries[ i ].next = i + 1;
+  m_free = 0;
+}
+
+
+
+/**
+ * Clears the data structure.
+ */
+template <class Value>
+void
+ImaGene::StandardHashTable<Value>::clear()
+{
+  if ( m_entries != 0 )
+    {
+      delete[] m_entries;
+      m_entries = 0;
+    }
+  if ( m_first != 0 )
+    {
+      delete[] m_first;
+      m_first = 0;
+    }
+  m_k = 0;
+  m_n = 0;
+  m_size = 0;
+}
+
+
+/**
+ * @return the number of entries in the hashtable.
+ */
+template <class Value>
+uint
+ImaGene::StandardHashTable<Value>::size() const
+{
+  return m_size;
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- Access services ------------------------------
+
+
+
+/**
+ * Maps the specified key to the specified value in the StandardHashTable.
+ *
+ * @param key a key.
+ * @param object a pointer to an object.
+ */
+template <class Value>
+void
+ImaGene::StandardHashTable<Value>::put( Key key, const Value & value )
+{
+  uint i = hash( key );
+  uint j = m_first[ i ];
+  uint last = m_k;
+  while ( j != m_k && ( m_entries[ j ].key != key ) )
+    {
+      last = j;
+      j = m_entries[ j ].next;
+    }
+  if ( j == m_k )
+    {
+      ASSERT_StandardHashTable( m_free != m_k );
+      j = m_free;
+      m_free = m_entries[ j ].next;
+      m_entries[ j ].key = key;
+      m_entries[ j ].value = value;
+      m_entries[ j ].next = m_k;
+      if ( last == m_k ) m_first[ i ] = j;
+      else               m_entries[ last ].next = j;
+      ++m_size;
+    }
+  else
+    {
+      m_entries[ j ].value = value;
+    }
+}
+
+
+/**
+ * Accessor. Tells if a key is present in the hashtable.
+ *
+ * @param key a key.
+ * @return 'true' if the key was present, 'false' otherwise.
+ */
+template <class Value>
+bool
+ImaGene::StandardHashTable<Value>::contains( Key key ) const
+{
+  uint i = hash( key );
+  uint j = m_first[ i ];
+  while ( ( j != m_k ) && ( m_entries[ j ].key != key ) )
+    j = m_entries[ j ].next;
+  return j != m_k;
+}
+
+
+/**
+ * Accessor. Returns the value associated with a given key. If the
+ * key is not present, returns the default value.
+ *
+ * @param key a key.
+ * @return the value to which the specified key is mapped in.
+ */
+template <class Value>
+const Value &
+ImaGene::StandardHashTable<Value>::get( Key key ) const
+{
+  uint i = hash( key );
+  uint j = m_first[ i ];
+  while ( ( j != m_k ) && ( m_entries[ j ].key != key ) )
+    j = m_entries[ j ].next;
+  return ( j != m_k ) ? m_entries[ j ].value : m_default;
+}
+
+
+/**
+ * Accessor. Returns the value associated with a given key. If the
+ * key is not present, returns 'false', otherwise returns 'true'.
+ *
+ * @param key a key.
+ * @param value (returns) the value associated with the key.
+ * @return 'true' if the key was present, 'false' otherwise.
+ */
+template <class Value>
+bool 
+ImaGene::StandardHashTable<Value>::get( Key key, Value & value ) const
+{
+  uint i = hash( key );
+  uint j = m_first[ i ];
+  while ( ( j != m_k ) && ( m_entries[ j ].key != key ) )
+    j = m_entries[ j ].next;
+  if ( j != m_k ) 
+    {
+      value = m_entries[ j ].value;
+      return true;
+    }
+  else
+    return false;
+}
+
+
+/**
+ * Deletes the given key [key] from the StandardHashTable.
+ *
+ * @param key a key.
+ */
+template <class Value>
+void
+ImaGene::StandardHashTable<Value>::erase( Key key )
+{
+  uint i = hash( key );
+  uint j = m_first[ i ];
+  uint last = m_k;
+  while ( j != m_k && ( m_entries[ j ].key != key ) )
+    {
+      last = j;
+      j = m_entries[ j ].next;
+    }
+  if ( j != m_k )
+    {
+      if ( last == m_k ) m_first[ i ] = m_entries[ j ].next;
+      else             m_entries[ last ].next = m_entries[ j ].next;
+      m_entries[ j ].next = m_free;
+      m_free = j;
+      --m_size;
+    }
+}
+
+
+/**
+ * Removes the key and its corresponding value from the StandardHashTable.
+ *
+ * @param key a key.
+ * @return the corresponding object.
+ */
+template <class Value>
+Value
+ImaGene::StandardHashTable<Value>::remove( Key key )
+{
+  uint i = hash( key );
+  uint j = m_first[ i ];
+  uint last = m_k;
+  while ( j != m_k && ( m_entries[ j ].key != key ) )
+    {
+      last = j;
+      j = m_entries[ j ].next;
+    }
+  if ( j != m_k )
+    {
+      if ( last == m_k ) m_first[ i ] = m_entries[ j ].next;
+      else             m_entries[ last ].next = m_entries[ j ].next;
+      m_entries[ j ].next = m_free;
+      m_free = j;
+      --m_size;
+      return m_entries[ j ].value;
+    }
+  else
+    return m_default;
+}
+
+
+/**
+ * Read-only accessor. Returns the value associated with a given
+ * key. If the key is not present, returns the default value.
+ *
+ * @param key a key.
+ * @return the value to which the specified key is mapped in.
+ */
+template <class Value>
+const Value & 
+ImaGene::StandardHashTable<Value>::operator[]( Key key ) const
+{
+  return get( key );
+}
+
+
+/**
+ * Read-write accessor. Returns a reference to the value
+ * associated with a given key. If the key is not present, returns
+ * the default value.
+ *
+ * @param key a key.
+ * @return the value to which the specified key is mapped in.
+ */
+template <class Value>
+Value & 
+ImaGene::StandardHashTable<Value>::operator[]( Key key )
+{
+  uint i = hash( key );
+  uint j = m_first[ i ];
+  uint last = m_k;
+  while ( j != m_k && ( m_entries[ j ].key != key ) )
+    {
+      last = j;
+      j = m_entries[ j ].next;
+    }
+  if ( j == m_k )
+    {
+      ASSERT_StandardHashTable( m_free != m_k );
+      j = m_free;
+      m_free = m_entries[ j ].next;
+      m_entries[ j ].key = key;
+      m_entries[ j ].next = m_k;
+      if ( last == m_k ) m_first[ i ] = j;
+      else               m_entries[ last ].next = j;
+      ++m_size;
+    }
+  return m_entries[ j ].value;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Internals ------------------------------------
+
+  
+
+/**
+ * Hashes the given key.
+ *
+ * @param key any key.
+ * @return an integer between 0 and m_n - 1
+ */
+template <class Value>
+uint
+ImaGene::StandardHashTable<Value>::hash( Key key ) const
+{
+//   unsigned long long k = (unsigned long long) key;
+//   return ( (uint) ( ( k * m_a + m_b ) % m_p ) ) % m_n;
+  return key % m_n;
+}
+
+/**
+ * Gives the number of lists which have 0, 1, ..., >= n-1 entries.
+ * 
+ * @param n maximum number of entries per list.
+ * @param tbl an array of size [n], (returns).
+ */
+template <class Value>
+void 
+ImaGene::StandardHashTable<Value>::distribution( uint n, uint* tbl ) const
+{
+  for ( uint i = 0; i < n; ++i )
+    tbl[ i ] = 0;
+  for ( uint i = 0; i < m_n; ++i )
+    {
+      uint size_list = 0;
+      uint j = m_first[ i ];
+      while ( j != m_k ) 
+	{
+	  ++size_list;
+	  j = m_entries[ j ].next;
+	}
+      if ( size_list >= n ) size_list = n - 1;
+      tbl[ size_list ] += 1;
+    }
+}
+
+
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

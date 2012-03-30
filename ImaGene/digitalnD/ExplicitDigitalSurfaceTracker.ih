@@ -1,0 +1,69 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : ExplicitDigitalSurfaceTracker.ih
+//
+// Creation : 2011/05/04
+//
+// Version : 2011/05/04
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in ExplicitDigitalSurfaceTracker.h 
+//
+// History :
+//	2011/05/04 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class ExplicitDigitalSurfaceTracker declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_ExplicitDigitalSurfaceTracker(x)
+#define DEBUGCMD_ExplicitDigitalSurfaceTracker(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_ExplicitDigitalSurfaceTracker(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_ExplicitDigitalSurfaceTracker(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+  Overloads 'operator<<' for displaying objects of class 'ExplicitDigitalSurfaceTracker'.
+
+  @param that_stream the output stream where the object is written.
+  @param that_object_to_display the object of class 'ExplicitDigitalSurfaceTracker' to write.
+  @return the output stream after the writing.
+*/
+inline
+std::ostream&
+ImaGene::operator<<
+( std::ostream & that_stream, 
+  const ExplicitDigitalSurfaceTracker & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

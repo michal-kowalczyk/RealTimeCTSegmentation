@@ -1,0 +1,1953 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : DMLPContour.ih
+//
+// Creation : 2010/01/18
+//
+// Version : 2010/01/18
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in DMLPContour.h 
+//
+// History :
+//	2010/01/18 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class DMLPContour declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <cmath>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_DMLPContour(x)
+#define DEBUGCMD_DMLPContour(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_DMLPContour(x) if(!(x)) \
+    { std::cerr << "Assertion failed : " << __PRETTY_FUNCTION__ << std::endl \
+		<< "(" << #x << ')' << std::endl			\
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_DMLPContour(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Flips INSIDE/OUTSIDE.
+ * @param t any TouchType.
+ * @return the opposite of [t].
+ */
+INLINE
+ImaGene::DMLPContour::TouchType
+ImaGene::DMLPContour::flip( TouchType t )
+{
+  return t == INSIDE ? OUTSIDE : INSIDE;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// class ImaGene::DMLPContour::Edge
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Default destructor. Nothing special.
+ */
+INLINE
+ImaGene::DMLPContour::Edge::~Edge()
+{
+}
+
+/**
+ * Default constructor. The object is invalid.
+ */
+INLINE
+ImaGene::DMLPContour::Edge::Edge()
+{
+}
+
+
+/**
+ * Constructor. Other members are computed automatically.
+ *
+ * @param v0 an irreducible vector.
+ * @param base0 the type of pixel at the source of the Edge vector.
+ * @param n0 the number of times this vector is repeated.
+ */
+INLINE
+ImaGene::DMLPContour::Edge::Edge
+( Vector2i v0, 
+  TouchType base0, 
+  uint n0 )
+  : v( v0 ), base( base0 ), n( n0 )
+{
+  oc.initByCastIntoFirstOctant( v0 );
+  Vector2i vo = oc.cast( v );
+  z.init( vo.y(), vo.x() );
+}
+
+/**
+ * Constructor. Other members are computed automatically.
+ *
+ * @param v0 an irreducible vector.
+ * @param z0 the continued fraction of [v0] cast in the first octant.
+ * @param oc0 the transformation to cast [v0] in the first octant.
+ * @param base0 the type of pixel at the source of the Edge vector.
+ * @param n0 the number of times this vector is repeated.
+ */
+INLINE
+ImaGene::DMLPContour::Edge::Edge
+( Vector2i v0, 
+  const CFraction & z0, 
+  const OctantChange & oc0, 
+  TouchType base0, 
+  uint n0 )
+  : v( v0 ), z( z0 ), oc( oc0 ), base( base0 ), n( n0 )
+{
+}
+
+/**
+ * @return the vector representing the edge (n*v).
+ */
+INLINE
+ImaGene::Vector2i
+ImaGene::DMLPContour::Edge::vector() const
+{
+  return n * v;
+}
+
+
+/**
+ * Flip the source of the vector inside/out. Useful for dynamic
+ * contour where the shape of interest is deformed by flipping
+ * some border pixels inside/out.
+ */
+INLINE
+void
+ImaGene::DMLPContour::Edge::flip() 
+{
+  base = base == INSIDE ? OUTSIDE : INSIDE;
+}
+
+/**
+ * @return the number of grid steps associated with this
+ * edge. It is in fact this.n * |this.v|_1.
+ */
+INLINE
+uint
+ImaGene::DMLPContour::Edge::digitalLength() const
+{
+  return v.norm1() * n;
+}
+
+/**
+ * @return the Euclidean length of this edge.
+ */
+INLINE
+double
+ImaGene::DMLPContour::Edge::euclideanLength() const
+{
+  return ((double) n) * v.norm();
+}
+
+
+/**
+ * Displays the edge on the given output stream.
+ *
+ * @param out the output stream.
+ */
+INLINE
+void
+ImaGene::DMLPContour::Edge::selfDisplay
+( std::ostream & out ) const
+{
+  out << ( base == INSIDE ? 'x' : 'o' ) 
+      << "(" << v.x() << "," << v.y() << ")";
+  if ( n > 1 )
+    out << "^" << n;
+}
+
+/**
+ * Displays the edge on the given output stream, with upper case letters.
+ *
+ * @param out the output stream.
+ */
+INLINE
+void
+ImaGene::DMLPContour::Edge::selfDisplayUpperCase
+( std::ostream & out ) const
+{
+  out << ( base == INSIDE ? 'X' : 'O' ) 
+      << "(" << v.x() << "," << v.y() << ")";
+  if ( n > 1 )
+    out << "^" << n;
+}
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// class ImaGene::DMLPContour::iterator
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Creates an iterator circulating on a digital contour [contour],
+ * positionned at the first edge in the list of edges of the contour,
+ * and the first linel (second pointel) of this edge. The boolean
+ * [flip_to_inside] indicates where to flip (inside or outside) for a
+ * forthcoming flip. It is useful to define an iterator and its
+ * inverse after flip.
+ *
+ * @param contour the dynamic mlp where the iterator is circulating.
+ *
+ * @param flip_to_inside 'true' for a flip toward the inside,
+ * 'false' otherwise.
+ */
+INLINE
+ImaGene::DMLPContour::iterator::iterator
+( DMLPContour & contour,
+  bool flip_to_inside )
+  : dmlp( contour ),
+    inside( flip_to_inside ), 
+    m_it_edge( contour.firstEdge() ), 
+    m_vtx_xy( contour.getStartPosition() )
+{
+  m_last_code = m_it_edge->v.quadrant();
+  m_xy = m_vtx_xy;
+  m_xy += dmlp.basePointel( m_it_edge );
+  next();
+}
+
+/**
+ * Creates an iterator circulating on a digital contour
+ * [contour], positionned at the same place as the given
+ * reverse_iterator. More precisely, it reverts the displacement
+ * vector (coded as the last_code), such that the pointed
+ * pointel is the opposite extremity of the former vector.
+ *
+ * @param it any reverse_iterator circulating forward on a contour.
+ */
+INLINE
+ImaGene::DMLPContour::iterator::iterator
+( const reverse_iterator & it )
+  : dmlp( it.dmlp ),
+    inside( it.inside ), 
+    m_it_edge( it.m_it_edge ),
+    m_vtx_xy( it.m_vtx_xy ),
+    m_xy( it.m_xy )
+{
+  m_last_code = FreemanChain::oppositeCode( it.m_last_code );
+  next();
+}
+
+
+
+/**
+ * Copy constructor.
+ *
+ * @param other any iterator.
+ */
+INLINE
+ImaGene::DMLPContour::iterator::iterator( const iterator & other )
+  : dmlp( other.dmlp ),
+    inside( other.inside ), 
+    m_it_edge( other.m_it_edge ), 
+    m_xy( other.m_xy ), 
+    m_vtx_xy( other.m_vtx_xy ),
+    m_last_code( other.m_last_code )
+{
+}
+
+/**
+ * Creates an iterator circulating on a digital contour [contour],
+ * positionned at the given edge in the list of edges of the contour,
+ * and at position [pos] in this edge. The boolean [flip_to_inside]
+ * indicates where to flip (inside or outside) for a forthcoming
+ * flip. It is useful to define an iterator and its inverse after
+ * flip.
+ * 
+ * NB: O( pos ) operation.
+ *
+ * @param contour the dynamic mlp where the iterator is circulating.
+ * @param flip_to_inside 'true' for a flip toward the inside,
+ * 'false' otherwise.
+ * @param it_edge an iterator on the given edge.
+ * @param xy the coordinate of the base vertex.
+ * @param pos the position of the pointel in the edge (0 : first pointel, etc).
+ */
+INLINE
+ImaGene::DMLPContour::iterator::iterator
+( DMLPContour & contour,
+  bool flip_to_inside,
+  const edge_iterator & it_edge,
+  const Vector2i & xy,
+  uint pos )
+  : dmlp( contour ),
+    inside( flip_to_inside ), 
+    m_it_edge( it_edge ), 
+    m_vtx_xy( xy )
+{
+  m_last_code = m_it_edge->v.quadrant();
+  m_xy = m_vtx_xy;
+  m_xy += dmlp.basePointel( m_it_edge );
+  if ( pos == 0 )
+    {
+      next();
+      previous();
+    }
+  else 
+    {
+      ASSERT_DMLPContour( pos < it_edge->vector().norm1() 
+			  && "[ImaGene::DMLPContour::iterator::iterator(...)] pos is too far away wrt edge." );
+      for ( ; pos != 0; --pos ) next();
+    }
+}
+
+
+/**
+ * Assignment.
+ *
+ * @param other an iterator circulating in the same dynamic contour.
+ * @return a reference to 'this'.
+ */
+INLINE
+ImaGene::DMLPContour::iterator & 
+ImaGene::DMLPContour::iterator::operator=( const iterator & other )
+{
+  if ( this != &other )
+    {
+      inside = other.inside;
+      m_it_edge = other.m_it_edge;
+      m_xy = other.m_xy;
+      m_vtx_xy = other.m_vtx_xy;
+      m_last_code = other.m_last_code;
+    }
+  return *this;
+}
+
+/**
+ * Destructor. Nothing special.
+ */
+INLINE
+ImaGene::DMLPContour::iterator::~iterator()
+{
+}
+
+
+/**
+ * @return an edge iterator on the edge where the iterator is
+ * currently positionned.
+ */
+INLINE
+ImaGene::DMLPContour::edge_iterator
+ImaGene::DMLPContour::iterator::edge() const
+{
+  return m_it_edge;
+}
+
+/**
+ * @return the coordinates of the current pointel.
+ */
+INLINE
+const ImaGene::Vector2i &
+ImaGene::DMLPContour::iterator::pointel() const
+{
+  return m_xy;
+}
+
+
+/**
+ * @return the coordinates of the base vertex of the current edge.
+ */
+INLINE
+const ImaGene::Vector2i & 
+ImaGene::DMLPContour::iterator::baseVertex() const
+{
+  return m_vtx_xy;
+}
+
+
+/**
+ * @return the coordinates of the target vertex of the current edge.
+ */
+INLINE
+ImaGene::Vector2i
+ImaGene::DMLPContour::iterator::targetVertex() const
+{
+  return m_vtx_xy + m_it_edge->vector();
+}
+
+
+
+ 
+
+/**
+ * @return the position of the pointel with respect to the beginning
+ * of the edge or -1 if it is a place where the digital contour turns
+ * around a vertex to be in the correct quadrant.
+ */
+INLINE
+int
+ImaGene::DMLPContour::iterator::position() const
+{
+  const Vector2i & v_edge = edge()->v;
+  Vector2i last_step = FreemanChain::displacement( m_last_code );
+  if ( v_edge * last_step < 0 )
+    return -1;
+  Vector2i base_pointel( m_vtx_xy );
+  base_pointel += dmlp.basePointel( m_it_edge );
+  return (int) ( m_xy - base_pointel ).norm1(); 
+}
+
+
+/**
+ * Circulates the iterator to the next linel.
+ */
+INLINE
+void 
+ImaGene::DMLPContour::iterator::next()
+{
+  // The iterator is moving step by step around the MLP. The idea is
+  // to minimize at each step the (absolute value of the) remainder of
+  // the pointel wrt the current edge. If two steps are equivalent, it
+  // means that the MLP edge is going through an integer point. It is
+  // thus either because the MLP edge is traversing an integer point
+  // or it means this is the end of the edge. In this case, the
+  // iterator moves to the next edge.
+
+  // std::cerr << "[next()] Pt=(" << m_xy.x() << "," << m_xy.y() << ")"
+  //      << " Edge=(" << edge()->v.x() << "," << edge()->v.y()
+  // 	    << ")^" << edge()->n << " C" << m_last_code;
+  const Vector2i & v_edge = edge()->v;
+  Vector2i last_step = FreemanChain::displacement( m_last_code );
+  if ( v_edge * last_step < 0 )
+    { // In this case, the contour is turning around the vertex.
+      SideType side = dmlp.getSameSide( m_it_edge );
+      m_last_code = FreemanChain::turnedCode( m_last_code, side == LEFT );
+      m_xy.move4( m_last_code );
+      // std::cerr << " T";
+    }
+  else
+    { // The contour is moving along an edge. 
+      //
+      // Compute local coordinates of pointel wrt edge vertex. Note
+      // that the space is dilated by a factor 2 to get only integers.
+      Vector2i P( m_xy - m_vtx_xy );
+      P += P;
+      P -= dmlp.twiceDV();
+      // Compute possible steps.
+      uint nb_codes = 1;
+      uint code1  = m_last_code;
+      uint code2;
+      uint code_left = FreemanChain::turnedCode( m_last_code, true );
+      uint code_right = FreemanChain::turnedCode( m_last_code, false );
+      if ( v_edge * FreemanChain::displacement( code_left ) >= 0 )
+	{
+	  code2 = code_left;
+	  ++nb_codes;
+	}
+      if ( v_edge * FreemanChain::displacement( code_right ) >= 0 )
+	{
+	  code2 = code_right;
+	  ++nb_codes;
+	}
+      if ( nb_codes == 3 )
+	{ // The edge is horizontal or vertical.
+	  // One of the steps code_left or code_right is useless.
+	  SideType side = dmlp.getSameSide( m_it_edge );
+	  code2 = FreemanChain::turnedCode( m_last_code, side == LEFT );
+	  // std::cerr << " HV";
+	}
+      // else
+      // 	std::cerr << " Edge ";
+
+      // common case. Checks what is the best step between two.
+      Vector2i step1 = FreemanChain::displacement( code1 );
+      int rem1 = - v_edge.det( P + step1 + step1 );
+      rem1 = rem1 < 0 ? -rem1 : rem1;
+      Vector2i step2 = FreemanChain::displacement( code2 );
+      int rem2 = - v_edge.det( P + step2 + step2 );
+      rem2 = rem2 < 0 ? -rem2 : rem2;
+      // std::cerr << "C1(" << code1 << "),C2(" << code2 << ")";
+      if ( rem1 < rem2 )
+	{ // step1 is closer to edge.
+	  m_last_code = code1;
+	  m_xy.move4( code1 );
+	  // std::cerr << "1<2";
+	}
+      else if ( rem1 > rem2 )
+	{ // step2 is closer to edge.
+	  m_last_code = code2;
+	  m_xy.move4( code2 );
+	  // std::cerr << "1>2";
+	}
+      else 
+	{ // steps are equivalent.
+	  Vector2i V2( ( 2 * edge()->n ) * v_edge );
+	  Vector2i M( P + step1 + step2 );
+	  if ( V2 == M )
+	    { // end of edge.
+	      edge_iterator it_next_edge = dmlp.next( m_it_edge );
+	      SideType side = dmlp.getSameSide( it_next_edge );
+	      bool turn_left_1_to_2 =
+		( code2 == FreemanChain::turnedCode( code1, true ) );
+	      // m_last_code = ( turn_left_1_to_2 ^ ( side == LEFT ) )
+	      // 	? code1 : code2;
+	      m_last_code = 
+		( ( turn_left_1_to_2 && ( side == RIGHT ) )
+		  || ( ( ! turn_left_1_to_2 ) && ( side == LEFT ) ) )
+		? code2 : code1;
+	      m_vtx_xy += edge()->n * v_edge;
+	      m_xy.move4( m_last_code );
+	      m_it_edge = it_next_edge;
+	      // std::cerr << "V2=M";
+	    }
+	  else 
+	    { // integer vertex within the edge.
+	      SideType side = dmlp.getSameSide( m_it_edge );
+	      bool turn_left_1_to_2 =
+		( code2 == FreemanChain::turnedCode( code1, true ) );
+	      // std::cerr << "T" << ( turn_left_1_to_2 ? "L" : "R" )
+	      // 		<< "S" << ( side == LEFT ? "L" : "R" );
+	      m_last_code = 
+		( ( turn_left_1_to_2 && ( side == RIGHT ) )
+		  || ( ( ! turn_left_1_to_2 ) && ( side == LEFT ) ) )
+		? code2 : code1;
+	      m_xy.move4( m_last_code );
+	      // std::cerr << "Within";
+	    }
+	} // if ( rem1 < rem2 )
+    } // if ( v_edge * last_step < 0 )
+  // std::cerr << " => Pt=(" << m_xy.x() << "," << m_xy.y() << ")" 
+  // 	    << " C" << m_last_code << std::endl;
+}
+  
+// if ( m_rem >= 0 )
+//   {
+//     uint new_rem = ( m_rem + m_dir.y() ) % ( m_dir.x() + m_dir.y() );
+//     bool hor;
+//     if ( m_rem == 0 ) 
+// 	{
+// 	  SideType side = dmlp.getSameSide( m_it_edge );
+// 	  hor = ( side == RIGHT ) || ( m_dir.y() == 0 );
+// 	}
+//     else if ( new_rem == 0 )
+// 	{
+// 	  SideType side = ( m_pos == m_dlength - 1 )
+// 	    ? dmlp.getSameSide( dmlp.next( m_it_edge ) )
+// 	    : dmlp.getSameSide( m_it_edge );
+// 	  hor = ( side == LEFT ) || ( m_dir.y() == 0 );
+// 	}
+//     else // palindromic part of Christoffel word.
+// 	{
+// 	  hor = new_rem > m_rem;
+// 	}
+//     // Making the step.
+//     if ( hor )
+// 	m_xy += Vector2i::quadrantX( m_it_edge->v.quadrant() );
+//     else
+// 	m_xy += Vector2i::quadrantY( m_it_edge->v.quadrant() );
+//     // Advance to next position.
+//     ++m_pos;
+//     m_rem = new_rem;
+//     // Checks if edge is finished.
+//     if ( m_pos >= m_dlength )
+// 	{
+// 	  SideType former_side = dmlp.getSameSide( m_it_edge );
+// 	  m_dir = m_it_edge->v;
+// 	  m_it_edge = dmlp.next( m_it_edge );
+// 	  m_dlength = m_it_edge->digitalLength();
+// 	  if ( ( m_dir.norm1() == 1 ) 
+// 	       && ( former_side != dmlp.getSameSide( m_it_edge ) ) )
+// 	    { // Trivial vector followed by a different base.
+// 	      m_rem = -2;
+// 	    }
+// 	  else if ( m_dir.quadrant() != m_it_edge->v.quadrant() )
+// 	    { // Quadrants are different. The digital contour must
+// 	      // turn around the vertex.
+// 	      m_rem = -1;
+// 	    }
+// 	  // else if ( ( m_dir == m_it_edge->v ) && ( m_dir.norm1() == 1 ) )
+// 	  //   { // Exactly the same direction. In this case, the base
+// 	  //     // type is necessarily different.
+// 	  //     m_rem = -2;
+// 	  //   }
+// 	  else
+// 	    { // Same quadrant. We can go back to "normal" mode.
+// 	      m_dir = m_it_edge->v;
+// 	      while ( m_dir.quadrant() != 0 ) m_dir.turnLeft();
+// 	      // m_dir = m_it_edge->v.abs(); 
+// 	      // = Vector2i( m_it_edge->z.q(), m_it_edge->z.p() );
+// 	      m_rem = 0;
+// 	      m_pos = 0;
+// 	    }
+// 	}
+//   }
+// else if ( m_rem == -1 )
+//   {
+//     // In this case there is a quadrant change and the interpixel
+//     // contour turns around the vertex.
+//     if ( m_dir.det( m_it_edge->v ) > 0 )
+// 	m_dir.turnRight(); // the vector is turned left !
+//     else
+// 	m_dir.turnLeft(); // the vector is turned right !
+//     SideType side = dmlp.getSameSide( m_it_edge );
+//     if ( side == RIGHT )
+//      	m_xy += Vector2i::quadrantY( m_dir.quadrant() );
+//     else
+//      	m_xy += Vector2i::quadrantX( m_dir.quadrant() );
+//     //m_xy += Vector2i::quadrantY( m_dir.quadrant() );
+//     if ( m_dir.quadrant() == m_it_edge->v.quadrant() )
+// 	{
+// 	  m_dir = m_it_edge->v;
+// 	  while ( m_dir.quadrant() != 0 ) m_dir.turnLeft();
+// 	  m_rem = 0;
+// 	  m_pos = 0;
+// 	}
+//     else
+// 	++m_pos;
+//   }
+// else if ( m_rem == -2 )
+//   {
+//     SideType side = dmlp.getSameSide( m_it_edge );
+//     if ( side == RIGHT ) 
+// 	m_xy += Vector2i::quadrantY( m_dir.quadrant() ); 
+//     else
+// 	m_xy -= Vector2i::quadrantY( m_dir.quadrant() );
+//     if ( m_dir.quadrant() == m_it_edge->v.quadrant() )
+// 	{
+// 	  m_dir = m_it_edge->v;
+// 	  while ( m_dir.quadrant() != 0 ) m_dir.turnLeft();
+// 	  m_rem = 0;
+// 	  m_pos = 0;
+// 	}
+//     else
+// 	{
+// 	  ++m_pos;
+// 	  m_rem = -1;
+// 	}
+//     // m_dir = m_it_edge->v;
+//     // while ( m_dir.quadrant() != 0 ) m_dir.turnLeft();
+//     // m_rem = 0;
+//     // m_pos = 0;
+//   }
+
+      
+/**
+ * Circulates the iterator to the next linel.
+ */
+INLINE
+ImaGene::DMLPContour::iterator& 
+ImaGene::DMLPContour::iterator::operator++()
+{
+  next();
+  return *this;
+}
+
+
+/**
+ * Circulates the iterator to the previous linel.
+ * Creates a reverse_iterator to backtrack.
+ */
+INLINE
+void 
+ImaGene::DMLPContour::iterator::previous()
+{
+  std::cerr << "[ImaGene::DMLPContour::iterator::previous()] "
+	    << " pt=" << this->pointel();
+  reverse_iterator itr( *this );
+  ++itr;
+  this->operator=( iterator( itr ) );
+  std::cerr << " ptnew=" << this->pointel() << std::endl;
+}
+
+//   Vector2i last_step = FreemanChain::displacement( ( m_last_code + 2 ) % 4 );
+//   m_xy.move4( ( m_last_code + 2 ) % 4 );
+  
+//   if ( v_edge * last_step < 0 )
+//     { // In this case, the contour is turning around the vertex.
+//       SideType side = dmlp.getSameSide( m_it_edge );
+//       m_last_code = FreemanChain::turnedCode( m_last_code, side == LEFT );
+//       m_xy.move4( m_last_code );
+//       // std::cerr << " T";
+//     }
+//   else
+//     { // The contour is moving along an edge. 
+//       //
+//       // Compute local coordinates of pointel wrt edge vertex. Note
+//       // that the space is dilated by a factor 2 to get only integers.
+//       Vector2i P( m_xy - m_vtx_xy );
+//       P += P;
+//       P -= dmlp.twiceDV();
+//       // Compute possible steps.
+//       uint nb_codes = 1;
+//       uint code1  = m_last_code;
+//       uint code2;
+//       uint code_left = FreemanChain::turnedCode( m_last_code, true );
+//       uint code_right = FreemanChain::turnedCode( m_last_code, false );
+//       if ( v_edge * FreemanChain::displacement( code_left ) >= 0 )
+// 	{
+// 	  code2 = code_left;
+// 	  ++nb_codes;
+// 	}
+//       if ( v_edge * FreemanChain::displacement( code_right ) >= 0 )
+// 	{
+// 	  code2 = code_right;
+// 	  ++nb_codes;
+// 	}
+//       if ( nb_codes == 3 )
+// 	{ // The edge is horizontal or vertical.
+// 	  // One of the steps code_left or code_right is useless.
+// 	  SideType side = dmlp.getSameSide( m_it_edge );
+// 	  code2 = FreemanChain::turnedCode( m_last_code, side == LEFT );
+// 	  // std::cerr << " HV";
+// 	}
+//       // else
+//       // 	std::cerr << " Edge ";
+
+//       // common case. Checks what is the best step between two.
+//       Vector2i step1 = FreemanChain::displacement( code1 );
+//       int rem1 = - v_edge.det( P + step1 + step1 );
+//       rem1 = rem1 < 0 ? -rem1 : rem1;
+//       Vector2i step2 = FreemanChain::displacement( code2 );
+//       int rem2 = - v_edge.det( P + step2 + step2 );
+//       rem2 = rem2 < 0 ? -rem2 : rem2;
+//       // std::cerr << "C1(" << code1 << "),C2(" << code2 << ")";
+//       if ( rem1 < rem2 )
+// 	{ // step1 is closer to edge.
+// 	  m_last_code = code1;
+// 	  m_xy.move4( code1 );
+// 	  // std::cerr << "1<2";
+// 	}
+//       else if ( rem1 > rem2 )
+// 	{ // step2 is closer to edge.
+// 	  m_last_code = code2;
+// 	  m_xy.move4( code2 );
+// 	  // std::cerr << "1>2";
+// 	}
+//       else 
+// 	{ // steps are equivalent.
+// 	  Vector2i V2( ( 2 * edge()->n ) * v_edge );
+// 	  Vector2i M( P + step1 + step2 );
+// 	  if ( V2 == M )
+// 	    { // end of edge.
+// 	      edge_iterator it_next_edge = dmlp.next( m_it_edge );
+// 	      SideType side = dmlp.getSameSide( it_next_edge );
+// 	      bool turn_left_1_to_2 =
+// 		( code2 == FreemanChain::turnedCode( code1, true ) );
+// 	      // m_last_code = ( turn_left_1_to_2 ^ ( side == LEFT ) )
+// 	      // 	? code1 : code2;
+// 	      m_last_code = 
+// 		( ( turn_left_1_to_2 && ( side == RIGHT ) )
+// 		  || ( ( ! turn_left_1_to_2 ) && ( side == LEFT ) ) )
+// 		? code2 : code1;
+// 	      m_vtx_xy += edge()->n * v_edge;
+// 	      m_xy.move4( m_last_code );
+// 	      m_it_edge = it_next_edge;
+// 	      // std::cerr << "V2=M";
+// 	    }
+// 	  else 
+// 	    { // integer vertex within the edge.
+// 	      SideType side = dmlp.getSameSide( m_it_edge );
+// 	      bool turn_left_1_to_2 =
+// 		( code2 == FreemanChain::turnedCode( code1, true ) );
+// 	      // std::cerr << "T" << ( turn_left_1_to_2 ? "L" : "R" )
+// 	      // 		<< "S" << ( side == LEFT ? "L" : "R" );
+// 	      m_last_code = 
+// 		( ( turn_left_1_to_2 && ( side == RIGHT ) )
+// 		  || ( ( ! turn_left_1_to_2 ) && ( side == LEFT ) ) )
+// 		? code2 : code1;
+// 	      m_xy.move4( m_last_code );
+// 	      // std::cerr << "Within";
+// 	    }
+// 	} // if ( rem1 < rem2 )
+//     } // if ( v_edge * last_step < 0 )
+//   // std::cerr << " => Pt=(" << m_xy.x() << "," << m_xy.y() << ")" 
+//   // 	    << " C" << m_last_code << std::endl;
+// }
+
+
+/**
+ * Independent from the value of [inside].
+ *
+ * @param other an iterator circulating in the same dynamic contour.
+ * @return 'true' iff [other] points at the same place as 'this'.
+ */
+INLINE
+bool 
+ImaGene::DMLPContour::iterator::operator==( const iterator & other ) const
+{
+  return ( m_xy == other.m_xy ) && ( m_last_code == other.m_last_code );
+}
+
+/**
+ * Independent from the value of [inside].
+ * @param other an iterator circulating in the same dynamic contour.
+ * @return 'true' iff [other] points at a different place as 'this'.
+ */
+INLINE
+bool 
+ImaGene::DMLPContour::iterator::operator!=( const iterator & other ) const
+{
+  return ( m_xy != other.m_xy ) || ( m_last_code != other.m_last_code );
+}
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// class ImaGene::DMLPContour::reverse_iterator
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Creates a reverse_iterator circulating on a digital contour
+ * [contour], positionned at the same place as the given
+ * iterator. More precisely, it reverts the displacement vector (coded
+ * as the last_code), such that the pointed pointel is the opposite
+ * extremity of the former vector.
+ *
+ * @param it any iterator circulating forward on a contour.
+ */
+INLINE
+ImaGene::DMLPContour::reverse_iterator::reverse_iterator
+( const iterator & it )
+  : dmlp( it.dmlp ),
+    inside( it.inside ), 
+    m_it_edge( it.m_it_edge ),
+    m_vtx_xy( it.m_vtx_xy ),
+    m_xy( it.m_xy )
+{
+  m_last_code = FreemanChain::oppositeCode( it.m_last_code );
+  // m_it_edge->v.quadrant() );
+  // m_xy += FreemanChain::displacement( m_last_code );
+  next();
+}
+
+
+
+/**
+ * Copy constructor.
+ *
+ * @param other any reverse_iterator.
+ */
+INLINE
+ImaGene::DMLPContour::reverse_iterator::reverse_iterator
+( const reverse_iterator & other )
+  : dmlp( other.dmlp ),
+    inside( other.inside ), 
+    m_it_edge( other.m_it_edge ), 
+    m_xy( other.m_xy ), 
+    m_vtx_xy( other.m_vtx_xy ),
+    m_last_code( other.m_last_code )
+{
+}
+
+
+/**
+ * Assignment.
+ *
+ * @param other an reverse_iterator circulating in the same dynamic contour.
+ * @return a reference to 'this'.
+ */
+INLINE
+ImaGene::DMLPContour::reverse_iterator & 
+ImaGene::DMLPContour::reverse_iterator::operator=
+( const reverse_iterator & other )
+{
+  if ( this != &other )
+    {
+      inside = other.inside;
+      m_it_edge = other.m_it_edge;
+      m_xy = other.m_xy;
+      m_vtx_xy = other.m_vtx_xy;
+      m_last_code = other.m_last_code;
+    }
+  return *this;
+}
+
+/**
+ * Destructor. Nothing special.
+ */
+INLINE
+ImaGene::DMLPContour::reverse_iterator::~reverse_iterator()
+{
+}
+
+
+/**
+ * @return an edge iterator on the edge where the reverse_iterator is
+ * currently positionned.
+ */
+INLINE
+ImaGene::DMLPContour::edge_iterator
+ImaGene::DMLPContour::reverse_iterator::edge() const
+{
+  return m_it_edge;
+}
+
+/**
+ * @return the coordinates of the current pointel.
+ */
+INLINE
+const ImaGene::Vector2i &
+ImaGene::DMLPContour::reverse_iterator::pointel() const
+{
+  return m_xy;
+}
+
+
+/**
+ * @return the coordinates of the base vertex of the current edge.
+ */
+INLINE
+const ImaGene::Vector2i & 
+ImaGene::DMLPContour::reverse_iterator::baseVertex() const
+{
+  return m_vtx_xy;
+}
+
+
+/**
+ * @return the coordinates of the target vertex of the current edge.
+ */
+INLINE
+ImaGene::Vector2i
+ImaGene::DMLPContour::reverse_iterator::targetVertex() const
+{
+  return m_vtx_xy + m_it_edge->vector();
+}
+
+
+
+
+/**
+ * @return the position of the pointel with respect to the beginning
+ * of the edge or -1 if it is a place where the digital contour turns
+ * around a vertex to be in the correct quadrant.
+ */
+INLINE
+int
+ImaGene::DMLPContour::reverse_iterator::position() const
+{
+  const Vector2i & v_edge = edge()->v;
+  Vector2i last_step = FreemanChain::displacement( m_last_code );
+  if ( v_edge * last_step < 0 )
+    return -1;
+  Vector2i base_pointel( m_vtx_xy );
+  base_pointel += dmlp.basePointel( m_it_edge );
+  return (int) ( m_xy - base_pointel ).norm1(); 
+}
+
+
+/**
+ * Circulates the reverse_iterator to the next linel (i.e. the
+ * previous linel for an iterator).
+ */
+INLINE
+void 
+ImaGene::DMLPContour::reverse_iterator::next()
+{
+  // The reverse_iterator is moving step by step around the MLP. The idea is
+  // to minimize at each step the (absolute value of the) remainder of
+  // the pointel wrt the current edge. If two steps are equivalent, it
+  // means that the MLP edge is going through an integer point. It is
+  // thus either because the MLP edge is traversing an integer point
+  // or it means this is the end of the edge. In this case, the
+  // reverse_iterator moves to the next edge.
+
+//   std::cerr << "[reverse_iterator::next()] Pt=(" 
+// 	    << m_xy.x() << "," << m_xy.y() << ")"
+// 	    << " VTX=" << m_vtx_xy
+// 	    << " Edge=" << ( edge()->base == INSIDE ? "x" : "o" )
+// 	    << "(" << edge()->v.x() << "," << edge()->v.y()
+//    	    << ")^" << edge()->n << " C" << m_last_code;
+  const Vector2i & v_edge = edge()->v;
+  Vector2i last_step = FreemanChain::displacement( m_last_code );
+  if ( v_edge * last_step > 0 ) // < 0 )
+    { // In this case, the contour is turning around the vertex.
+      SideType side = dmlp.getSameSide( dmlp.next( m_it_edge ) );
+      m_last_code = FreemanChain::turnedCode( m_last_code, side == RIGHT ); // LEFT
+      m_xy.move4( m_last_code );
+      // std::cerr << " T";
+    }
+  else
+    { // The contour is moving along an edge. 
+      //
+      // Compute local coordinates of pointel wrt edge vertex. Note
+      // that the space is dilated by a factor 2 to get only integers.
+      Vector2i P( m_xy - m_vtx_xy );
+      P += P;
+      P -= dmlp.twiceDV();
+      // Compute possible steps.
+      uint nb_codes = 1;
+      uint code1  = m_last_code;
+      uint code_left = FreemanChain::turnedCode( m_last_code, false ); // true
+      uint code_right = FreemanChain::turnedCode( m_last_code, true ); // false
+      Vector2i step1 = FreemanChain::displacement( code1 );
+      int rem1 = - v_edge.det( P + step1 + step1 );
+      rem1 = rem1 < 0 ? -rem1 : rem1;
+      Vector2i step2 = FreemanChain::displacement( code_left );
+      Vector2i P2( P + step2 + step2 );
+      int rem2 = - v_edge.det( P2 );
+      rem2 = rem2 < 0 ? -rem2 : rem2;
+      Vector2i step3 = FreemanChain::displacement( code_right );
+      Vector2i P3( P + step3 + step3 );
+      int rem3 = - v_edge.det( P3 );
+      rem3 = rem3 < 0 ? -rem3 : rem3;
+      uint code2 = code_left;
+      if ( ( rem3 < rem2 ) 
+	   || ( ( rem3 == rem2 ) && ( P3.norm1() < P2.norm1() ) ) )
+	{
+	  code2 = code_right;
+	  rem2 = rem3;
+	  step2 = step3;
+	}
+
+//       std::cerr << " P(" << P.x() << "," << P.y() << ")";
+//       std::cerr << " C1(" << code1 << "),C2(" << code2 << ")";
+      if ( rem1 < rem2 )
+	{ // step1 is closer to edge.
+	  m_last_code = code1;
+	  m_xy.move4( code1 );
+	  // std::cerr << "1<2";
+	}
+      else if ( rem1 > rem2 )
+	{ // step2 is closer to edge.
+	  m_last_code = code2;
+	  m_xy.move4( code2 );
+	  // std::cerr << "1>2";
+	}
+      else 
+	{ // steps are equivalent.
+	  Vector2i V1( 0, 0 ); // V2( ( 2 * edge()->n ) * v_edge );
+	  Vector2i M( P + step1 + step2 );
+	  // std::cerr << " 1=2 M(" << M.x() << "," << M.y() << ")";
+	  if ( V1 == M )
+	    { // beginning of edge.
+	      edge_iterator it_prev_edge = dmlp.prev( m_it_edge );
+	      SideType side = dmlp.getSameSide( m_it_edge );
+	      bool turn_left_1_to_2 =
+		( code2 == FreemanChain::turnedCode( code1, false ) ); // true
+	      m_last_code = 
+		( ( turn_left_1_to_2 && ( side == RIGHT ) ) 
+		  || ( ( ! turn_left_1_to_2 ) && ( side == LEFT ) ) )
+		? code2 : code1;
+	      m_vtx_xy -= it_prev_edge->vector();
+	      m_xy.move4( m_last_code );
+	      m_it_edge = it_prev_edge;
+	      // std::cerr << "V1=M";
+	    }
+	  else 
+	    { // integer vertex within the edge.
+	      SideType side = dmlp.getSameSide( m_it_edge );
+	      bool turn_left_1_to_2 =
+		( code2 == FreemanChain::turnedCode( code1, false ) ); // true
+	      // std::cerr << "T" << ( turn_left_1_to_2 ? "L" : "R" )
+	      // 		<< "S" << ( side == LEFT ? "L" : "R" );
+	      m_last_code = 
+		( ( turn_left_1_to_2 && ( side == RIGHT ) )
+		  || ( ( ! turn_left_1_to_2 ) && ( side == LEFT ) ) )
+		? code2 : code1;
+	      m_xy.move4( m_last_code );
+	      // std::cerr << "Within";
+	    }
+	} // if ( rem1 < rem2 )
+    } // if ( v_edge * last_step < 0 )
+//   std::cerr << " => Pt=(" << m_xy.x() << "," << m_xy.y() << ")" 
+//    	    << " C" << m_last_code << std::endl;
+}
+
+
+/**
+ * Circulates the reverse_iterator to the next linel.
+ */
+INLINE
+ImaGene::DMLPContour::reverse_iterator& 
+ImaGene::DMLPContour::reverse_iterator::operator++()
+{
+  next();
+  return *this;
+}
+
+
+
+/**
+ * Independent from the value of [inside].
+ *
+ * @param other an reverse_iterator circulating in the same dynamic contour.
+ * @return 'true' iff [other] points at the same place as 'this'.
+ */
+INLINE
+bool 
+ImaGene::DMLPContour::reverse_iterator::operator==( const reverse_iterator & other ) const
+{
+  return ( m_xy == other.m_xy ) && ( m_last_code == other.m_last_code );
+}
+
+/**
+ * Independent from the value of [inside].
+ * @param other an reverse_iterator circulating in the same dynamic contour.
+ * @return 'true' iff [other] points at a different place as 'this'.
+ */
+INLINE
+bool 
+ImaGene::DMLPContour::reverse_iterator::operator!=( const reverse_iterator & other ) const
+{
+  return ( m_xy != other.m_xy ) || ( m_last_code != other.m_last_code );
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// class ImaGene::DMLPContour
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- Static services ------------------------------
+
+/**
+ * @param inside when 'true', specifies inside, otherwise outside.
+ * @return the constant enumeration INSIDE or OUTSIDE.
+ */
+INLINE
+ImaGene::DMLPContour::TouchType
+ImaGene::DMLPContour::getTouchType( bool inside )
+{
+  return inside ? INSIDE : OUTSIDE;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- Standard services ------------------------------
+
+/**
+ * @return if the contour turns clockwise ('true') around its
+ * inside or counterclockwise.
+ */
+INLINE
+bool
+ImaGene::DMLPContour::cw() const
+{
+  return m_cw;
+}
+
+/**
+ * The digital contour lies in Z x Z while the MLP lies in the
+ * half-integer plane (Z+1/2) x (Z+1/2). This vector gives twice
+ * the displacement to go from the former to the latter.
+ * 
+ * @return this displacement vector.
+ */
+INLINE
+ImaGene::Vector2i
+ImaGene::DMLPContour::twiceDV() const
+{
+  return m_twice_dv;
+}
+
+/**
+ * This function is used to compute the coordinates of a pointel
+ * associated with a base vertex of an edge.
+ *
+ * @param it an edge iterator in this contour.
+ *
+ * @return the displacement vector to go from the base vertex of edge
+ * [e] to its associated pointel.
+ */
+INLINE
+ImaGene::Vector2i
+ImaGene::DMLPContour::basePointel( const edge_iterator & it ) const
+{
+  uint q = it->v.quadrant();
+  SideType side = this->getSameSide( it );
+  Vector2i dx( twiceDV() );
+  dx -= Vector2i::quadrantX( q );
+  if ( side == LEFT )
+    dx -= Vector2i::quadrantY( q );
+  else 
+    dx += Vector2i::quadrantY( q );
+  dx /= 2;
+  return dx;
+}
+
+
+/**
+ * This method initializes consistently a dynamic contour from a
+ * Freeman chain. The chain is supposed to model either the inner
+ * 4-connected 8-border of an object ([inside] is 'true') or its
+ * outer 4-connected 8-border ([inside] is 'false'). If you wish to
+ * initialize the dynamic contour with a digital interpixel contour,
+ * you should use the method FreemanChain::innerContour beforehands.
+ *
+ * The iterators should have a getCode() method returning between 0-3
+ * according to the Freeman chain code and a nextInLoop() method to
+ * visit the whole Freeman chain code.
+ *
+ * @param itb an iterator on the beginning of Freeman chain.
+ * @param ite an iterator on the end of Freeman chain.
+ * @param inside indicates if it is an inner or an outer border.
+ */
+template <class FreemanChainIterator>
+INLINE
+void
+ImaGene::DMLPContour::initFromFreemanChain
+( FreemanChainIterator itb, 
+  FreemanChainIterator ite, 
+  bool inside )
+{
+  m_contour.clear();
+  m_nb_of_updates = 0;
+  m_length = 0.0;
+  m_start_pos = *itb;
+  edge_iterator itedge;
+  Vector2i v;
+  TouchType base = DMLPContour::getTouchType( inside );
+  do
+    {
+      itedge = m_contour.end();
+      switch ( itb.getCode() ) 
+	{
+	case 0: v = Vector2i( 1, 0 ); break;
+	case 1: v = Vector2i( 0, 1 ); break;
+	case 2: v = Vector2i( -1, 0 ); break;
+	case 3: v = Vector2i( 0, -1 ); break;
+	}
+      insertEdge( itedge, Edge( v, base, 1 ) );
+      itb.nextInLoop();
+    }
+  while ( itb != ite );
+  m_start_edge = m_contour.begin();
+  // updateLength();
+}
+
+
+/**
+ * @return the number of edges of the contour.
+ */
+INLINE
+uint
+ImaGene::DMLPContour::size() const
+{
+  return m_contour.size();
+}
+
+/**
+ * @return 'true' is the contour has zero edges.
+ */
+INLINE
+bool 
+ImaGene::DMLPContour::null() const
+{
+  return m_contour.begin() == m_contour.end();
+}
+
+
+/**
+ * @return the position in the plane of the start Edge.
+ * @see m_start_edge
+ */
+INLINE
+ImaGene::Vector2i 
+ImaGene::DMLPContour::getStartPosition() const
+{
+  return m_start_pos;
+}
+
+/**
+ * Given an iterator on some edge of the contour, simplifies the
+ * MLP locally around till no more changes can be done.
+ *
+ * @param it an iterator on some edge of 'this' contour.
+ * @return the number of fusion performed.
+ */
+INLINE
+uint
+ImaGene::DMLPContour::simplifyAt( edge_iterator & it )
+{
+  uint nb = 0;
+  bool mr = true;
+  bool ml = true;
+  while ( mr && ! null() ) 
+    {
+      // std::cerr << "[DMLPContour::simplifyAt] fusion at " 
+      // 		<< *it << std::endl;
+      mr = fusion( it );
+      nb += mr ? 1 : 0;
+    }
+  return nb;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- iterator services -----------------------
+
+/**
+ * Returns an iterator that moves pointel by pointel along the
+ * MLP as it is tracing step by step the digital interpixel
+ * contour. It also stores if the future flip is inside or
+ * outside. One should use it as follows:
+ * @code
+ iterator it1 = first();
+ iterator it = it1;
+ do { ...
+   ++it;
+ } while ( it != it1 );
+ * @endcode
+ *
+ * @param flip_to_inside 'true' for a flip toward the inside,
+ * 'false' otherwise.
+ *
+ * @return an iterator that should be used as a circulator.
+ */
+INLINE
+ImaGene::DMLPContour::iterator
+ImaGene::DMLPContour::first( bool flip_to_inside )
+{
+  return iterator( *this, flip_to_inside );
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- edge iterator services -----------------------
+
+/**
+ * Such iterators could be used as usual:
+ * @code
+ for ( it = beginEdge(); it != endEdge(); ++it ) ...
+ * @endcode
+ * or as circulators.
+ * @see first
+ *
+ * @return the iterator on the first edge of the contour.
+ */
+INLINE
+ImaGene::DMLPContour::edge_iterator
+ImaGene::DMLPContour::beginEdge()
+{
+  return m_contour.begin();
+}
+
+/**
+ * @return the iterator after the last edge of the contour.
+ */
+INLINE
+ImaGene::DMLPContour::edge_iterator
+ImaGene::DMLPContour::endEdge()
+{
+  return m_contour.end();  
+}
+
+/**
+ * This is used to have a circulator on the contour.
+ * @code
+ it = firstEdge();
+ do { ...
+ it = dmlp.next( it );
+ } while ( it != firstEdge() );
+ * @endcode
+ *
+ * @return an iterator on the first edge of the contour (i.e., the
+ * one corresponding to the starting coordinates).
+ */
+INLINE
+ImaGene::DMLPContour::edge_iterator
+ImaGene::DMLPContour::firstEdge()
+{
+  return m_start_edge;
+}
+
+/**
+ * This is used to have a circulator with coordinates on the contour.
+ * @code
+ Vector2i v;
+ it = firstEdge( v );
+ do { ...
+ it = dmlp.next( it, v );
+ } while ( it != firstEdge() );
+ * @endcode
+ *
+ * @param ref_v (returns) the coordinates of the base of the first
+ * edge.
+ *
+ * @return an iterator on the first edge of the contour (i.e., the
+ * one corresponding to the starting coordinates).
+ */
+INLINE
+ImaGene::DMLPContour::edge_iterator
+ImaGene::DMLPContour::firstEdge( Vector2i & ref_v )
+{
+  ref_v = m_start_pos;
+  return m_start_edge;
+}
+
+/**
+ * Given a edge circulator [it] on the contour, returns the one on the
+ * next element.
+ * @param it an iterator in the list of edges [contour].
+ * @return the next one (assuming the contour is a loop).
+ */
+INLINE
+ImaGene::DMLPContour::edge_iterator
+ImaGene::DMLPContour::next( const edge_iterator & it )
+{
+  edge_iterator it2 = it;
+  ++it2;
+  if ( it2 == m_contour.end() )
+    it2 = m_contour.begin();
+  return it2;
+}
+
+/**
+ * Given a edge circulator [it] on the contour, returns the one on the
+ * previous element.
+ * @param it an iterator in the list of edges [contour].
+ * @return the previous one (assuming the contour is a loop).
+ */
+INLINE
+ImaGene::DMLPContour::edge_iterator
+ImaGene::DMLPContour::prev( const edge_iterator & it )
+{
+  edge_iterator it2 = it;
+  if ( it2 == m_contour.begin() )
+    return --m_contour.end();
+  --it2;
+  return it2;
+}
+
+/**
+ * Given a edge circulator [it] on the contour, returns the one on the
+ * next element.
+ *
+ * @param it an iterator in the list of edges [contour].
+ *
+ * @param ref_v (modifies) this point is moved according to the
+ * edge vector.
+ *
+ * @return the next one (assuming the contour is a loop).
+ */
+INLINE
+ImaGene::DMLPContour::edge_iterator
+ImaGene::DMLPContour::next
+( const edge_iterator & it, Vector2i & ref_v )
+{
+  edge_iterator it2 = it;
+  ref_v += it->n * it->v;
+  ++it2;
+  if ( it2 == m_contour.end() )
+    it2 = m_contour.begin();
+  return it2;
+}
+
+/**
+ * Given a edge circulator [it] on the contour, returns the one on the
+ * previous element.
+ *
+ * @param it an iterator in the list of edges [contour].
+ *
+ * @param ref_v (modifies) this point is moved according to the
+ * previous edge vector.
+ *
+ * @return the previous one (assuming the contour is a loop).
+ */
+INLINE
+ImaGene::DMLPContour::edge_iterator
+ImaGene::DMLPContour::prev
+( const edge_iterator & it, Vector2i & ref_v )
+{
+  edge_iterator it2 = it;
+  if ( it2 == m_contour.begin() )
+    return --m_contour.end();
+  --it2;
+  ref_v -= it2->n * it2->v;
+  return it2;
+}
+
+
+
+/**
+ * Such iterators could be used as usual:
+ * @code
+ for ( it = beginEdge(); it != endEdge(); ++it ) ...
+ * @endcode
+ * or as circulators.
+ * @see first
+ *
+ * @return the iterator on the first edge of the contour.
+ */
+INLINE
+ImaGene::DMLPContour::const_edge_iterator
+ImaGene::DMLPContour::beginEdge() const
+{
+  return m_contour.begin();
+}
+
+/**
+ * @return the iterator after the last edge of the contour.
+ */
+INLINE
+ImaGene::DMLPContour::const_edge_iterator
+ImaGene::DMLPContour::endEdge() const
+{
+  return m_contour.end();  
+}
+
+/**
+ * This is used to have a circulator on the contour.
+ * @code
+ it = firstEdge();
+ do { ...
+ it = dmlp.next( it );
+ } while ( it != firstEdge() );
+ * @endcode
+ *
+ * @return an iterator on the first edge of the contour (i.e., the
+ * one corresponding to the starting coordinates).
+ */
+INLINE
+ImaGene::DMLPContour::const_edge_iterator
+ImaGene::DMLPContour::firstEdge() const
+{
+  return m_start_edge;
+}
+
+/**
+ * This is used to have a circulator with coordinates on the contour.
+ * @code
+ Vector2i v;
+ it = firstEdge( v );
+ do { ...
+ it = dmlp.next( it, v );
+ } while ( it != firstEdge() );
+ * @endcode
+ *
+ * @param ref_v (returns) the coordinates of the base of the first
+ * edge.
+ *
+ * @return an iterator on the first edge of the contour (i.e., the
+ * one corresponding to the starting coordinates).
+ */
+INLINE
+ImaGene::DMLPContour::const_edge_iterator
+ImaGene::DMLPContour::firstEdge( Vector2i & ref_v ) const
+{
+  ref_v = m_start_pos;
+  return m_start_edge;
+}
+
+
+
+
+/**
+ * Given a edge circulator [it] on the contour, returns the one on the
+ * next element.
+ * @param it an iterator in the list of edges [contour].
+ * @return the next one (assuming the contour is a loop).
+ */
+INLINE
+ImaGene::DMLPContour::const_edge_iterator
+ImaGene::DMLPContour::next( const const_edge_iterator & it ) const
+{
+  const_edge_iterator it2 = it;
+  ++it2;
+  if ( it2 == m_contour.end() )
+    it2 = m_contour.begin();
+  return it2;
+}
+
+/**
+ * Given a edge circulator [it] on the contour, returns the one on the
+ * previous element.
+ * @param it an iterator in the list of edges [contour].
+ * @return the previous one (assuming the contour is a loop).
+ */
+INLINE
+ImaGene::DMLPContour::const_edge_iterator
+ImaGene::DMLPContour::prev( const const_edge_iterator & it ) const
+{
+  const_edge_iterator it2 = it;
+  if ( it2 == m_contour.begin() )
+    return m_contour.end();
+  --it2;
+  return it2;
+}
+
+
+/**
+ * Given a edge circulator [it] on the contour, returns the one on the
+ * next element.
+ *
+ * @param it an iterator in the list of edges [contour].
+ *
+ * @param ref_v (modifies) this point is moved according to the
+ * edge vector.
+ *
+ * @return the next one (assuming the contour is a loop).
+ */
+INLINE
+ImaGene::DMLPContour::const_edge_iterator
+ImaGene::DMLPContour::next
+( const const_edge_iterator & it, Vector2i & ref_v ) const
+{
+  const_edge_iterator it2 = it;
+  ref_v += it->n * it->v;
+  ++it2;
+  if ( it2 == m_contour.end() )
+    it2 = m_contour.begin();
+  return it2;
+}
+
+/**
+ * Given a edge circulator [it] on the contour, returns the one on the
+ * previous element.
+ *
+ * @param it an iterator in the list of edges [contour].
+ *
+ * @param ref_v (modifies) this point is moved according to the
+ * previous edge vector.
+ *
+ * @return the previous one (assuming the contour is a loop).
+ */
+INLINE
+ImaGene::DMLPContour::const_edge_iterator
+ImaGene::DMLPContour::prev
+( const const_edge_iterator & it, Vector2i & ref_v ) const
+{
+  const_edge_iterator it2 = it;
+  if ( it2 == m_contour.begin() )
+    return --m_contour.end();
+  --it2;
+  ref_v -= it2->n * it2->v;
+  return it2;
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- edge services ---------------------------------
+
+/**
+ * Inserts the edge [n] before the element pointed by [it]. The user
+ * should take care beforehands that the starting position is not
+ * modified.
+ *
+ * @param it an iterator in the contour.
+ * @param n a edge to insert (which is copied).
+ * @return an iterator pointing on the created edge within the contour.
+ */
+INLINE
+ImaGene::DMLPContour::edge_iterator 
+ImaGene::DMLPContour::insertEdge( const edge_iterator & it, const Edge & n )
+{
+  m_length += n.euclideanLength();
+  ++m_nb_of_updates;
+  return m_contour.insert( it, n );
+}
+
+/**
+ * The edge pointed by [it] is assigned the edge [n].  The user
+ * should take care beforehands that the starting position is not
+ * modified.
+ *
+ * @param it (modifies) an iterator in the contour, returns the
+ * iterator on the modified edge (could be different from [it] in
+ * storing mode).
+ *
+ * @param n the edge to copy.
+ */
+INLINE
+void
+ImaGene::DMLPContour::modifyEdge( edge_iterator & it, const Edge & n )
+{
+  m_length -= it->euclideanLength();
+  m_contour.assign( it, n ); 
+  m_length += n.euclideanLength();
+  m_nb_of_updates += 2;
+  // *it = n;
+  // return it;
+}
+
+/**
+ * The edge pointed by [it] is a vector v, n times. If n == 1,
+ * then flip base type of next edge, otherwise subdivide edge as
+ * (1,1,n-1) and change base type of second edge. The user should
+ * take care beforehands that the starting position is not
+ * modified.
+ *
+ * @param it (modifies) an iterator in the contour, returns the
+ * iterator on the modified edge (different from [it]).
+ */
+INLINE
+void
+ImaGene::DMLPContour::flipBaseTypeOfTarget( edge_iterator & it )
+{
+  if ( it->n == 1 )
+    {
+      edge_iterator next_it = next( it );
+      TouchType t = next_it->base;
+      it = subdivideLeft( next_it, 1, flip( t ), t );
+    }
+  else
+    {
+      TouchType t = it->base;
+      it = subdivideLeft( it, 1, t, t );
+      subdivideLeft( it, 1, flip( t ), t );
+    }
+}
+
+
+/**
+ * Remove the edge pointed by [it] from the dynamic contour.  The user
+ * should take care beforehands that the starting position is not
+ * modified.
+ *
+ * @param it an iterator in the contour.
+ * @return an iterator pointing on the edge which follows the suppressed one.
+ */
+INLINE
+ImaGene::DMLPContour::edge_iterator
+ImaGene::DMLPContour::removeEdge( const edge_iterator & it )
+{
+  m_length -= it->euclideanLength();
+  ++m_nb_of_updates;
+  return m_contour.erase( it );
+}
+
+/**
+ * Moves the start edge of the contour one edge forward. Useful
+ * before modifying a edge which happens to be the start edge of the
+ * contour.
+ */
+INLINE
+void 
+ImaGene::DMLPContour::moveStartEdgeForward()
+{
+  m_start_pos += m_start_edge->n * m_start_edge->v;
+  m_start_edge = next( m_start_edge );
+}
+
+/**
+ * Moves the start edge of the contour one edge backward. Useful
+ * before modifying a edge which happens to be the start edge of the
+ * contour.
+ */
+INLINE
+void 
+ImaGene::DMLPContour::moveStartEdgeBackward()
+{
+  m_start_edge = prev( m_start_edge );
+  m_start_pos -= m_start_edge->n * m_start_edge->v;
+}
+
+/**
+ * Moves the start edge of the contour one edge backward only if it
+ * is equal to [it]. Useful before modifying a edge which happens to
+ * be the start edge of the contour.
+ *
+ * @param it an iterator in the dynamic contour.
+ */
+INLINE
+void 
+ImaGene::DMLPContour::moveStartEdgeBackwardIfEqual( const edge_iterator & it )
+{
+  if ( m_start_edge == it )
+    {
+      m_start_edge = prev( m_start_edge );
+      m_start_pos -= m_start_edge->n * m_start_edge->v;
+    }
+}
+
+/**
+ * Moves the start Edge to the beginning of the contour,
+ * i.e. 'contour.begin()'. Useful so that the the logical start
+ * reflects the physical start.
+ */
+INLINE
+void 
+ImaGene::DMLPContour::moveStartEdgeToBegin()
+{
+  while ( m_start_edge != m_contour.begin() )
+    moveStartEdgeBackward();
+}
+
+/**
+ * The start edge should not be either on [it] or on 'prev(it)'.
+ * Models an elementary swap at the base vertex of [it]. It means
+ * that the vectors of 'prev(it)' of [it] are exchanged. If [flip]
+ * is true, then the vertex touch type is flipped INSIDE/OUTSIDE,
+ * otherwise it it left unchanged.
+ *
+ * @param it (modifies) an iterator on a edge, whose base vertex is
+ * the one being swapped, returns an iterator on the swaped edge (the
+ * former place pointed by [it])
+ *
+ * @param flip when 'true', the touch type of [it] is reversed (no
+ * modification of the underlying digital shape), otherwise it is
+ * left unchanged (the digital shape has one more or one less
+ * pixel).
+ */
+INLINE
+void
+ImaGene::DMLPContour::swapEdge( edge_iterator & it, 
+				bool flip )
+{
+  // // List version
+  // edge_iterator itp = prev( it );
+  // std::swap( itp->v, it->v );
+  // std::swap( itp->oc, it->oc );
+  // std::swap( itp->z, it->z );
+  // if ( flip ) it->flip();
+
+  // UndoableList version
+  edge_iterator itp = prev( it );
+  DMLPContour::Edge copy_edge_it( *it );
+  DMLPContour::Edge copy_edge_itp( *itp );
+  std::swap( copy_edge_it.base, copy_edge_itp.base );
+  if ( flip ) copy_edge_itp.flip();
+  m_contour.assign( itp, copy_edge_it );
+  m_contour.assign( it, copy_edge_itp );
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- geometric services -----------------------
+
+/**
+ * The edge pointed by [it] has a direction vector v and a base type
+ * t (an INSIDE pixel or an OUTSIDE pixel).
+ *
+ * @param it an iterator on a edge of the contour.
+ *
+ * @return RIGHT if it is to the right of v that the pixels are of
+ * type t, otherwise left. Depends of course if the contour is
+ * considered clockwise or counterclockwise.
+ *
+ * @see m_cw
+ */
+INLINE
+ImaGene::DMLPContour::SideType
+ImaGene::DMLPContour::getSameSide( const edge_iterator & it ) const
+{
+  return ( ( it->base == INSIDE && m_cw ) ||  ( it->base == OUTSIDE && !m_cw ) )
+    ? RIGHT : LEFT;
+}
+
+/**
+ * The edge pointed by [it] has a direction vector v and a base type
+ * t (an INSIDE pixel or an OUTSIDE pixel).
+ *
+ * @param it an iterator on a edge of the contour.
+ *
+ * @return RIGHT if it is to the right of v that the pixels are \b
+ * not of type t, otherwise left. Depends of course if the contour
+ * is considered clockwise or counterclockwise.
+ *
+ * @see m_cw
+ */
+INLINE
+ImaGene::DMLPContour::SideType
+ImaGene::DMLPContour::getOtherSide( const edge_iterator & it ) const
+{
+  return ( ( it->base == INSIDE && m_cw ) ||  ( it->base == OUTSIDE && !m_cw ) )
+    ? LEFT : RIGHT;
+}
+
+/**
+ * Given an iterator on a edge, returns what is the shape of the
+ * vertex (base of the edge) according to the directions of its
+ * surrounding edges, but also to the fact it is an INSIDE or
+ * OUTSIDE vertex, and according to the fact that the contour is
+ * clockwise or counterclockwise.
+ *
+ * @param it any iterator on a edge of the contour, whose base
+ * vertex is the vertex of interest.
+ *
+ * @return the connection type between 'prev(it)' and [it], in WEDGE
+ * (i.e. convex-like), FLAT, AFLAT (i.e. almost flat), VEE
+ * (concave).
+ */
+INLINE
+ImaGene::DMLPContour::ConnectionType
+ImaGene::DMLPContour::getConnectionType( const edge_iterator & it )
+{
+  // Assumes local righthandside rule.
+  int d = prev( it )->v.det( it->v );
+  // inverts it according to touch type of [it] and contour
+  // orientation.
+  if ( getSameSide( it ) == LEFT )
+    d = -d;
+  if ( d < 0 ) return WEDGE;
+  else if ( d == 0 ) return FLAT;
+  else if ( d == 1 ) return AFLAT;
+  else return VEE;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- deformable model services -----------------------
+
+/**
+ * @return the current number of updates for computing the
+ * Euclidean length of the contour. Since the contour is dynamic,
+ * this computation is also dynamic. Note that errors may
+ * accumulate. In this case, it could be wise to call
+ * updateLength() to restart from a global length recomputation.
+ */
+INLINE
+uint
+ImaGene::DMLPContour::nbOfUpdates() const
+{
+  return m_nb_of_updates;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'DMLPContour::Edge'.
+ * @param that_stream the output stream where the object is written.
+ * @param n the object of class 'DMLPContour::Edge' to write.
+ * @return the output stream after the writing.
+ */
+INLINE
+std::ostream &
+ImaGene::operator<<
+( std::ostream & that_stream, 
+  const ImaGene::DMLPContour::Edge & n )
+{
+  n.selfDisplay( that_stream );
+  return that_stream;
+}
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'DMLPContour'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'DMLPContour' to write.
+ * @return the output stream after the writing.
+ */
+INLINE
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		     const ImaGene::DMLPContour & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

@@ -1,0 +1,67 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : AreaOnSurfaceComputerByEuler.ih
+//
+// Creation : 2003/07/30
+//
+// Version : 2003/07/30
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in AreaOnSurfaceComputerByEuler.h 
+//
+// History :
+//	2003/07/30 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class AreaOnSurfaceComputerByEuler declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_AreaOnSurfaceComputerByEuler(x)
+#define DEBUGCMD_AreaOnSurfaceComputerByEuler(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_AreaOnSurfaceComputerByEuler(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_AreaOnSurfaceComputerByEuler(x) x
+#endif // else defined(NO_DEBUG)
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'AreaOnSurfaceComputerByEuler'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'AreaOnSurfaceComputerByEuler' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, const AreaOnSurfaceComputerByEuler & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene
+
+

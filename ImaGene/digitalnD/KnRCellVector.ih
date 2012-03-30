@@ -1,0 +1,376 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : KnRCellVector.ih
+//
+// Creation : 2003/02/06
+//
+// Version : 2003/02/06
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in KnRCellVector.h 
+//
+// History :
+//	2003/02/06 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class KnRCellVector declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_KnRCellVector(x)
+#define DEBUGCMD_KnRCellVector(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_KnRCellVector(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_KnRCellVector(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// class KnRCellVector
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+// ------------------------- Standard services ------------------------------
+
+/**
+ * Destructor. 
+ */
+template <class T>
+KnRCellVector<T>::~KnRCellVector()
+{
+}
+
+/**
+ * Constructor from space and number of cells.
+ * @param ks a reference to a digital space.
+ * @param size the size of the vector.
+ */
+template <class T>
+KnRCellVector<T>::KnRCellVector( const KnSpace & ks,
+			   uint s )
+  : std::vector<T>( s ), m_ks( ks )
+{
+  ASSERT_KnRCellVector( s != 0 );
+}
+
+// ------------------------- vector services --------------------------------
+
+/**
+ * @return the number of elements stored in the vector.
+ */
+template <class T>
+uint 
+KnRCellVector<T>::size() const
+{
+  return std::vector<T>::size();
+}
+
+/**
+ * Read/write accessor.
+ * [rc_offset] must be a valid index.
+ * @param rc_offset any restricted code.
+ * @return the value in the vector at index [rc_offset].
+ */
+template <class T>
+T& 
+KnRCellVector<T>::rAt( Kn_grid rc_offset )
+{
+  return std::vector<T>::operator[]( rc_offset );
+}
+
+/**
+ * Read-only accessor.
+ * [rc_offset] must be a valid index.
+ * @param rc_offset any restricted code.
+ * @return the value in the vector at index [rc_offset].
+ */
+template <class T>
+const T& 
+KnRCellVector<T>::rAt( Kn_grid rc_offset ) const
+{
+  return std::vector<T>::operator[]( rc_offset );
+}
+
+/**
+ * Iterator.
+ * @return an iterator pointing on the first element of the vector.
+ */
+template <class T>
+typename KnRCellVector<T>::iterator 
+KnRCellVector<T>::begin()
+{
+  return std::vector<T>::begin();
+}
+
+/**
+ * Iterator.
+ * @return an iterator pointing after the last element of the vector.
+ */
+template <class T>
+typename KnRCellVector<T>::iterator 
+KnRCellVector<T>::end()
+{
+  return std::vector<T>::end();
+}
+
+/**
+ * Const iterator.
+ * @return an iterator pointing on the first element of the vector.
+ */
+template <class T>
+typename KnRCellVector<T>::const_iterator
+KnRCellVector<T>::begin() const
+{
+  return std::vector<T>::begin();
+}
+/**
+ * Const iterator.
+ * @return an iterator pointing after the last element of the vector.
+ */
+template <class T>
+typename KnRCellVector<T>::const_iterator 
+KnRCellVector<T>::end() const
+{
+  return std::vector<T>::end();
+}
+
+
+
+// ------------------------- Interface --------------------------------------
+
+/**
+ * Writes/Displays the object on an output stream.
+ * @param that_stream the output stream where the object is written.
+ */
+template <class T>
+void 
+KnRCellVector<T>::selfDisplay( std::ostream& that_stream ) const
+{
+  that_stream << "[KnRCellVector]";
+}
+
+/**
+ * Checks the validity/consistency of the object.
+ * @return 'true' if the object is valid, 'false' otherwise.
+ */
+template <class T>
+bool 
+KnRCellVector<T>::OK() const
+{
+  return size() != 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'KnRCellVector'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'KnRCellVector' to write.
+ * @return the output stream after the writing.
+ */
+template <class T>
+std::ostream&
+operator<<( std::ostream & that_stream, 
+	    const KnRCellVector<T> & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// class KnRUCellVector
+///////////////////////////////////////////////////////////////////////////////
+
+
+// ------------------------- Standard services ------------------------------
+
+/**
+ * Constructor from digital space [ks] and dimension of cells [k].
+ * @param ks the digital space containing the cells.
+ * @param k the dimension of the cells that define the domain of the vector.
+ */
+template <class T>
+KnRUCellVector<T>::KnRUCellVector( const KnSpace & ks, uint k )
+  : KnRCellVector<T>( ks, ks.trueNbCells( k ) ),
+    m_k( k )
+{
+}
+
+
+/**
+ * @return the dimension of the unsigned cells that define the domain of 
+ * the vector.
+ */
+template <class T>
+uint 
+KnRUCellVector<T>::cellDim() const
+{
+  return m_k;
+}
+  
+
+// ------------------------- vector services --------------------------------
+
+/**
+ * Read/write accessor.
+ * @param c any valid cell (ie. a 'cellDim()' cell).
+ * @return the value in the vector corresponding to [c].
+ */
+template <class T>
+T& 
+KnRUCellVector<T>::operator[]( Kn_uid c )
+{
+  return rAt( index( c ) );
+}
+
+/**
+ * Read-only accessor.
+ * @param c any valid cell (ie. a 'cellDim()' cell).
+ * @return the value in the vector corresponding to [c].
+ */
+template <class T>
+const T& 
+KnRUCellVector<T>::operator[]( Kn_uid c ) const
+{
+  return rAt( index( c ) );
+}
+
+
+// ------------------------- index services --------------------------------
+
+/**
+ * @param c any valid cell (ie. a 'cellDim()' cell).
+ * @return the corresponding index in the vector.
+ */
+template <class T>
+Kn_urid 
+KnRUCellVector<T>::index( Kn_uid c ) const
+{
+  return this->m_ks.urcode( c );
+}
+
+/**
+ * @param rc any unsigned restricted cell code (ie index in the vector).
+ * @return the corresponding cell in the space.
+ */
+template <class T>
+Kn_uid 
+KnRUCellVector<T>::cell( Kn_urid rc ) const
+{
+  return this->m_ks.urdecode( rc, cellDim() );
+}
+  
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// class KnRSCellVector
+///////////////////////////////////////////////////////////////////////////////
+
+
+// ------------------------- Standard services ------------------------------
+
+/**
+ * Constructor from digital space [ks] and dimension of cells [k].
+ * @param ks the digital space containing the cells.
+ * @param k the dimension of the cells that define the domain of the vector.
+ */
+template <class T>
+KnRSCellVector<T>::KnRSCellVector( const KnSpace & ks, uint k )
+  : KnRCellVector<T>( ks, 2*ks.trueNbCells( k ) ),
+    m_k( k )
+{
+}
+
+
+/**
+ * @return the dimension of the signed cells that define the domain of 
+ * the vector.
+ */
+template <class T>
+uint 
+KnRSCellVector<T>::cellDim() const
+{
+  return m_k;
+}
+  
+
+// ------------------------- vector services --------------------------------
+
+/**
+ * Read/write accessor.
+ * @param c any valid cell (ie. a 'cellDim()' cell).
+ * @return the value in the vector corresponding to [c].
+ */
+template <class T>
+T& 
+KnRSCellVector<T>::operator[]( Kn_sid c )
+{
+  return rAt( index( c ) );
+}
+
+/**
+ * Read-only accessor.
+ * @param c any valid cell (ie. a 'cellDim()' cell).
+ * @return the value in the vector corresponding to [c].
+ */
+template <class T>
+const T& 
+KnRSCellVector<T>::operator[]( Kn_sid c ) const
+{
+  return rAt( index( c ) );
+}
+
+
+// ------------------------- index services --------------------------------
+
+/**
+ * @param c any valid cell (ie. a 'cellDim()' cell).
+ * @return the corresponding index in the vector.
+ */
+template <class T>
+Kn_srid 
+KnRSCellVector<T>::index( Kn_sid c ) const
+{
+  return this->m_ks.srcode( c );
+}
+
+/**
+ * @param rc any unsigned restricted cell code (ie index in the vector).
+ * @return the corresponding cell in the space.
+ */
+template <class T>
+Kn_sid 
+KnRSCellVector<T>::cell( Kn_srid rc ) const
+{
+  return this->m_ks.srdecode( rc, cellDim() );
+}
+  
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene
+
+

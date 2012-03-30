@@ -1,0 +1,63 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : C4CSegmentPencil.ih
+//
+// Creation : 2004/08/11
+//
+// Version : 2004/08/11
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in C4CSegmentPencil.h 
+//
+// History :
+//	2004/08/11 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class C4CSegmentPencil declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_C4CSegmentPencil(x)
+#define DEBUGCMD_C4CSegmentPencil(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_C4CSegmentPencil(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_C4CSegmentPencil(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'C4CSegmentPencil'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'C4CSegmentPencil' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, const C4CSegmentPencil & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

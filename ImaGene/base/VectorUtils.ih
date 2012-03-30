@@ -1,0 +1,50 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : VectorUtils.ih
+//
+// Creation : 2004/11/22
+//
+// Version : 2004/11/22
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in VectorUtils.h 
+//
+// History :
+//	2004/11/22 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class VectorUtils declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_VectorUtils(x)
+#define DEBUGCMD_VectorUtils(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_VectorUtils(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_VectorUtils(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

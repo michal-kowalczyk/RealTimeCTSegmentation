@@ -1,0 +1,99 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : WordUtils.ih
+//
+// Creation : 2008/06/27
+//
+// Version : 2008/06/27
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in WordUtils.h 
+//
+// History :
+//	2008/06/27 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class WordUtils declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_WordUtils(x)
+#define DEBUGCMD_WordUtils(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_WordUtils(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_WordUtils(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * @param c1 a letter in the alphabet
+ * @param c2 another letter in the same alphabet.
+ * @return 'true' iff c1 < c2
+ */
+bool
+ImaGene::WordUtils::less( char c1, char c2 ) const
+{
+  return ( c1 == alph[ 0 ] ) && ( c2 == alph[ 1 ] );
+}
+
+
+/**
+ * @param c1 a letter in the alphabet
+ * @param c2 another letter in the same alphabet.
+ * @return 'true' iff c1 <= c2
+ */
+bool
+ImaGene::WordUtils::lessOrEqual( char c1, char c2 ) const
+{
+  return ( c1 == alph[ 0 ] ) || ( c2 == alph[ 1 ] );
+}
+
+
+/**
+ * @param c1 a letter in the alphabet
+ * @param c2 another letter in the same alphabet.
+ * @return 'true' iff c1 == c2
+ */
+bool 
+ImaGene::WordUtils::equal( char c1, char c2 ) const
+{
+  return c1 == c2;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'WordUtils'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'WordUtils' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const WordUtils & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

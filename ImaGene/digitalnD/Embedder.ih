@@ -1,0 +1,174 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Embedder.ih
+//
+// Creation : 2004/02/04
+//
+// Version : 2004/02/04
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Embedder.h 
+//
+// History :
+//	2004/02/04 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Embedder declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Destructor. 
+ */
+ImaGene::Embedder::~Embedder()
+{
+}
+
+/**
+ * Constructor.
+ * The embedder is not valid yet.
+ * @see init
+ */
+ImaGene::Embedder::Embedder()
+  : m_space( 0 )
+{
+}
+
+
+/**
+ * Constructor.
+ * @param space the digital space where the cells are defined.
+ */
+ImaGene::Embedder::Embedder( const KnSpace* space )
+  : m_space( space )
+{
+}
+
+
+/**
+ * Sets the digital space.
+ * @param space the digital space where the cells are defined.
+ */
+void 
+ImaGene::Embedder::init( const KnSpace* space )
+{
+  m_space = space;
+}
+
+
+/**
+ * @return the digital space associated to the embedder.
+ */
+const ImaGene::KnSpace* 
+ImaGene::Embedder::space() const
+{
+  return m_space;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- Embedding services ------------------------------
+
+
+/**
+ * Embeds the cell [p] in the Euclidean space as a point.
+ * @param p any unsigned cell.
+ * @param coords (returns) the coordinates of [p] when embedded in the space.
+ */
+void
+ImaGene::Embedder::uembed( Kn_uid p, Vector & coords ) const
+{
+  float* x = new float[ coords.size() ];
+  this->uembed( p, x );
+  for ( uint i = 0; i < coords.size(); ++i )
+    coords.rw( i ) = x[ i ];
+  delete[] x;
+}
+
+
+
+/**
+ * Embeds the cell [p] in the Euclidean space as a point.
+ * @param p any signed cell.
+ * @param coords (returns) the coordinates of [p] when embedded in the space.
+ */
+void
+ImaGene::Embedder::sembed( Kn_sid p, Vector & coords ) const
+{
+  float* x = new float[ coords.size() ];
+  this->sembed( p, x );
+  for ( uint i = 0; i < coords.size(); ++i )
+    coords.rw( i ) = x[ i ];
+  delete[] x;
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- Other embedding services -----------------------
+    
+/**
+ * Embeds the vector [p] in the Euclidean space as a point.  By
+ * definition, uembed( p, coords ) <=> embedVector( ucentroid( p
+ * ), coords ).
+ *
+ 
+ * @param p any vector expressed in the discrete space.  
+ * @param coords (returns) the coordinates of [p] when embedded in the space.
+ */
+void 
+ImaGene::Embedder::embedVector( const Vector & p, Vector & coords ) const
+{
+  float* x = new float[ p.size() ];
+  float* y = new float[ coords.size() ];
+  for ( uint i = 0; i < p.size(); ++i )
+    x[ i ] = p.ro( i );
+  this->embedVector( x, y );
+  for ( uint i = 0; i < coords.size(); ++i )
+    coords.rw( i ) = y[ i ];
+  delete[] y;
+  delete[] x;
+}
+
+    
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- inverse embedding services ---------------------
+
+/**
+ * @param coords any coordinates in the space.
+ * @return the unsigned spel whose embedding is the closest to [coords].
+ * @see uinverseSpel( const float* )
+ * NB: call uinverseSpel( const float* ) after having dynamically allocated a float array.
+ */
+ImaGene::Kn_uid
+ImaGene::Embedder::uinverseSpel( const Vector & coords ) const
+{
+  float* x = new float[ coords.size() ];
+  for ( uint i = 0; i < coords.size(); ++i )
+    x[ i ] = coords.ro( i );
+  Kn_uid p = uinverseSpel( x );
+  delete[] x;
+  return p;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

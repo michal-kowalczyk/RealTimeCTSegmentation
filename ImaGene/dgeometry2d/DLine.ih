@@ -1,0 +1,198 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : DLine.ih
+//
+// Creation : 2003/02/12
+//
+// Version : 2003/02/12
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in DLine.h 
+//
+// History :
+//	2003/02/12 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class DLine declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_DLine(x)
+#define DEBUGCMD_DLine(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_DLine(x) if(!(x)) \
+    { cerr << "Assertion failed : (" << #x << ')' << endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << endl; abort();}
+#define DEBUGCMD_DLine(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+// ------------------------- Standard services ------------------------------
+
+/**
+ * Destructor. 
+ */
+DLine::~DLine()
+{
+}
+
+
+/**
+ * Constructor. Does nothing.
+ */
+DLine::DLine()
+{
+}
+
+
+/**
+ * Constructor (standard line).
+ * @param coef_a the coefficient 'a' in the equation 'a*x-b*y+mu'.
+ * @param coef_b the coefficient 'b' in the equation 'a*x-b*y+mu'.
+ * @param coef_mu the coefficient 'mu' in the equation 'a*x-b*y+mu'.
+ */
+DLine::DLine( int coef_a, int coef_b, int coef_mu )
+  : a( coef_a ), b( coef_b ), mu( coef_mu )
+{
+  mup = mu + ( a >= 0 ? a : -a ) + b - 1;
+}
+
+
+/**
+ * Constructor of any discrete line.
+ * @param coef_a the coefficient 'a' in the equation 'a*x-b*y+mu'.
+ * @param coef_b the coefficient 'b' in the equation 'a*x-b*y+mu'.
+ * @param coef_mu the coefficient 'mu' in the equation 'a*x-b*y+mu'.
+ * @param coef_mup the coefficient 'mup' (lower leaning line).
+ */
+DLine::DLine( int coef_a, int coef_b, int coef_mu, int coef_mup )
+  : a( coef_a ), b( coef_b ), mu( coef_mu ), mup( coef_mup )
+{
+}
+
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+DLine::DLine( const DLine & other )
+  : a( other.a ), b( other.b ), mu( other.mu ), mup( other.mup )
+{
+}
+
+/**
+ * Assignment.
+ * @param other the object to clone.
+ * @return a reference on 'this'.
+ * Forbidden.
+ */
+DLine & 
+DLine::operator=( const DLine & other )
+{
+  if ( this != &other )
+    {
+      a = other.a;
+      b = other.b;
+      mu = other.mu;
+      mup = other.mup;
+    }
+  return *this;
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Geometry services ------------------------------
+
+
+/**
+ * @return 'true' if this is a standard line (ie. mup = mu + |a| + b - 1 ).
+ */
+bool
+DLine::isStandard() const
+{
+  return mup == ( mu + ( a >= 0 ? a : -a ) + b - 1 );
+}
+
+
+/**
+ * @return the vector tangent to this digital line (b,a)
+ */
+Vector2i
+DLine::tangent() const
+{
+  return Vector2i( b, a );
+}
+
+
+/**
+ * @return the vector normal to this digital line (-a,b)
+ */
+Vector2i
+DLine::normal() const
+{
+  return Vector2i( -a, b );
+}
+
+
+/**
+ * @param x any value for the x-coordinate.
+ * @return the uppermost value y for this [x] so that (x,y) belongs to the line.
+ */
+float
+DLine::upperY( float x ) const
+{
+  return ( x * a - mu ) / b;
+}
+
+
+/**
+ * @param x any value for the x-coordinate.
+ * @return the uppermost value y for this [x] so that (x,y) belongs to the line.
+ */
+float
+DLine::lowerY( float x ) const
+{
+  return ( x * a - mup ) / b;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'DLine'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'DLine' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, const DLine & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene
+

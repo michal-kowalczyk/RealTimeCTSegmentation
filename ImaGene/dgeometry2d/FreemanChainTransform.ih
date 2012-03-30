@@ -1,0 +1,72 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : FreemanChainTransform.ih
+//
+// Creation : 2009/07/08
+//
+// Version : 2009/07/08
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in FreemanChainTransform.h 
+//
+// History :
+//	2009/07/08 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class FreemanChainTransform declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_FreemanChainTransform(x)
+#define DEBUGCMD_FreemanChainTransform(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_FreemanChainTransform(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_FreemanChainTransform(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Constructor.
+ * Forbidden by default (protected to avoid g++ warnings).
+ */
+ImaGene::FreemanChainTransform::FreemanChainTransform()
+{
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'FreemanChainTransform'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'FreemanChainTransform' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const FreemanChainTransform & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

@@ -1,0 +1,106 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : KnShapes.ih
+//
+// Creation : 2002/08/05
+//
+// Version : 2002/08/05
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in KnShapes.h 
+//
+// History :
+//	2002/08/05 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class KnShapes declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_KnShapes(x)
+#define DEBUGCMD_KnShapes(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_KnShapes(x) if(!(x)) \
+    { cerr << "Assertion failed : (" << #x << ')' << endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << endl; abort();}
+#define DEBUGCMD_KnShapes(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline static methods                                   //
+
+/**
+ * Creates a set of unsigned surfel cells whose elements represents the 
+ * boundary of the set of spels [spelset]. 
+ * @param ks any space.
+ * @param spelset any set of spel-like cells.
+ * @return a set of cells (which are all surfels), the boundary of [spelset].
+ */
+KnRCellSet
+KnShapes::umakeBoundary( const KnSpace & ks,
+			 const KnCharSet & spelset )
+{
+  return umakeBoundary( ks, spelset, 
+			ks.uspel( ks.ufirst() ),
+			ks.uspel( ks.ulast() ) );
+}
+
+
+/**
+ * Creates a set of signed surfel cells whose elements represents the 
+ * boundary of the set of spels [spelset].
+ * The spel set is considered as positively oriented and the returned set is
+ * exactly its oriented lower boundary.
+ * @param ks any space.
+ * @param spelset any set of spel-like cells.
+ * @return a set of cells (which are all surfels), the boundary of [spelset].
+ */
+KnRCellSet
+KnShapes::smakeBoundary( const KnSpace & ks,
+			 const KnCharSet & spelset )
+{
+  return smakeBoundary( ks, spelset, 
+			ks.uspel( ks.ufirst() ),
+			ks.uspel( ks.ulast() ) );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'KnShapes'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'KnShapes' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, const KnShapes & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene

@@ -1,0 +1,131 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : C4CTangentialCover.ih
+//
+// Creation : 2004/11/10
+//
+// Version : 2004/11/10
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in C4CTangentialCover.h 
+//
+// History :
+//	2004/11/10 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class C4CTangentialCover declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_C4CTangentialCover(x)
+#define DEBUGCMD_C4CTangentialCover(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_C4CTangentialCover(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_C4CTangentialCover(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+// -------------------- Tangential cover services ---------------------------
+
+
+/** 
+ * @return 'true' if the contour is open, 'false' otherwise.
+ */
+bool
+ImaGene::C4CTangentialCover::isContourOpen() const
+{
+  return m_is_curve_open;
+}
+
+/** 
+ * @return a dyn. alloc. iterator on the first surfel of the contour.
+ */
+ImaGene::C4CIterator*
+ImaGene::C4CTangentialCover::beginSurfel() const
+{
+  return m_begin_it->clone();
+}
+
+/** 
+ * @return a dyn. alloc. iterator on the last surfel of the
+ * contour. If the contour is closed, same as 'beginSurfel'.
+ *
+ * @see beginSurfel
+ */
+ImaGene::C4CIterator*
+ImaGene::C4CTangentialCover::endSurfel() const
+{
+  return m_end_it->clone();
+}
+
+
+
+/**
+ * @return the number of maximal segments of the tangential cover.
+ */
+uint 
+ImaGene::C4CTangentialCover::nbMaximalSegments() const
+{
+  return m_nb_max_segments;
+}
+
+
+/**
+ * @param i the index of the maximal segment.
+ * @return the maximal segment of index [i].
+ */
+const ImaGene::C4CTangentialCover::MaximalSegment & 
+ImaGene::C4CTangentialCover::getMaximalSegment( uint i ) const
+{
+  ASSERT_C4CTangentialCover( i < m_nb_max_segments );
+  return m_segments[ i ];
+}
+
+
+/**
+ * @return the number of surfels of the tangential cover.
+ */
+uint
+ImaGene::C4CTangentialCover::nbSurfels() const
+{
+  return m_nb_surfels;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'C4CTangentialCover'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'C4CTangentialCover' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, const C4CTangentialCover & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

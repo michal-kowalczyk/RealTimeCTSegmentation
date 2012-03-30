@@ -1,0 +1,100 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Sanitizer.ih
+//
+// Creation : 2002/08/03
+//
+// Version : 2002/08/03
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Sanitizer.h 
+//
+// History :
+//	2002/08/03 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Sanitizer declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Sanitizer(x)
+#define DEBUGCMD_Sanitizer(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Sanitizer(x) if(!(x)) \
+    { cerr << "Assertion failed : (" << #x << ')' << endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << endl; abort();}
+#define DEBUGCMD_Sanitizer(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+Sanitizer::Sanitizer( const Sanitizer & other )
+  : m_dim( other.m_dim ),
+    m_size( new Kn_size[ m_dim ] ),
+    m_x( new Kn_size[ m_dim ] ),
+    m_mask_lower_bits( other.m_mask_lower_bits ),
+    m_offset_size_x( other.m_offset_size_x ),
+    m_offset_true_size_x( other.m_offset_true_size_x ),
+    m_gotonext( new Kn_size[ m_dim ] ),
+    m_need_sanitization( other.m_need_sanitization )
+{
+  uint k;
+  for ( k = 0; k < m_dim; ++k )
+    {
+      m_size[ k ] = other.m_size[ k ];
+      m_x[ k ] = other.m_x[ k ];
+      m_gotonext[ k ] = other.m_gotonext[ k ];
+    }
+}
+
+
+/**
+ * cloning services.
+ * @return a copy of 'this'.
+ */
+Sanitizer* 
+Sanitizer::clone() const
+{
+  return new Sanitizer( *this );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'Sanitizer'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'Sanitizer' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, const Sanitizer & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene
+

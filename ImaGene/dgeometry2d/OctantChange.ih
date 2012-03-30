@@ -1,0 +1,244 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : OctantChange.ih
+//
+// Creation : 2010/02/11
+//
+// Version : 2010/02/11
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in OctantChange.h 
+//
+// History :
+//	2010/02/11 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class OctantChange declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+#include <algorithm>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_OctantChange(x)
+#define DEBUGCMD_OctantChange(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_OctantChange(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_OctantChange(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Constructor.
+ * The user may indicate which symmetries the class should perform.
+ * Default to nothing to do.
+ *
+ * @param sx0 when 'true', symmetry around x = 0.
+ * @param sy0 when 'true', symmetry around y = 0.
+ * @param sxy when 'true', symmetry around x = y.
+ */
+INLINE
+ImaGene::OctantChange::OctantChange( bool sx0, bool sy0, bool sxy )
+  : m_sym_x_eq_0( sx0 ), m_sym_y_eq_0( sy0 ), m_sym_x_eq_y( sxy )
+{
+}
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ * Forbidden by default.
+ */
+INLINE
+ImaGene::OctantChange::OctantChange( const OctantChange & other )
+   : m_sym_x_eq_0( other.m_sym_x_eq_0 ), 
+     m_sym_y_eq_0( other.m_sym_y_eq_0 ),
+     m_sym_x_eq_y( other.m_sym_x_eq_y )
+{
+}
+
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ * Forbidden by default.
+ */
+INLINE
+ImaGene::OctantChange & 
+ImaGene::OctantChange::operator=( const OctantChange & other )
+{
+  if ( this != &other )
+    {
+      m_sym_x_eq_0 = other.m_sym_x_eq_0;
+      m_sym_y_eq_0 = other.m_sym_y_eq_0;
+      m_sym_x_eq_y = other.m_sym_x_eq_y;
+    }
+  return *this;
+}
+
+
+/**
+ * Reinitializes the object to model an octant change from the
+ * octant specified by vector [v] toward the first octant. A
+ * vector (x,y) in the first octant then satisfies 0 <= y <= x.
+ *
+ * @param v any 2D vector.
+ */
+INLINE
+void
+ImaGene::OctantChange::initByCastIntoFirstOctant( Vector2i v )
+{
+  if ( v.x() < 0 )
+    {
+      v.x() = -v.x();
+      m_sym_x_eq_0 = true;
+    }
+  else
+    m_sym_x_eq_0 = false;
+  
+  if ( v.y() < 0 )
+    {
+      v.y() = -v.y();
+      m_sym_y_eq_0 = true;
+    }
+  else
+    m_sym_y_eq_0 = false;
+  
+  if ( v.x() < v.y() )
+    m_sym_x_eq_y = true;
+  else
+    m_sym_x_eq_y = false;
+}
+
+/**
+ * Transforms the vector [u] according to the current
+ * transformation. If the object was initialised with
+ * initByCastIntoFirstOctant( v ), then if [u] is in the same octant
+ * as [v], then the transformed vector is in the first octant.
+ *
+ * @param u any vector.
+ * @return the transformation of [u].
+ */
+INLINE
+ImaGene::Vector2i
+ImaGene::OctantChange::cast( Vector2i u ) const
+{
+  if ( isSymXeq0() ) u.x() = -u.x();
+  if ( isSymYeq0() ) u.y() = -u.y();
+  if ( isSymXeqY() ) std::swap( u.x(), u.y() );
+  return u;
+}
+
+/**
+ * Transforms the vector [u] according to the current
+ * transformation. If the object was initialised with
+ * initByCastIntoFirstOctant( v ), then if [u] is in the first octant,
+ * then the transformed vector is in the same octant as [v].
+ *
+ * @param u any vector.
+ * @return the reverse transformation of [u].
+ */
+INLINE
+ImaGene::Vector2i
+ImaGene::OctantChange::castBack( Vector2i u ) const
+{
+  if ( isSymXeqY() ) std::swap( u.x(), u.y() );
+  if ( isSymYeq0() ) u.y() = -u.y();
+  if ( isSymXeq0() ) u.x() = -u.x();
+  return u;
+}
+
+/**
+ * @return 'true' if this object makes a symmetry around x = y.
+ */
+INLINE
+bool 
+ImaGene::OctantChange::isSymXeqY() const
+{
+  return m_sym_x_eq_y;
+}
+
+/**
+ * @return 'true' if this object makes a symmetry around x = 0.
+ */
+INLINE
+bool 
+ImaGene::OctantChange::isSymXeq0() const
+{
+  return m_sym_x_eq_0;
+}
+
+/**
+ * @return 'true' if this object makes a symmetry around y = 0.
+ */
+INLINE
+bool 
+ImaGene::OctantChange::isSymYeq0() const
+{
+  return m_sym_y_eq_0;
+}
+
+/**
+ * @return 'true' if this object makes a direct transformation
+ * (determinant is 1), 'false' otherwise (determinant is -1).
+ */
+INLINE
+bool 
+ImaGene::OctantChange::isDirect() const
+{
+  uint nb = isSymXeq0() ? 1 : 0;
+  if ( isSymYeq0() ) ++nb;
+  if ( isSymXeqY() ) ++nb;
+  return ( nb & 0x1 ) == 0;
+}
+
+/**
+ * @return 'true' if this object makes an indirect transformation
+ * (determinant is -1), 'false' otherwise (determinant is 1).
+ */
+INLINE
+bool
+ImaGene::OctantChange::isIndirect() const
+{
+  uint nb = isSymXeq0() ? 1 : 0;
+  if ( isSymYeq0() ) ++nb;
+  if ( isSymXeqY() ) ++nb;
+  return ( nb & 0x1 ) != 0;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'OctantChange'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'OctantChange' to write.
+ * @return the output stream after the writing.
+ */
+INLINE
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const OctantChange & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

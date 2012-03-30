@@ -1,0 +1,230 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : DigitalSurfaceUmbrella.ih
+//
+// Creation : 2011/04/29
+//
+// Version : 2011/04/29
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in DigitalSurfaceUmbrella.h 
+//
+// History :
+//	2011/04/29 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class DigitalSurfaceUmbrella declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_DigitalSurfaceUmbrella(x)
+#define DEBUGCMD_DigitalSurfaceUmbrella(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_DigitalSurfaceUmbrella(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_DigitalSurfaceUmbrella(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+///////////////////////////////////////////////////////////////////////////////
+// class DigitalSurfaceUmbrella::Circulator
+//-----------------------------------------------------------------------------
+inline
+ImaGene::DigitalSurfaceUmbrella::Circulator::
+Circulator()
+{}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::DigitalSurfaceUmbrella::Circulator::
+~Circulator()
+{}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::DigitalSurfaceUmbrella::Circulator::
+Circulator( const Circulator & other)
+  : m_computer( other.m_computer )
+{}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::DigitalSurfaceUmbrella::Circulator & 
+ImaGene::DigitalSurfaceUmbrella::Circulator::
+operator=( const Circulator & other)
+{
+  if ( this != &other )
+    m_computer = other.m_computer;
+  return *this;
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::DigitalSurfaceUmbrella::Circulator & 
+ImaGene::DigitalSurfaceUmbrella::Circulator::
+operator++()
+{
+  m_computer.next();
+  return *this;
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::DigitalSurfaceUmbrella::Circulator & 
+ImaGene::DigitalSurfaceUmbrella::Circulator::
+operator--()
+{
+  m_computer.previous();
+  return *this;
+}
+//-----------------------------------------------------------------------------
+inline
+const ImaGene::DigitalSurfaceUmbrella::Circulator::Value *
+ImaGene::DigitalSurfaceUmbrella::Circulator::
+operator->() const
+{
+  return &m_computer;
+}
+//-----------------------------------------------------------------------------
+inline
+const ImaGene::DigitalSurfaceUmbrella::Circulator::Value & 
+ImaGene::DigitalSurfaceUmbrella::Circulator::
+operator*() const
+{
+  return m_computer;
+}
+//-----------------------------------------------------------------------------
+inline
+bool 
+ImaGene::DigitalSurfaceUmbrella::Circulator::
+operator==( const Circulator & other ) const
+{
+  return m_computer.face() == other.m_computer.face() 
+    && m_computer.trackDir() == other.m_computer.trackDir() 
+    && m_computer.separatorDir() == other.m_computer.separatorDir() 
+    && m_computer.separatorOrientation() == other.m_computer.separatorOrientation(); 
+}
+//-----------------------------------------------------------------------------
+inline
+bool 
+ImaGene::DigitalSurfaceUmbrella::Circulator::
+operator<( const Circulator & other ) const
+{
+  return m_computer.face() < other.m_computer.face() 
+    || ( m_computer.face() == other.m_computer.face() 
+	 && ( m_computer.trackDir() < other.m_computer.trackDir() 
+	      || ( m_computer.trackDir() == other.m_computer.trackDir() 
+		   && ( m_computer.separatorDir() < other.m_computer.separatorDir() 
+			|| ( m_computer.separatorDir() == other.m_computer.separatorDir() 
+			     && m_computer.separatorOrientation() < other.m_computer.separatorOrientation() )
+			)
+		   )
+	      )
+	 );
+}
+
+//-----------------------------------------------------------------------------
+inline
+bool 
+ImaGene::DigitalSurfaceUmbrella::Circulator::
+operator!=( const Circulator & other ) const
+{
+  return m_computer.face() != other.m_computer.face() 
+    || m_computer.trackDir() != other.m_computer.trackDir() 
+    || m_computer.separatorDir() != other.m_computer.separatorDir() 
+    || m_computer.separatorOrientation() != other.m_computer.separatorOrientation(); 
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// class DigitalSurfaceUmbrella
+//-----------------------------------------------------------------------------
+inline
+ImaGene::DigitalSurfaceUmbrella::
+~DigitalSurfaceUmbrella()
+{}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::DigitalSurfaceUmbrella::
+DigitalSurfaceUmbrella()
+{}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::DigitalSurfaceUmbrella::
+DigitalSurfaceUmbrella( const DigitalSurfaceUmbrella & other )
+  : m_start( other.m_start )
+{
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::DigitalSurfaceUmbrella &
+ImaGene::DigitalSurfaceUmbrella::
+operator=( const DigitalSurfaceUmbrella & other )
+{
+  if ( this != &other )
+    m_start = other.m_start;
+  return *this;
+}
+//-----------------------------------------------------------------------------
+inline
+const ImaGene::DigitalSurfaceUmbrella::Circulator &
+ImaGene::DigitalSurfaceUmbrella::
+start() const
+{
+  return m_start;
+}
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::DigitalSurfaceUmbrella::
+operator<( const DigitalSurfaceUmbrella & other ) const
+{
+  return m_start < other.m_start;
+}
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::DigitalSurfaceUmbrella::
+operator==( const DigitalSurfaceUmbrella & other ) const
+{
+  return m_start == other.m_start;
+}
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::DigitalSurfaceUmbrella::
+operator!=( const DigitalSurfaceUmbrella & other ) const
+{
+  return m_start != other.m_start;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'DigitalSurfaceUmbrella'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'DigitalSurfaceUmbrella' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const DigitalSurfaceUmbrella & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

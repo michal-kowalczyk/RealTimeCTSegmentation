@@ -1,0 +1,1302 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : CubicalCell.ih
+//
+// Creation : 2008/03/19
+//
+// Version : 2008/03/19
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in CubicalCell.h 
+//
+// History :
+//	2008/03/19 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class CubicalCell declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+#include "ImaGene/digitalnD/KnUtils.h"
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_CubicalCell(x)
+#define DEBUGCMD_CubicalCell(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_CubicalCell(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_CubicalCell(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/////////////////////////////////////////////////////////////////////////////
+// class CubicalCell
+/////////////////////////////////////////////////////////////////////////////
+
+// ----------------------- Standard services ------------------------------
+
+/**
+ * Creates an invalid cell.
+ */
+ImaGene::CubicalCell::CubicalCell()
+  : m_x( 0 )
+{}
+
+/**
+ * Desallocates memory if necessary.
+ */
+ImaGene::CubicalCell::~CubicalCell()
+{
+  if ( m_x != 0 ) delete[] m_x;
+}
+
+/**
+ * "Copy" constructor.
+ *
+ * @param other the cell to clone.
+ * @param dim the dimension of the cell.
+ */
+ImaGene::CubicalCell::CubicalCell( const CubicalCell & other, uint dim )
+{
+  m_x = new ccell_coord_t[ dim ];
+  assign( other, dim );
+}
+
+
+/**
+ * Creates a cell in one-dimensional space. 
+ *
+ * @param x the Khalimsky coordinate of the cell along the first axis.
+ */
+ImaGene::CubicalCell::CubicalCell( uint32 x )
+{
+  m_x = new ccell_coord_t[ 1 ];
+  m_x[ 0 ] = (uint64) x;
+}
+
+/**
+ * Creates a cell in one-dimensional space. 
+ *
+ * @param x the Khalimsky coordinate of the cell along the first axis.
+ */
+ImaGene::CubicalCell::CubicalCell( uint64 x )
+{
+  m_x = new ccell_coord_t[ 1 ];
+  m_x[ 0 ] = x;
+}
+
+/**
+ * Creates a cell in two-dimensional space. 
+ *
+ * @param x the Khalimsky coordinate of the cell along the first axis.
+ * @param y the Khalimsky coordinate of the cell along the second axis.
+ */
+template <typename CoordType>
+ImaGene::CubicalCell::CubicalCell( CoordType x, CoordType y )
+{
+  m_x = new ccell_coord_t[ 2 ];
+  m_x[ 0 ] = x;
+  m_x[ 1 ] = y;
+}
+
+/**
+ * Creates a cell in three-dimensional space. 
+ *
+ * @param x the Khalimsky coordinate of the cell along the first axis.
+ * @param y the Khalimsky coordinate of the cell along the second axis.
+ * @param z the Khalimsky coordinate of the cell along the third axis.
+ */
+template <typename CoordType>
+ImaGene::CubicalCell::CubicalCell( CoordType x, CoordType y, CoordType z )
+{
+  m_x = new ccell_coord_t[ 3 ];
+  m_x[ 0 ] = x;
+  m_x[ 1 ] = y;
+  m_x[ 2 ] = z;
+}
+
+
+/**
+ * Initializes the cell with the given cell.
+ * Allocates memory if necessary.
+ *
+ * @param other the cell to clone.
+ * @param dim the dimension of the space.
+ *
+ * @pre if the cell has already been initialized, then the updated
+ * cell must have the same dimension as before.
+ */
+INLINE
+void
+ImaGene::CubicalCell::init( const CubicalCell & other, uint dim )
+{
+  if ( m_x == 0 ) m_x = new ccell_coord_t[ dim ];
+  assign( other, dim );
+} 
+
+
+/**
+ * Initializes the cell with the given coordinates.
+ * Allocates memory if necessary.
+ *
+ * @param coords the coordinates of the cell.
+ * @param dim the dimension of the cell.
+ *
+ * @pre if the cell has already been initialized, then the updated
+ * cell must have the same dimension as before.
+ */
+template <typename CoordType>
+void
+ImaGene::CubicalCell::init( CoordType* coords, uint dim )
+{
+  if ( m_x == 0 ) m_x = new ccell_coord_t[ dim ];
+  assign<CoordType>( coords, dim ); 
+}
+
+/**
+ * Assign the cell with the given coordinates.
+ * The cell must have been initialized before.
+ *
+ * @param coords the coordinates of the cell.
+ * @param dim the dimension of the cell.
+ *
+ * @pre the updated cell must have the same dimension as before.
+ */
+template <typename CoordType>
+void
+ImaGene::CubicalCell::assign( CoordType* coords, uint dim )
+{
+  for ( uint i = 0; i < dim; ++i )
+    m_x[ i ] = coords[ i ];
+}
+
+/**
+ * Assign the cell with the given coordinates.
+ * The cell must have been initialized before.
+ *
+ * @param other the cell to clone.
+ * @param dim the dimension of the cell.
+ *
+ * @pre the updated cell must have the same dimension as before.
+ */
+void
+ImaGene::CubicalCell::assign( const CubicalCell & other, uint dim )
+{
+  for ( uint i = 0; i < dim; ++i )
+    m_x[ i ] = other.m_x[ i ];
+}
+
+
+/**
+ * @param dim the dimension of the space.
+ * @return the dimension of this cell.
+ */
+uint
+ImaGene::CubicalCell::dim( uint dim ) const
+{
+  uint d = m_x[ 0 ] & 0x1;
+  for ( uint i = 1; i < dim; ++i )
+    d += m_x[ i ] & 0x1;
+  return d;
+}
+
+
+/**
+ * Read/write accessor.
+ *
+ * @param i the coordinate axis.
+ * @return the Khalimsky coordinate of the cell along axis [i].
+ */
+ImaGene::ccell_coord_t& 
+ImaGene::CubicalCell::operator[]( uint i )
+{
+  return m_x[ i ];
+}
+
+/**
+ * Read-only accessor.
+ *
+ * @param i the coordinate axis.
+ * @return the Khalimsky coordinate of the cell along axis [i].
+ */
+const ImaGene::ccell_coord_t& 
+ImaGene::CubicalCell::operator[]( uint i ) const
+{
+  return m_x[ i ];
+}
+
+/**
+ * The cell is transformed as its incident cell along axis [i]
+ * toward the increasing coordinates if 'pos' is true, otherwise
+ * toward its decreasing coordinates.
+ *
+ * @param i the axis along which the incident cell is computed.
+ * @param pos the orientation along axis [i] (positive when true,
+ * negative otherwise).
+ */
+void
+ImaGene::CubicalCell::incident( uint i, bool pos )
+{
+  ASSERT_CubicalCell( m_x != 0 );
+  ASSERT_CubicalCell( pos || ( m_x[ i ] != 0 ) );
+  
+  if ( pos ) ++m_x[ i ];
+  else --m_x[ i ];
+}
+
+/**
+ * The cell is transformed as its adjacent cell along axis [i]
+ * toward the increasing coordinates if 'pos' is true, otherwise
+ * toward its decreasing coordinates.
+ *
+ * @param i the axis along which the adjacent cell is computed.
+ * @param pos the orientation along axis [i] (positive when true,
+ * negative otherwise).
+ */
+void
+ImaGene::CubicalCell::adjacent( uint i, bool pos )
+{
+  ASSERT_CubicalCell( m_x != 0 );
+  ASSERT_CubicalCell( pos || ( m_x[ i ] > 1 ) );
+  
+  if ( pos ) m_x[ i ] += 2;
+  else m_x[ i ] -= 2;
+}
+
+
+/**
+ * Computes the cells that are low incident to 'this' and with a
+ * dimension just inferior.
+ *
+ * @param q the cells are added at the back of this queue.
+ * @param dim the dimension of the cell.
+ */
+template <typename Queue>
+void
+ImaGene::CubicalCell::lowIncidentCells1( Queue & q, 
+					 uint dim  ) const
+{
+  for ( uint i = 0; i < dim; ++i )
+    if ( ( m_x[ i ] & 1 ) != 0 )
+      {
+	q.push_back( *this );
+	--q.back()[ i ];
+	q.push_back( *this );
+	++q.back()[ i ];
+      }
+}
+
+/**
+ * Computes the strict lower boundary of the cell [c].
+ * Nb: all cells added to [q] are two-by-two distinct.
+ *
+ * @param q the cells are added at the back of this queue.
+ * @param c the cell to subdivide
+ * @param dim_c the dimension of the cell [c] 
+ * @param dim the dimension of the space.
+ */
+template < typename Queue >
+void
+ImaGene::CubicalCell::strictLowerBoundary( Queue & q,
+					   const CubicalCell & c,
+					   uint dim_c,
+					   uint dim )
+{
+  if ( dim_c == 0 ) return;
+  // Extracts two first 1-lower incident cells and decompose them.
+
+  uint i = 0;
+  while ( ( c[ i ] & 0x1 ) == 0 ) ++i;
+  CubicalCell c1( c, dim );
+  --c1[ i ];
+  --dim_c;
+  std::deque<CubicalCell> q2;
+  strictLowerBoundary( q2, c1, dim_c, dim );
+  q.push_back( c1 );
+  c1[ i ] += 2;
+  q.push_back( c1 );
+
+  for ( std::deque<CubicalCell>::iterator it = q2.begin();
+	it != q2.end();
+	++it )
+    {
+      CubicalCell & c2 = *it;
+      q.push_back( c2 );
+      ++c2[ i ];
+      q.push_back( c2 );
+      ++c2[ i ];
+      q.push_back( c2 );
+    }
+
+}
+
+/**
+ * Computes the cells that are low incident to 'this' and with the
+ * specified dimension.
+ * Nb: all cells added to [q] are two-by-two distinct.
+ *
+ * @param q the cells are added at the back of this queue.
+ * @param c the cell to subdivide
+ * @param dim_c the dimension of the cell [c] 
+ * @param min the minimum dimension of the cells to extract.
+ * @param max the maximum dimension of the cells to extract.
+ * @param dim the dimension of the space.
+ */
+template < typename Queue >
+void
+ImaGene::CubicalCell::lowIncidentCells( Queue & q,
+					const CubicalCell & c,
+					uint dim_c,
+					uint min, 
+					uint max,
+					uint dim )
+{
+  std::deque<CubicalCell> q2;
+  q2.push_back( c );
+  strictLowerBoundary( q2, c, dim_c, dim );
+  for ( std::deque<CubicalCell>::iterator it = q2.begin();
+	it != q2.end();
+	++it )
+    {
+      uint dim_bdry_c = it->dim( dim );
+      if ( ( min <= dim_bdry_c ) && ( dim_bdry_c <= max ) )
+	q.push_back( *it );
+    }
+  
+//   if ( dim_c < min ) return;
+//   if ( dim_c <= max ) q.push_back( c );
+//   if ( dim_c == min ) return;
+//   // NB : then dim_c > 0
+
+//   // Extracts two first 1-lower incident cells and decompose them.
+//   uint i = 0;
+//   while ( ( c[ i ] & 0x1 ) == 0 ) ++i;
+//   CubicalCell c1( c, dim );
+//   --c1[ i ];
+//   --dim_c;
+
+//   std::deque<CubicalCell> q2;
+//   lowIncidentCells( q2, c1, dim_c, min, 
+// 		    std::min( dim_c, max ),
+// 		    dim );
+//   for ( std::deque<CubicalCell>::iterator it = q2.begin();
+// 	it != q2.end();
+// 	++it )
+//     {
+//       CubicalCell & c2 = *it;
+//       q.push_back( c2 );
+//       c2[ i ] += 2;
+//       q.push_back( c2 );
+//     }
+
+//   q2.clear();
+//   if ( max > 0 )
+//     {
+//       lowIncidentCells( q2, c1, dim_c, 
+// 			min == 0 ? 0 : min - 1, 
+// 			std::min( dim_c - 1, max ),
+// 			dim );
+//       for ( std::deque<CubicalCell>::iterator it = q2.begin();
+// 	    it != q2.end();
+// 	    ++it )
+// 	{
+// 	  CubicalCell & c2 = *it;
+// 	  ++c2[ i ];
+// 	  q.push_back( c2 );
+// 	}
+//     }
+
+  // Former method
+//   std::deque<CubicalCell> q2;
+//   lowIncidentCells( q2, c1, dim_c, min, max, dim );
+//   for ( std::deque<CubicalCell>::iterator it = q2.begin();
+// 	it != q2.end();
+// 	++it )
+//     {
+//       CubicalCell & c2 = *it;
+//       q.push_back( c2 );
+//       ++c2[ i ];
+//       q.push_back( c2 );
+//       ++c2[ i ];
+//       q.push_back( c2 );
+//     }
+
+
+
+//   if ( dim_c < min ) return;
+//   if ( dim_c <= max ) q.push_back( c );
+//   if ( dim_c == min ) return;
+
+//   // Extracts two first 1-lower incident cells and decompose them.
+//   uint i = 0;
+//   while ( ( c[ i ] & 0x1 ) == 0 ) ++i;
+//   CubicalCell c1( c, dim );
+//   --c1[ i ];
+//   --dim_c;
+//   lowIncidentCells( q, c1, dim_c, min, max, dim );
+//   c1[ i ] += 2;
+//   lowIncidentCells( q, c1, dim_c, min, max, dim );
+//   --c1[ i ];
+//   for ( ++i; i < dim; ++i )
+//     if ( ( c[ i ] & 0x1 ) != 0 )
+//       {
+// 	--c1[ i ];
+// 	q.push_back( c1 );
+// 	c1[ i ] += 2;
+// 	q.push_back( c1 );
+// 	--c1[ i ];
+//       }
+}
+
+
+/**
+ * Computes the cells that are low incident to 'this' and with a
+ * dimension just inferior.
+ *
+ * @param q the cells are added at the back of this queue.
+ * @param dim the dimension of the cell.
+ * @param cmin the coordinates of the lowest admissible cell.
+ * @param cmax the coordinates of the highest admissible cell.
+ */
+template <typename Queue>
+void
+ImaGene::CubicalCell::lowIncidentCells1( Queue & q, 
+					 uint dim,
+					 const CubicalCell & cmin,
+					 const CubicalCell & cmax
+					 ) const
+{
+  for ( uint i = 0; i < dim; ++i )
+    if ( ( m_x[ i ] & 1 ) != 0 )
+      {
+	if ( cmin[ i ] < m_x[ i ] )
+	  {
+	    q.push_back( *this );
+	    --q.back()[ i ];
+	  }
+	if ( cmax[ i ] > m_x[ i ] )
+	  {
+	    q.push_back( *this );
+	    ++q.back()[ i ];
+	  }
+      }
+}
+
+/**
+ * Computes the cells that are low incident to 'this' and with the
+ * specified dimension.
+ * Nb: all cells added to [q] are two-by-two distinct.
+ *
+ * @param q the cells are added at the back of this queue.
+ * @param c the cell to subdivide
+ * @param dim_c the dimension of the cell [c] 
+ * @param min the minimum dimension of the cells to extract.
+ * @param max the maximum dimension of the cells to extract.
+ * @param dim the dimension of the space.
+ * @param cmin the coordinates of the lowest admissible cell.
+ * @param cmax the coordinates of the highest admissible cell.
+ */
+template < typename Queue >
+void
+ImaGene::CubicalCell::lowIncidentCells( Queue & q,
+					const CubicalCell & c,
+					uint dim_c,
+					uint min, 
+					uint max,
+					uint dim,
+					const CubicalCell & cmin,
+					const CubicalCell & cmax
+					)
+{
+  std::deque<CubicalCell> q2;
+  q2.push_back( c );
+  strictLowerBoundary( q2, c, dim_c, dim );
+  for ( std::deque<CubicalCell>::iterator it = q2.begin();
+	it != q2.end();
+	++it )
+    {
+      uint dim_bdry_c = it->dim( dim );
+      if ( ( min <= dim_bdry_c ) && ( dim_bdry_c <= max )
+	   && it->isInBounds( cmin, cmax, dim ) )
+	q.push_back( *it );
+    }
+ 
+
+//   uint i;
+//   if ( dim_c < min ) return;
+//   if ( dim_c <= max ) q.push_back( c );
+//   if ( dim_c == min ) return;
+
+//   // Extracts two first 1-lower incident cells and decompose them.
+//   i = 0;
+//   while ( ( c[ i ] & 0x1 ) == 0 ) ++i;
+//   CubicalCell c1( c, dim );
+//   --c1[ i ];
+//   --dim_c;
+
+//   std::deque<CubicalCell> q2;
+//   lowIncidentCells( q2, c1, dim_c, min, 
+// 		    std::min( dim_c, max ), 
+// 		    dim, cmin, cmax );
+//   for ( std::deque<CubicalCell>::iterator it = q2.begin();
+// 	it != q2.end();
+// 	++it )
+//     {
+//       CubicalCell & c2 = *it;
+//       if ( cmin[ i ] <= c2[ i ] )
+// 	q.push_back( c2 );
+//       c2[ i ] += 2;
+//       if ( cmax[ i ] >= c2[ i ] )
+// 	q.push_back( c2 );
+//     }
+
+//   q2.clear();
+//   if ( max > 0 )
+//     {
+//       lowIncidentCells( q2, c1, dim_c, 
+// 			min == 0 ? 0 : min - 1, 
+// 			std::min( dim_c - 1, max ),
+// 			dim,
+// 			cmin, cmax );
+//       for ( std::deque<CubicalCell>::iterator it = q2.begin();
+// 	    it != q2.end();
+// 	    ++it )
+// 	{
+// 	  CubicalCell & c2 = *it;
+// 	  ++c2[ i ];
+// 	  // if ( ( cmin[ i ] <= c2[ i ] ) && ( cmax[ i ] >= c2[ i ] ) )
+// 	  q.push_back( c2 );
+// 	}
+//     }
+
+
+
+//   std::deque<CubicalCell> q2;
+//   lowIncidentCells( q2, c1, dim_c, min, max, dim, cmin, cmax );
+//   for ( std::deque<CubicalCell>::iterator it = q2.begin();
+// 	it != q2.end();
+// 	++it )
+//     {
+//       CubicalCell & c2 = *it;
+//       ++c2[ i ];
+//       q.push_back( c2 );
+
+//       if ( cmin[ i ] < c2[ i ] )
+// 	{
+// 	  q.push_back( c2 );
+// 	  --( q.back()[ i ] );
+// 	}
+//       if ( cmax[ i ] > c2[ i ] )
+// 	{
+// 	  q.push_back( c2 );
+// 	  ++( q.back()[ i ] );
+// 	}
+//     }
+
+}
+
+
+
+/**
+ * Computes the cells that are up incident to 'this' and with a
+ * dimension just superior.
+ *
+ * @param q the cells are added at the back of this queue.
+ * @param dim the dimension of the space.
+ */
+template < typename Queue >
+void
+ImaGene::CubicalCell::upIncidentCells1( Queue & q, 
+					uint dim ) const
+{
+  for ( uint i = 0; i < dim; ++i )
+    if ( ( m_x[ i ] & 1 ) == 0 )
+      {
+	if ( m_x[ i ] != 0 )
+	  {
+	    q.push_back( *this );
+	    --q.back()[ i ];
+	  }
+	q.push_back( *this );
+	++q.back()[ i ];
+      }
+}
+
+
+
+/**
+ * @param other any cell
+ * @param dim the dimension of the cell.
+ *
+ * @return 'true' if the [other] cell is the same as 'this'.
+ */
+bool
+ImaGene::CubicalCell::equals( const CubicalCell & other, uint dim ) const
+{
+  for ( uint i = 0; i < dim; ++i )
+    if ( m_x[ i ] != other.m_x[ i ] ) return false;
+  return true;
+}
+
+
+/**
+ * Lexicographic ordering on cubical cells.
+ *
+ * @param c the other cell (of dimension [d]).
+ * @param d the dimension of the cells
+ * @return 'true' if [c1] is before [c2] in the cell ordering.
+ */
+bool
+ImaGene::CubicalCell::less( const CubicalCell & c, uint d ) const
+{
+  for ( uint i = 0; i < d; ++i )
+    {
+      if ( m_x[ i ] < c.m_x[ i ] ) return true;
+      if ( m_x[ i ] > c.m_x[ i ] ) return false;
+    }
+  return false;
+}
+
+/**
+ * Lexicographic ordering on cubical cells.
+ *
+ * @param c the other cell (of dimension [d]).
+ * @param d the dimension of the cells
+ * @return 'true' if [c1] is after [c2] in the cell ordering.
+ */
+bool 
+ImaGene::CubicalCell::more( const CubicalCell & c, uint d ) const
+{
+  for ( uint i = 0; i < d; ++i )
+    {
+      if ( m_x[ i ] > c.m_x[ i ] ) return true;
+      if ( m_x[ i ] < c.m_x[ i ] ) return false;
+    }
+  return false;
+}
+
+
+/**
+ * Inverse lexicographic ordering on cubical cells.
+ *
+ * @param c the other cell (of dimension [d]).
+ * @param d the dimension of the cells
+ * @return 'true' if [c1] is before [c2] in the cell ordering.
+ */
+bool
+ImaGene::CubicalCell::invLess( const CubicalCell & c, uint d ) const
+{
+  ASSERT_CubicalCell( d != 0 );
+  uint i = d;
+  do
+    {
+      --i;
+      if ( m_x[ i ] < c.m_x[ i ] ) return true;
+      if ( m_x[ i ] > c.m_x[ i ] ) return false;
+    }
+  while ( i != 0 );
+  return false;
+}
+
+/**
+ * Inverse lexicographic ordering on cubical cells.
+ *
+ * @param c the other cell (of dimension [d]).
+ * @param d the dimension of the cells
+ * @return 'true' if [c1] is after [c2] in the cell ordering.
+ */
+bool 
+ImaGene::CubicalCell::invMore( const CubicalCell & c, uint d ) const
+{
+  ASSERT_CubicalCell( d != 0 );
+  uint i = d;
+  do
+    {
+      --i;
+      if ( m_x[ i ] > c.m_x[ i ] ) return true;
+      if ( m_x[ i ] < c.m_x[ i ] ) return false;
+    }
+  while ( i != 0 );
+  return false;
+}
+
+
+/**
+ * Bounds are large (<= et >=).
+ *
+ * @param cmin the lowest cell in the parallepiped
+ * @param cmin the most upper cell in the parallepiped
+ * @param d the dimension of the space.
+ *
+ * @return 'true' if 'this' cell is within the specified
+ * parallelepiped, 'false' otherwise.
+ */
+bool
+ImaGene::CubicalCell::isInBounds( const CubicalCell & cmin, 
+				  const CubicalCell & cmax,
+				  uint d ) const			  
+{
+  for ( uint i = 0; i < d; ++i )
+    if ( ( m_x[ i ] < cmin[ i ] ) || ( m_x[ i ] > cmax[ i ] ) )
+      return false;
+  return true;
+}
+
+
+
+/**
+ * Adds [v] to all coordinates of this cell.
+ *
+ * @param v the value to add.
+ * @param d the number of coordinates of the cells.
+ */
+template <typename ValueType>
+void
+ImaGene::CubicalCell::addToAll( ValueType v, uint d )
+{
+  for ( uint i = 0; i < d; ++i )
+    m_x[ i ] += v;
+}
+
+/**
+ * Subs [v] to all coordinates of this cell.
+ *
+ * @param v the value to add.
+ * @param d the number of coordinates of the cells.
+ */
+template <typename ValueType>
+void
+ImaGene::CubicalCell::subToAll( ValueType v, uint d )
+{
+  for ( uint i = 0; i < d; ++i )
+    m_x[ i ] -= v;
+}
+
+/**
+ * Adds [v] to coordinate [i] of this cell.
+ *
+ * @param v the value to add.
+ * @param i a coordinate of the cell.
+ */
+template <typename ValueType>
+void
+ImaGene::CubicalCell::addToOne( ValueType v, uint i )
+{
+    m_x[ i ] += v;
+}
+
+/**
+ * Subs [v] to coordinate [i] of this cell.
+ *
+ * @param v the value to add.
+ * @param i a coordinate of the cell.
+ */
+template <typename ValueType>
+void
+ImaGene::CubicalCell::subToOne( ValueType v, uint i )
+{
+    m_x[ i ] -= v;
+}
+
+
+// ----------------------- Hierarchical services --------------------------
+
+
+/**
+ * @param d the dimension of the space.
+ * @return 'true' if it is a boundary cell, meaning one coordinate
+ * is an exact poxer of 2.
+ */
+bool
+ImaGene::CubicalCell::isBoundary( uint d ) const
+{
+  for ( uint i = 0; i < d; ++i )
+    if ( KnUtils::countSetBits( m_x[ i ] ) == 1 ) return true;
+  return false;
+}
+
+/**
+ * @param min (returns) the lowest point in the parallepiped
+ * containing 'this'.
+ *
+ * @param max (returns) the most upper point in the parallepiped
+ * containing 'this'.
+ *
+ * @param d the dimension of the space.
+ */
+void
+ImaGene::CubicalCell::bounds
+( CubicalCell & min, CubicalCell & max, uint d ) const
+{
+  for ( uint i = 0; i < d; ++i )
+    {
+      uint p = KnUtils::getMSB( m_x[ i ] );
+      min[ i ] = 0x1LL << p;
+      max[ i ] = 0x1LL << (p+1);
+    }
+}
+
+/**
+ * The cell determines a subspace whose subdivision is given by
+ * [k]. The lowest and most upper points are given for the k-th
+ * subdivision of 'this'. [min] and [max] exclude boundaries and take
+ * into account the topology of the cell.
+ *
+ * @param min (returns) the lowest point in the parallepiped
+ * containing 'this'.
+ *
+ * @param max (returns) the most upper point in the parallepiped
+ * containing 'this'.
+ *
+ * @param k the subdivision of the cell 'this'.
+ *
+ * @param d the dimension of the space.
+ */
+void
+ImaGene::CubicalCell::subspaceInnerBounds
+( CubicalCell & min, CubicalCell & max, uint k, uint d ) const
+{
+  for ( uint i = 0; i < d; ++i )
+    {
+      if ( m_x[ i ] & 0x1 )
+	{
+	  min[ i ] = ( ( m_x[ i ] ^ 0x1LL ) << k ) | 0x1LL;
+	  max[ i ] = ( ( m_x[ i ] + 0x1LL ) << k ) - 0x1LL;
+	}
+      else
+	{
+	  max[ i ] = min[ i ] = m_x[ i ] << k;
+	}
+    }
+}
+
+/**
+ * The cell determines a subspace whose subdivision is given by
+ * [k]. The lowest and most upper points are given for the k-th
+ * subidivision of 'this'. [min] and [max] include boundaries and take
+ * into account the topology of the cell.
+ *
+ * @param min (returns) the lowest point in the parallepiped
+ * containing 'this'.
+ *
+ * @param max (returns) the most upper point in the parallepiped
+ * containing 'this'.
+ *
+ * @param k the subdivision of the cell 'this'.
+ *
+ * @param d the dimension of the space.
+ */
+void
+ImaGene::CubicalCell::subspaceOuterBounds
+( CubicalCell & min, CubicalCell & max, uint k, uint d ) const
+{
+  for ( uint i = 0; i < d; ++i )
+    {
+      if ( m_x[ i ] & 0x1 )
+	{
+	  min[ i ] = ( ( m_x[ i ] ^ 0x1LL ) << k );
+	  max[ i ] = ( ( m_x[ i ] + 0x1LL ) << k );
+	}
+      else
+	{
+	  max[ i ] = min[ i ] = m_x[ i ] << k;
+	}
+    }
+}
+
+/**
+ * @param d the dimension of the space.
+ *
+ * @return 'true' is the cell is valid (meaning its coordinates
+ * are greater than (2,2,...)).
+ */
+bool
+ImaGene::CubicalCell::isValid( uint d ) const
+{
+  return m_x[ 0 ] > 0x1LL;
+}
+
+
+/**
+ * Computes the cell that is just coarser than 'this' and that
+ * includes 'this'.
+ *
+ * @param d the dimension of the space.
+ */
+void
+ImaGene::CubicalCell::toCoarse( uint d )
+{
+  for ( uint i = 0; i < d; ++i )
+    // if ( m_x[ i ] & 0x1 )
+    m_x[ i ] = ( m_x[ i ] >> 1 ) | ( m_x[ i ] & 0x1LL );
+  // m_x[ i ] >>= 1;
+}
+
+
+/**
+ * Computes the cell that is k-times coarser than 'this' and that
+ * includes 'this'.
+ *
+ * @param k the number of coarser levels to ascend.
+ * @param d the dimension of the space.
+ */
+void
+ImaGene::CubicalCell::toCoarse( uint k, uint d )
+{
+  for ( uint i = 0; i < d; ++i )
+    m_x[ i ] = ( m_x[ i ] >> k ) | ( m_x[ i ] & 0x1LL );
+  // m_x[ i ] >>= k;
+}
+
+/**
+ * Determines the first refinement of 'this' as the cells in-between
+ * [min] and [max] cells. [min] and [max] exclude boundaries and take
+ * into account the topology of the cell. Same as subspaceInnerBounds with k=1.
+ *
+ * @param min (returns) the lowest refined cell included in 'this'
+ *
+ * @param max (returns) the most upper refined cell included in 'this'
+ *
+ * @param d the dimension of the space.
+ *
+ * @see subspaceInnerBounds
+ */
+void
+ImaGene::CubicalCell::toFine
+( CubicalCell & min, CubicalCell & max, uint d ) const
+{
+  for ( uint i = 0; i < d; ++i )
+    {
+      if ( m_x[ i ] & 0x1 )
+	{
+	  min[ i ] = ( ( m_x[ i ] ^ 0x1LL ) << 1 ) | 0x1LL;
+	  max[ i ] = ( ( m_x[ i ] + 0x1LL ) << 1 ) - 0x1LL;
+	}
+      else
+	{
+	  max[ i ] = min[ i ] = m_x[ i ] << 1;
+	}
+    }
+}
+
+/**
+ * Determines the [k]-th refinement of 'this' as the cells in-between
+ * [min] and [max] cells. [min] and [max] exclude boundaries and take
+ * into account the topology of the cell. Same as subspaceInnerBounds.
+ *
+ * @param min (returns) the lowest [k]-refined cell included in 'this'
+ *
+ * @param max (returns) the most upper [k]-refined cell included in 'this'
+ *
+ * @param k the subdivision of the cell 'this'.
+ *
+ * @param d the dimension of the space.
+ *
+ * @see subspaceInnerBounds
+ */
+void
+ImaGene::CubicalCell::toFine
+( CubicalCell & min, CubicalCell & max, uint k, uint d ) const
+{
+  for ( uint i = 0; i < d; ++i )
+    {
+      if ( m_x[ i ] & 0x1 )
+	{
+	  min[ i ] = ( ( m_x[ i ] ^ 0x1LL ) << k ) | 0x1LL;
+	  max[ i ] = ( ( m_x[ i ] + 0x1LL ) << k ) - 0x1LL;
+	}
+      else
+	{
+	  max[ i ] = min[ i ] = m_x[ i ] << k;
+	}
+    }
+}
+
+
+/**
+ * @param other any other cell.
+ * @param d the dimension of the space.
+ *
+ * @return 'true' is 'this' cell is included in the cell other
+ * (meaning having [other] as its coarser version).
+ */
+bool
+ImaGene::CubicalCell::isIncluded( const CubicalCell & other, uint d ) const
+{
+  CubicalCell c( *this, d );
+  while ( c[ 0 ] > other[ 0 ] )
+    c.toCoarse( d );
+  return c.equals( other, d );
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+// class CubicalCellComparator
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Constructor.
+ * @param d the dimension of the space in which cells are compared.
+ */
+ImaGene::CubicalCellComparator::CubicalCellComparator( uint d )
+  : dim( d )
+{
+}
+
+/**
+ * Copy constructor. 
+ *
+ * @param other the other cubical cell comparator.
+ */
+ImaGene::CubicalCellComparator::CubicalCellComparator
+( const CubicalCellComparator & other )
+  : dim( other.dim )
+{
+}
+
+/**
+ * Assignment. Checks that it is the same as 'this'.
+ *
+ * @param other the other cubical cell comparator.
+ */
+ImaGene::CubicalCellComparator& 
+ImaGene::CubicalCellComparator::operator=
+( const CubicalCellComparator & other )
+{
+  dim = other.dim;
+  
+  return *this;
+}
+
+
+/**
+ * Assign an order to cubical cells.
+ *
+ * @param c1 the first cell (of dimension [dim]).
+ * @param c2 the second cell (of dimension [dim]).
+ * @return 'true' if [c1] is before [c2] in the cell ordering.
+ */
+bool
+ImaGene::CubicalCellComparator::operator()( const CubicalCell & c1, 
+					    const CubicalCell & c2 ) const
+{
+  return c1.less( c2, dim );
+}
+
+
+/**
+ * Assign an order to cubical cells iterators.
+ * @see CubicalCell::less
+ *
+ * @param c1 an iterator on the first cell (of dimension [dim]).
+ * @param c2 an iterator on the second cell (of dimension [dim]).
+ * @return 'true' if [c1] is before [c2] in the cell ordering.
+ */
+template <typename Tmap_iterator>
+bool
+ImaGene::CubicalCellComparator::operator() 
+  ( const Tmap_iterator & c1, 
+    const Tmap_iterator & c2 ) const
+{
+  return c1->first.less( c2->first, dim );
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+// class CubicalCellInvComparator
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Constructor.
+ * @param d the dimension of the space in which cells are compared.
+ */
+ImaGene::CubicalCellInvComparator::CubicalCellInvComparator( uint d )
+  : dim( d )
+{
+}
+
+/**
+ * Copy constructor. 
+ *
+ * @param other the other cubical cell comparator.
+ */
+ImaGene::CubicalCellInvComparator::CubicalCellInvComparator
+( const CubicalCellInvComparator & other )
+  : dim( other.dim )
+{
+}
+
+/**
+ * Assignment. Checks that it is the same as 'this'.
+ *
+ * @param other the other cubical cell comparator.
+ */
+ImaGene::CubicalCellInvComparator& 
+ImaGene::CubicalCellInvComparator::operator=
+( const CubicalCellInvComparator & other )
+{
+  dim = other.dim;
+  
+  return *this;
+}
+
+
+/**
+ * Assign an order to cubical cells.
+ *
+ * @param c1 the first cell (of dimension [dim]).
+ * @param c2 the second cell (of dimension [dim]).
+ * @return 'true' if [c1] is before [c2] in the cell ordering.
+ */
+bool
+ImaGene::CubicalCellInvComparator::operator()( const CubicalCell & c1, 
+					    const CubicalCell & c2 ) const
+{
+  return c1.invLess( c2, dim );
+}
+
+
+/**
+ * Assign an order to cubical cells iterators.
+ * @see CubicalCell::less
+ *
+ * @param c1 an iterator on the first cell (of dimension [dim]).
+ * @param c2 an iterator on the second cell (of dimension [dim]).
+ * @return 'true' if [c1] is before [c2] in the cell ordering.
+ */
+template <typename Tmap_iterator>
+bool
+ImaGene::CubicalCellInvComparator::operator() 
+  ( const Tmap_iterator & c1, 
+    const Tmap_iterator & c2 ) const
+{
+  return c1->first.invLess( c2->first, dim );
+}
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+// class CubicalCellPriority
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Destructor.
+ */
+ImaGene::CubicalCellPriority::~CubicalCellPriority()
+{
+}
+
+/**
+ * Constructor
+ *
+ * @param computer the external object used to compute cell priority.
+ * @param d the dimension of the space in which lies cells.
+ * @param store_computation indicates whether priority computation
+ * should be stored or recomputed each time.
+ */
+ImaGene::CubicalCellPriority::CubicalCellPriority
+( CubicalCellPriorityComputer* computer,
+  uint d,
+  bool store_computation )
+  : dim( d ), m_computer( computer ), m_stored( store_computation ),
+    m_ccc( d ),
+    m_priority( m_ccc )
+{
+}
+
+/**
+ * Assign an order to cubical cells, based on priority.
+ *
+ * @param c1 the first cell (of dimension [dim]).
+ * @param c2 the second cell (of dimension [dim]).
+ * @return 'true' if [c1] is before [c2] in the cell ordering.
+ */
+bool
+ImaGene::CubicalCellPriority::operator()
+  ( const CubicalCell & c1, 
+    const CubicalCell & c2 ) const
+{
+  float v1;
+  float v2;
+  if ( m_stored )
+    {
+      iterator it = m_priority.find( c1 );
+      if ( it == m_priority.end() )
+	{
+	  v1 = m_computer->priority( c1, dim );
+	  m_priority.insert( it, std::make_pair( c1, v1 ) );
+	}
+      else
+	v1 = it->second;
+      it = m_priority.find( c2 );
+      if ( it == m_priority.end() )
+	{
+	  v2 = m_computer->priority( c2, dim );
+	  m_priority.insert( it, std::make_pair( c2, v2 ) );
+	}
+      else
+	v2 = it->second;
+    }
+  else
+    {
+      v1 = m_computer->priority( c1, dim );
+      v2 = m_computer->priority( c2, dim );
+    }
+  return v1 < v2;
+}
+
+/**
+ * Assign an order to cubical cells iterators, based on priority.
+ * @see CubicalCell::less
+ *
+ * @param c1 an iterator on the first cell (of dimension [dim]).
+ * @param c2 an iterator on the second cell (of dimension [dim]).
+ * @return 'true' if [c1] is before [c2] in the cell ordering.
+ */
+template <typename Tmap_iterator>
+bool 
+ImaGene::CubicalCellPriority::operator() 
+  ( const Tmap_iterator & c1, 
+    const Tmap_iterator & c2 ) const
+{
+  return this->operator()( c1->first, c2->first );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'CubicalCell'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'CubicalCell' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		     const CubicalCell & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

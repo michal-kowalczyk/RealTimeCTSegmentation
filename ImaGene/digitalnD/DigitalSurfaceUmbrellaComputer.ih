@@ -1,0 +1,257 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : DigitalSurfaceUmbrellaComputer.ih
+//
+// Creation : 2005/01/11
+//
+// Version : 2005/01/11
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in DigitalSurfaceUmbrellaComputer.h 
+//
+// History :
+//	2005/01/11 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class DigitalSurfaceUmbrellaComputer declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_DigitalSurfaceUmbrellaComputer(x)
+#define DEBUGCMD_DigitalSurfaceUmbrellaComputer(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_DigitalSurfaceUmbrellaComputer(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_DigitalSurfaceUmbrellaComputer(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+
+/**
+ * @param ks the digital space.
+ * @return the separator n-2 cell.
+ */
+ImaGene::Kn_sid
+ImaGene::DigitalSurfaceUmbrellaComputer::State::separator( const KnSpace & ks ) const
+{
+  return ks.sincident( face, k, epsilon );
+}
+
+
+/**
+ * @param ks the digital space.
+ * @return the pivot n-3 cell (always positively orientated).
+ */
+ImaGene::Kn_sid 
+ImaGene::DigitalSurfaceUmbrellaComputer::State::pivot( const KnSpace & ks ) const
+{
+  Kn_sid t = ks.sincident( face, k, epsilon );
+  bool mu = ks.sdirect( t, j );
+  return ks.sincident( t, j, mu );
+}
+
+
+/**
+ * @param ks the digital space.
+ * @return the track orientation (i.e. \a mu).
+ */
+bool 
+ImaGene::DigitalSurfaceUmbrellaComputer::State::mu( const KnSpace & ks ) const
+{
+  return ks.sdirect( separator( ks ), j );
+}
+
+
+
+
+/**
+ * Constructor. The object is not valid.
+ */
+inline
+ImaGene::DigitalSurfaceUmbrellaComputer::DigitalSurfaceUmbrellaComputer()
+  : m_tracker( 0 )
+{
+}
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+inline
+ImaGene::DigitalSurfaceUmbrellaComputer::
+DigitalSurfaceUmbrellaComputer( const DigitalSurfaceUmbrellaComputer & other )
+  : m_tracker( 0 )
+{
+  if ( other.m_tracker != 0 )
+    {
+      m_tracker = other.m_tracker->clone();
+      m_space = other.m_space;
+      m_track_dir = other.m_track_dir;
+      m_separator_dir = other.m_separator_dir;
+      m_separator_orientation = other.m_separator_orientation;
+    }
+}
+
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ */
+inline
+ImaGene::DigitalSurfaceUmbrellaComputer & 
+ImaGene::DigitalSurfaceUmbrellaComputer::
+operator=( const DigitalSurfaceUmbrellaComputer & other )
+{
+  if ( this != &other )
+    {
+      if ( m_tracker != 0 ) 
+	{
+	  delete m_tracker;
+	  m_tracker = 0;
+	}
+      if ( other.m_tracker != 0 )
+	{
+	  m_tracker = other.m_tracker->clone();
+	  m_space = other.m_space;
+	  m_track_dir = other.m_track_dir;
+	  m_separator_dir = other.m_separator_dir;
+	  m_separator_orientation = other.m_separator_orientation;
+	}
+    }
+  return *this;
+}
+
+/**
+ * @return a pointer on the digital space in which the factory is embedded.
+ */
+inline
+const ImaGene::KnSpace* 
+ImaGene::DigitalSurfaceUmbrellaComputer::space() const
+{
+  return m_space;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- Accessor services ------------------------------
+
+
+/**
+ * @return the current surfel at which the umbrella is pointing.
+ */
+ImaGene::Kn_sid
+ImaGene::DigitalSurfaceUmbrellaComputer::face() const
+{
+  ASSERT_DigitalSurfaceUmbrellaComputer( m_tracker != 0 );
+  return m_tracker->current();
+}
+
+
+/**
+ * @return the separator n-2 cell.
+ */
+ImaGene::Kn_sid
+ImaGene::DigitalSurfaceUmbrellaComputer::separator() const
+{
+  ASSERT_DigitalSurfaceUmbrellaComputer( m_tracker != 0 );
+  return m_space->sincident( face(),
+			     separatorDir(),
+			     separatorOrientation() );
+}
+
+
+/**
+ * @return the pivot n-3 cell (always positively orientated).
+ */
+ImaGene::Kn_sid
+ImaGene::DigitalSurfaceUmbrellaComputer::pivot() const
+{
+  ASSERT_DigitalSurfaceUmbrellaComputer( m_tracker != 0 );
+  Kn_sid t = separator();
+  bool mu = m_space->sdirect( t, trackDir() );
+  return m_space->sincident( t, trackDir(), mu );
+}
+
+
+/**
+ * @return the orthogonal direction to the current face.
+ */
+uint
+ImaGene::DigitalSurfaceUmbrellaComputer::orthDir() const
+{
+  ASSERT_DigitalSurfaceUmbrellaComputer( m_tracker != 0 );
+  return m_tracker->orthDir();
+}
+
+
+/**
+ * @return the track direction.
+ */
+uint
+ImaGene::DigitalSurfaceUmbrellaComputer::trackDir() const
+{
+  return m_track_dir;
+}
+
+
+/**
+ * @return the separator direction.
+ */
+uint
+ImaGene::DigitalSurfaceUmbrellaComputer::separatorDir() const
+{
+  return m_separator_dir;
+}
+
+
+/**
+ * @return the separator orientation.
+ */
+bool
+ImaGene::DigitalSurfaceUmbrellaComputer::separatorOrientation() const
+{
+  return m_separator_orientation;
+}
+
+
+    
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'DigitalSurfaceUmbrellaComputer'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'DigitalSurfaceUmbrellaComputer' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const DigitalSurfaceUmbrellaComputer & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

@@ -1,0 +1,289 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : DigitalSurfaceGeometry.ih
+//
+// Creation : 2003/02/27
+//
+// Version : 2003/02/27
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in DigitalSurfaceGeometry.h 
+//
+// History :
+//	2003/02/27 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class DigitalSurfaceGeometry declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_DigitalSurfaceGeometry(x)
+#define DEBUGCMD_DigitalSurfaceGeometry(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_DigitalSurfaceGeometry(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_DigitalSurfaceGeometry(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+// ------------------------- Standard services ------------------------------
+
+/**
+ * Destructor. Does nothing.
+ */
+DigitalSurfaceGeometry::~DigitalSurfaceGeometry()
+{
+}
+
+/**
+ * Constructor. Does nothing.
+ */
+DigitalSurfaceGeometry::DigitalSurfaceGeometry()
+  : m_digital_surface( 0 ),
+    tangent_computer( 0 ),
+    normal_computer( 0 ),
+    area_computer( 0 ),
+    mean_curvature_computer( 0 ),
+    length_computer( 0 )
+{
+}
+
+
+/**
+ * Sets the associated digital surface.
+ * @param dig_surf the digital surface to associate to this geometry.
+ */
+void
+DigitalSurfaceGeometry::setSurface( DigitalSurface* dig_surf )
+{
+  m_digital_surface = dig_surf;
+}
+
+/**
+ * @return the associated digital surface.
+ */
+DigitalSurface* 
+DigitalSurfaceGeometry::surface() const
+{
+  return m_digital_surface;
+}
+
+/**
+ * @return the associated digital space in which the surface is embedded.
+ */
+const KnSpace*
+DigitalSurfaceGeometry::space() const
+{
+  ASSERT_DigitalSurfaceGeometry( m_digital_surface != 0 );
+  return m_digital_surface->space();
+}
+
+
+// ------------------------- Geometry services ------------------------------
+
+/**
+ * Default: does nothing.
+ * @param b a signed surfel.
+ * @param vn (returns) the estimated normal vector at surfel [b], oriented toward the direct orientation (meaning "inside" the shape).
+ */
+void
+DigitalSurfaceGeometry::normal( Kn_sid b, Vector & vn )
+{
+  if ( normal_computer != 0 )
+    normal_computer->computeNormal( *this, b, vn );
+}
+
+/**
+ * A strong version of 'normal' since it gives a tangent plane 
+ * estimation. More precisely, it returns the upper and lower deviation to
+ * the centroid of the surfel [b] along its orthogonal coordinate so that
+ * all elements of the tangents are included in the plane. 
+ * @param b a signed surfel.
+ * @param vn (returns) the estimated normal vector at surfel [b], oriented toward the direct orientation (meaning "inside" the shape).
+ * @param min_x_orth the deviation to the surfel centroid to get the lower leaning plane. 
+ * @param max_x_orth the deviation to the surfel centroid to get the upper leaning plane. 
+ * @see computeNormal
+ */
+void
+DigitalSurfaceGeometry::tangentPlane( Kn_sid b, Vector & vn,
+				      float & min_x_orth,
+				      float & max_x_orth )
+{
+  if ( normal_computer != 0 )
+    normal_computer->computeTangentPlane( *this, b, vn, 
+					  min_x_orth, max_x_orth );
+}
+
+
+
+
+/**
+ * Default: returns a (1,0) vector.
+ * @param b a signed surfel.
+ * @param i any tracking direction from [b].
+ * @return the estimated 2d tangent vector at surfel [b] in the tracking direction [i].
+ */
+Vector2i 
+DigitalSurfaceGeometry::tangent2D( Kn_sid b, uint i )
+{
+  if ( tangent_computer != 0 )
+    return tangent_computer->computeTangent2D( *this, b, i );
+  return Vector2i( 1, 0 );
+}
+
+/**
+ * Default: returns a (1,0,0) discrete line.
+ * @param b a signed surfel.
+ * @param i any tracking direction from [b].
+ * @return the estimated 2d tangent line at surfel [b] in the tracking direction [i].
+ */
+DLine
+DigitalSurfaceGeometry::tangentLine2D( Kn_sid b, uint i )
+{
+  if ( tangent_computer != 0 )
+    return tangent_computer->computeTangentLine2D( *this, b, i );
+  return DLine( 1, 0, 0 );
+}
+
+
+
+/**
+ * Default: returns 1.0
+ * @param b a signed surfel.
+ * @return the estimated area of the surfel [b].
+ */
+float
+DigitalSurfaceGeometry::area( Kn_sid b )
+{
+  if ( area_computer != 0 )
+    return area_computer->computeArea( *this, b );
+  return 1.0;
+}
+
+/**
+ * Default: returns 1.0
+ * @param b a signed surfel.
+ * @param i any tracking direction from [b].
+ * @return the estimated length of the elementary displacement in the neighborhood of [b].
+ */
+float 
+DigitalSurfaceGeometry::length( Kn_sid b, uint i )
+{
+  if ( length_computer != 0 )
+    return length_computer->computeLength( *this, b, i );
+  return 1.0;
+}
+
+/**
+ * Default: returns 1.0
+ * @param b a signed surfel.
+ * @param i any tracking direction from [b].
+ * @return the estimated distance to go from [b] to the next surfel in direction [i] (ie direct follower).
+ */
+float 
+DigitalSurfaceGeometry::lengthNext( Kn_sid b, uint i )
+{
+  if ( length_computer != 0 )
+    return length_computer->computeLengthNext( *this, b, i );
+  return 1.0;
+}
+
+/**
+ * Default: returns 1.0
+ * @param b a signed surfel.
+ * @param i any tracking direction from [b].
+ * @return the estimated distance to go from [b] to the previous surfel in direction [i] (ie indirect follower).
+ */
+float
+DigitalSurfaceGeometry::lengthPrevious( Kn_sid b, uint i )
+{
+  if ( length_computer != 0 )
+    return length_computer->computeLengthPrevious( *this, b, i );
+  return 1.0;
+}
+
+/**
+ * Default: returns 0.0
+ * @param b a signed surfel.
+ * @return the estimated mean curvature at surfel [b].
+ */
+float
+DigitalSurfaceGeometry::meanCurvature( Kn_sid b )
+{
+  if ( mean_curvature_computer != 0 )
+    return mean_curvature_computer->computeMeanCurvature( *this, b );
+  return 1.0;
+}
+
+
+/**
+ * Default (0.5, 0.0).
+ * @param b a signed surfel.
+ * @param i any tracking direction from [b].
+ * @return the estimated 2d point in the Euclidean space associated to the surfel [b] using estimation along contour of direction [i].
+ */
+Vector2D
+DigitalSurfaceGeometry::continuousAnalog( Kn_sid b, uint i )
+{
+  if ( continuous_analog_computer != 0 )
+    return continuous_analog_computer->computeContinuousAnalog( *this, b, i );
+  return Vector2D( 0.5f, 0.0f );
+}
+
+
+/**
+ * Default centroid of [b].
+ * @param b a signed surfel.
+ * @param x (returns) the estimated point in the Euclidean space associated to the surfel [b].
+ */
+void
+DigitalSurfaceGeometry::continuousAnalog( Kn_sid b, Vector & x )
+{
+  if ( continuous_analog_computer != 0 )
+    return continuous_analog_computer->computeContinuousAnalog( *this, b, x );
+  space()->scentroid( b, x );
+}
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene
+
+/**
+ * Destructor. Does nothing.
+ */
+ImaGene::TrivialNormalOnSurfaceComputer::~TrivialNormalOnSurfaceComputer()
+{
+}
+
+/**
+ * Constructor. Does nothing.
+ */
+ImaGene::TrivialNormalOnSurfaceComputer::TrivialNormalOnSurfaceComputer()
+{
+}
+

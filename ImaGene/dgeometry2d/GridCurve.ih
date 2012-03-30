@@ -1,0 +1,1069 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : GridCurve.ih
+//
+// Creation : 2011/02/28
+//
+// Version : 2011/02/28
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in GridCurve.h 
+//
+// History :
+//	2011/02/28 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class GridCurve declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <cmath>
+#include <iostream>
+#include "ImaGene/mathutils/Mathutils.h"
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_GridCurve(x)
+#define DEBUGCMD_GridCurve(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_GridCurve(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_GridCurve(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+//-----------------------------------------------------------------------------
+inline
+ImaGene::GridCurve::Edge::~Edge()
+{}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::GridCurve::Edge::Edge()
+{}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::Edge::
+initContext( const Vector2i & pointel, 
+	     unsigned int a, unsigned int b,
+	     bool inside )
+{
+  this->pointel = pointel;
+  this->a = a;
+  this->b = b;
+  this->inside = inside;
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::Edge::
+initContext( const Edge & previous )
+{
+  previous.getPostAlphabet( this->a, this->b );
+  this->pointel = previous.postPointel();
+  this->inside = previous.tilde ? ! previous.inside : previous.inside;
+}
+
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::Edge::
+initQuadrantChange( int nb )
+{
+  ASSERT_GridCurve( ( nb == 1 ) || ( nb == -1 ) );
+  this->pq = Fraction();
+  this->nb = nb;
+  this->tilde = false;
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::Edge::
+initTrivialZero( int nb, bool tilde )
+{
+  this->pq = SternBrocot::zeroOverOne();
+  this->nb = nb;
+  this->tilde = tilde;
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::Edge::
+initTrivialInfinite( int nb, bool tilde )
+{
+  this->pq = SternBrocot::oneOverZero();
+  this->nb = nb;
+  this->tilde = tilde;
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::Edge::
+getPreAlphabet( unsigned int & a1, unsigned int & b1 ) const
+{
+  a1 = this->a;
+  b1 = this->b;
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::Edge::
+getPostAlphabet( unsigned int & a1, unsigned int & b1 ) const
+{
+  getPreAlphabet( a1, b1 );
+  if ( pq.null() )
+    { // '+'^nb or '-'^nb
+      if ( nb == 1 )
+	{
+	  std::swap( a1, b1 );
+	  a1 = ( a1 + 2 ) % 4;
+	}
+      else if ( nb == -1 )
+	{
+	  std::swap( a1, b1 );
+	  b1 = ( b1 + 2 ) % 4;
+	}
+    }
+  else if ( tilde )
+    {
+      std::swap( a1, b1 );
+    }
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::Vector2i
+ImaGene::GridCurve::Edge::
+prePointel() const
+{
+  return pointel;
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::Vector2i
+ImaGene::GridCurve::Edge::
+postPointel() const
+{
+  int dx, dy;
+  if ( pq.null() )
+    {
+      if ( nb == 1 )
+	FreemanChain::displacement( dx, dy, a );
+      else
+	FreemanChain::displacement( dx, dy, ( b + 2 ) % 4  );
+      return pointel+Vector2i( dx, dy );
+    }
+  else
+    {
+      // Vector2i total( 0, 0 );
+      FreemanChain::displacement( dx, dy, a );
+      Vector2i va( dx, dy );
+      FreemanChain::displacement( dx, dy, b );
+      Vector2i vb( dx, dy );
+      if ( ! tilde )
+	{
+	  va *= pq.q() * nb;
+	  vb *= pq.p() * nb;
+	  // total = va + vb;
+	  return pointel + va + vb;
+	}
+      else
+	{
+	  Vector2i delta = va - vb;
+	  va *= pq.p() * nb;
+	  vb *= pq.q() * nb;
+	  return pointel + va + vb + delta;
+	  // total += va + vb;
+	}
+      // return pointel + total;
+
+	/*
+	 * XP : I modify the code in order to compute exactly the vertices of
+	 * the MLP
+	 */
+      /*
+  int dx, dy;
+  if ( pq.null() )
+    {
+      if ( nb == 1 )
+	FreemanChain::displacement( dx, dy, a );
+      else
+	FreemanChain::displacement( dx, dy, ( b + 2 ) % 4 );
+      return pointel + Vector2i( dx, dy );
+    }
+  else
+    {
+      Vector2i total( 0, 0 );
+      FreemanChain::displacement( dx, dy, a );
+      Vector2i va( dx, dy );
+      FreemanChain::displacement( dx, dy, b );
+      Vector2i vb( dx, dy );
+      if ( ! tilde )
+	{
+	  va *= pq.q() * nb;
+	  vb *= pq.p() * nb;
+	  total = va + vb;
+	}
+      else
+	{
+	  total += va - vb;
+	  va *= pq.p() * nb;
+	  vb *= pq.q() * nb;
+	  total += va + vb;
+	}
+      return pointel + total;
+      */
+    }
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::Edge::
+initEdge( unsigned int p, unsigned int q, bool tilde )
+{
+  int d = Mathutils::gcd( p, q );
+  initEdge( p / d, q / d, d, tilde );
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::Edge::
+initEdge( unsigned int p_prime, unsigned int q_prime, int nb, bool tilde )
+{
+  this->pq = SternBrocot::fraction( p_prime, q_prime );
+  this->nb = nb;
+  this->tilde = tilde;
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::Edge::
+initEdge( const Fraction & other_pq, int nb, bool tilde )
+{ 
+  this->pq = other_pq;
+  this->nb = nb;
+  this->tilde = tilde;
+}
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::GridCurve::Edge::
+isQuadrantChange() const
+{
+  return pq.null();
+}
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::GridCurve::Edge::
+isTrivialZero() const
+{
+  return pq == SternBrocot::zeroOverOne();
+}
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::GridCurve::Edge::
+isTrivialInfinite() const
+{
+  return pq == SternBrocot::oneOverZero();
+}
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::GridCurve::Edge::
+isTrivial() const
+{
+  return isTrivialZero() || isTrivialInfinite();
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::Edge::
+pushBackFreemanCode( std::vector<unsigned char> & v ) const
+{
+  if ( isQuadrantChange() )
+    v.push_back( ( this->nb > 0 ) ? this->a : ( this->b + 2 ) % 4 );
+  else if ( isTrivialInfinite() ) 
+    {
+      if ( this->tilde )
+	{
+	  v.push_back( this->a );
+	  v.push_back( ( this->b + 2 ) % 4 );
+	  for ( unsigned int i = 0; i < this->nb; ++i )
+	    v.push_back( this->a );
+	}
+      else
+	for ( unsigned int i = 0; i < this->nb; ++i )
+	  v.push_back( this->b );
+    }
+  else
+    {
+      unsigned int myA = this->tilde ? b : a;
+      unsigned int myB = this->tilde ? a : b;
+      for ( unsigned int i = 0; i < this->nb; ++i )
+	{
+	  if ( isTrivialZero() ) v.push_back( myA );
+	  // else if ( isTrivialInfinite() ) v.push_back( myB );
+	  else
+	    {
+	      unsigned int r = this->pq.p();
+	      unsigned int rp = 0;
+	      unsigned int sum = this->pq.p() + this->pq.q();
+	      for ( unsigned int j = 0; j < sum; ++j )
+		{
+		  v.push_back( ( r > rp ) ? myA : myB );
+		  rp = r;
+		  r = ( r + this->pq.p() );
+		  if ( r >= sum ) r -= sum;
+		}
+	    }
+	}
+      if ( this->tilde )
+	v[ 0 ] = myB;
+    }
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::Vector2i 
+ImaGene::GridCurve::Edge::
+toVector() const
+{
+  unsigned int nb_a1 = nb * pq.q();
+  unsigned int nb_b1 = nb * pq.p();
+  unsigned int a1;
+  unsigned int b1;
+  getPostAlphabet( a1, b1 );
+  Vector2i da1 = nb_a1 * FreemanChain::displacement( a1 );
+  Vector2i db1 = nb_b1 * FreemanChain::displacement( b1 );
+  return da1 + db1;
+}
+//-----------------------------------------------------------------------------
+inline
+int 
+ImaGene::GridCurve::Edge::
+det( const Edge & other ) const
+{
+  return other.tilde 
+    ? pq.q() * other.pq.q() - pq.p() * other.pq.p()
+    : pq.q() * other.pq.p() - pq.p() * other.pq.q();
+}
+//-----------------------------------------------------------------------------
+inline
+bool 
+ImaGene::GridCurve::Edge::
+isMergeable( const Edge & other ) const
+{
+  if ( isQuadrantChange() || other.isQuadrantChange() )
+    return false;
+  int d = this->det( other );
+  return
+    ( ( ! other.tilde ) 
+      && ( ( d == 0 ) 
+	   || ( ( d == 1 ) && ( ( nb == 1 ) || ( other.nb == 1 ) ) ) ) )
+    || ( ( other.tilde ) 
+	 && ( d == 1 ) && ( other.nb == 1 ) );
+}
+//-----------------------------------------------------------------------------
+inline
+bool 
+ImaGene::GridCurve::Edge::
+isMergeable( const Edge & other, int & d ) const
+{
+  if ( isQuadrantChange() || other.isQuadrantChange() )
+    return false;
+  d = this->det( other );
+  return
+    ( ( ! other.tilde ) 
+      && ( ( d == 0 ) 
+	   || ( ( d == 1 ) && ( ( nb == 1 ) || ( other.nb == 1 ) ) ) ) )
+    || ( ( other.tilde ) 
+	 && ( d == 1 ) && ( other.nb == 1 ) );
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::Edge::
+getMerge( Edge & edge, const Edge & other ) const
+{
+  ASSERT_GridCurve( this->isMergeable( other ) );
+  edge.initContext( pointel, a, b, inside );
+  if ( ! other.tilde )
+    if ( pq == other.pq ) // same slope, det = 0
+      {
+	edge.pq = pq;
+	edge.nb = nb + other.nb;
+	edge.tilde = tilde;
+      }
+    else  // different slope, no tilde, det = 1
+      {
+	const Fraction & best_ancestor = 
+	  pq.k() >= other.pq.k() ? pq : other.pq;
+	unsigned int p = nb * pq.p() + other.nb * other.pq.p();
+	unsigned int q = nb * pq.q() + other.nb * other.pq.q();
+	edge.pq = SternBrocot::fraction( p, q, best_ancestor );
+	edge.nb = 1;
+	edge.tilde = tilde;
+      }
+  else // other.tilde, det = 1
+    {
+      Fraction inv_this = pq.inverse(); 
+      const Fraction & best_ancestor = 
+	other.pq.k() >= inv_this.k() ? other.pq : inv_this;
+      unsigned int p = nb * inv_this.p() + other.nb * other.pq.p();
+      unsigned int q = nb * inv_this.q() + other.nb * other.pq.q();
+      edge.pq = SternBrocot::fraction( p, q, best_ancestor );
+      edge.nb = 1;
+      edge.tilde = ! tilde;
+      // Fraction inv_other = other.pq.inverse(); 
+      // const Fraction & best_ancestor = 
+      // 	pq.k() >= inv_other.k() ? pq : inv_other;
+      // unsigned int p = nb * pq.p() + other.nb * inv_other.p();
+      // unsigned int q = nb * pq.q() + other.nb * inv_other.q();
+      // edge.pq = SternBrocot::fraction( p, q, best_ancestor );
+      // edge.nb = 1;
+      // edge.tilde = ! tilde;
+    }
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::Edge::
+splitDown( std::list<Edge> & edge_list ) const
+{
+  ASSERT_GridCurve( ! isQuadrantChange() );
+  ASSERT_GridCurve( this->nb == 1 );
+  ASSERT_GridCurve( ! isTrivial() );
+  edge_list.clear();
+
+  if ( ! tilde )
+    {
+      Edge e1, e2;
+      unsigned int nb1, nb2;
+      e1.initContext( this->pointel, this->a, this->b, this->inside );
+      pq.getSplitBerstel( e1.pq, nb1, e2.pq, nb2 );
+      e1.tilde = false;
+      e1.nb = nb1;
+      e2.initContext( e1 );
+      e2.tilde = false;
+      e2.nb = nb2;
+      edge_list.push_back( e1 );
+      edge_list.push_back( e2 );
+    }
+  else
+    {
+      Edge e1, e2, e3;
+      unsigned int nb1, nb2;
+      e1.initContext( this->pointel, this->a, this->b, this->inside );
+      Fraction invpq( pq.inverse() );
+      invpq.getSplitBerstel( e1.pq, nb1, e2.pq, nb2 );
+      e1.tilde = false;
+      e1.nb = nb1;
+      e2.initContext( e1 );
+      e2.nb = nb2 - 1;
+      e2.tilde = false;
+      e3.initContext( e2 );
+      e3.pq = e2.pq.inverse();
+      e3.nb = 1;
+      e3.tilde = true;
+      e3.initContext( e2 );
+      edge_list.push_back( e1 );
+      if ( e2.nb > 0 ) edge_list.push_back( e2 );
+      edge_list.push_back( e3 );
+    }
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::Edge::
+splitUp( std::list<Edge> & edge_list ) const
+{
+  ASSERT_GridCurve( ! isQuadrantChange() );
+  ASSERT_GridCurve( this->nb == 1 );
+  ASSERT_GridCurve( ! isTrivial() );
+  edge_list.clear();
+  if ( ! tilde )
+    {
+      Edge e1, e2, e3;
+      unsigned int nb1, nb2;
+      e1.initContext( this->pointel, this->a, this->b, this->inside );
+      Fraction pq2;
+      pq.getSplitBerstel( pq2, nb2, e1.pq, nb1 );
+      e1.tilde = true;
+      e1.pq = e1.pq.inverse();
+      e1.nb = nb1;
+      e2.initContext( e1 );
+      e2.pq = pq2.inverse();
+      e2.tilde = false;
+      e2.nb = nb2 - 1;
+      e3.initContext( e2 );
+      e3.pq = pq2;
+      e3.nb = 1;
+      e3.tilde = true;
+      edge_list.push_back( e1 );
+      if ( e2.nb > 0 ) edge_list.push_back( e2 );
+      edge_list.push_back( e3 );
+    }
+  else
+    {
+      Edge e1, e2;
+      unsigned int nb1, nb2;
+      e1.initContext( this->pointel, this->a, this->b, this->inside );
+      Fraction invpq( pq.inverse() );
+      invpq.getSplitBerstel( e2.pq, nb2, e1.pq, nb1 );
+      e1.pq = e1.pq.inverse();
+      e1.tilde = true;
+      e1.nb = nb1;
+      e2.initContext( e1 );
+      e2.pq = e2.pq.inverse();
+      e2.tilde = false;
+      e2.nb = nb2;
+      edge_list.push_back( e1 );
+      edge_list.push_back( e2 );
+    }
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::Edge::
+splitLeft( std::list<Edge> & edge_list ) const
+{
+  ASSERT_GridCurve( ! isQuadrantChange() );
+  edge_list.clear();
+  Edge current( *this );
+  while ( ( current.nb != 1 ) || ( ! current.isTrivial() ) )
+    {
+      if ( current.nb > 1 )
+	{
+	  Edge newcurrent( current );
+	  int k = current.nb;
+	  current.nb = 1;
+	  newcurrent.initContext( current );
+	  newcurrent.nb = k - 1;
+	  newcurrent.tilde = false;
+	  edge_list.push_front( newcurrent );
+	}
+      else
+	{
+	  std::list<Edge> split_list;
+	  current.splitUp( split_list );
+	  current = split_list.front();
+	  split_list.pop_front();
+	  edge_list.splice( edge_list.begin(), split_list );
+	}
+    }
+  edge_list.push_front( current );
+}
+
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::Edge::
+splitRight( std::list<Edge> & edge_list ) const
+{
+  ASSERT_GridCurve( ! isQuadrantChange() );
+  edge_list.clear();
+  Edge current( *this );
+  while ( ( current.nb != 1 ) || ( ! current.isTrivial() ) )
+    {
+      if ( current.nb > 1 )
+	{
+	  Edge newcurrent( current );
+	  int k = current.nb;
+	  newcurrent.nb = k - 1;
+	  current.initContext( newcurrent );
+	  current.nb = 1;
+	  current.tilde = false;
+	  edge_list.push_back( newcurrent );
+	}
+      else
+	{
+	  std::list<Edge> split_list;
+	  if ( current.tilde ) current.splitDown( split_list );
+	  else                 current.splitUp( split_list );
+	  current = split_list.back();
+	  split_list.pop_back();
+	  edge_list.splice( edge_list.end(), split_list );
+	}
+    }
+  edge_list.push_back( current );
+}
+
+
+//-----------------------------------------------------------------------------
+inline
+unsigned int 
+ImaGene::GridCurve::Edge::
+digitalLength() const
+{
+  return nb * ( pq.p() + pq.q() );
+}
+//-----------------------------------------------------------------------------
+inline
+double 
+ImaGene::GridCurve::Edge::
+euclideanLength() const
+{
+  /*  return pq.null() ? 1.0 
+    : sqrt( Mathutils::sqr( (double) pq.p() ) 
+    + Mathutils::sqr( (double) pq.q() ) ) * (double) nb;*/
+
+  // If we want to take tilde into account
+  return //( tilde ? 1.0 : 0.0 )
+    + ( pq.null() ? 1.0
+        : sqrt( Mathutils::sqr( (double) pq.p() )
+                + Mathutils::sqr( (double) pq.q() ) ) * (double) nb );
+  
+}
+//-----------------------------------------------------------------------------
+inline
+void 
+ImaGene::GridCurve::Edge::selfDisplay( std::ostream & out ) const
+{
+  if ( ! pq.null() )
+    {
+      out << "Segment("
+	  << "(" << pq.q() << "," << pq.p() << ")"
+	  << ",tilde=" << ( tilde ? "true" : "false" )
+	  << ",nb=" << nb
+	  << ")";
+    }
+  else
+    {
+      if ( nb == 1 )
+	out << "Operateur('plus')";
+      else if ( nb == -1 )
+	out << "Operateur('moins')";
+      else
+	out << "ERROR";
+    }
+}
+///////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------
+template <class FreemanChainIterator>
+inline
+void
+ImaGene::GridCurve::
+initFromFreemanChain( FreemanChainIterator itb, 
+		      FreemanChainIterator ite, 
+		      bool inner, bool cw )
+{
+  myCurve.clear();
+  myUpdateNb = 0;
+  myLength = 0.0;
+  EdgeListIterator it_edge = myCurve.end();
+  Vector2i v;
+  Edge edge;
+  bool side = ( cw && inner ) || ( ! cw && ! inner );
+  unsigned int first_code = itb.getCode();
+  edge.initContext( itb.get(), 
+		    first_code, 
+		    side ? ( first_code + 1 ) % 4 : ( first_code + 3 ) % 4, 
+		    inner );
+  edge.initTrivialZero( 1, false );
+  insertEdge( it_edge, edge );
+  Edge qchange;
+  unsigned int prev_code = first_code;
+  Vector2i start_pt( itb.get() );
+  ++itb;
+  for ( ; itb != ite; ++itb )
+    {
+      it_edge = myCurve.end();
+      unsigned int next_code = itb.getCode();
+      unsigned int move = FreemanChain::movement( prev_code, next_code, ! cw );
+      switch ( move ) 
+	{
+	case 0: 
+	  #ifdef TRACE_DMLP
+      std::cerr << "[ImaGene::GridCurve::initFromFreemanChain] "
+		    << "Freeman code is not a digital curve." << std::endl;
+	  #endif
+	  ASSERT_GridCurve( false );
+	  break;
+	case 1: 
+	  qchange.initContext( itb.get(), edge.a, edge.b, inner );
+	  qchange.initQuadrantChange( side ? 1 : -1 );
+	  insertEdge( it_edge, qchange );
+	  it_edge = myCurve.end();
+	  edge.initContext( itb.get(), 
+			    side ? ( edge.a + 3 ) % 4 : ( edge.a + 1 ) % 4,
+			    edge.a,
+			    inner );
+	  insertEdge( it_edge, edge );
+	  break;
+	case 2: insertEdge( it_edge, edge );
+	  break;
+	case 3: 
+	  qchange.initContext( itb.get(), edge.a, edge.b, inner );
+	  qchange.initQuadrantChange( side ? -1 : 1 );
+	  insertEdge( it_edge, qchange );
+	  it_edge = myCurve.end();
+	  edge.initContext( itb.get(), 
+			    edge.b,
+			    side ? ( edge.b + 3 ) % 4 : ( edge.b + 1 ) % 4,
+			    inner );
+	  insertEdge( it_edge, edge );
+	  break;
+	}
+      prev_code = next_code;
+    }
+  myIsClosed = start_pt == itb.get();
+  if ( myIsClosed )
+    {
+      it_edge = myCurve.end();
+      unsigned int move = FreemanChain::movement( prev_code, first_code, ! cw );
+      switch ( move ) 
+	{
+	case 0: 
+	  #ifdef TRACE_DMLP
+      std::cerr << "[ImaGene::GridCurve::initFromFreemanChain] "
+		    << "Freeman code is not a digital curve." << std::endl;
+	  #endif
+	  ASSERT_GridCurve( false );
+	  break;
+	case 1: 
+	  qchange.initContext( itb.get(), edge.a, edge.b, inner );
+	  qchange.initQuadrantChange( side ? 1 : -1 );
+	  insertEdge( it_edge, qchange );
+	  break;
+	case 2:
+	  break;
+	case 3: 
+	  qchange.initContext( itb.get(), edge.a, edge.b, inner );
+	  qchange.initQuadrantChange( side ? -1 : 1 );
+	  insertEdge( it_edge, qchange );
+	  break;
+	}
+    }
+}
+
+
+
+//-----------------------------------------------------------------------------
+inline
+ImaGene::GridCurve::EdgeListIterator
+ImaGene::GridCurve::beginEdge()
+{
+  return myCurve.begin();
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::GridCurve::EdgeListIterator
+ImaGene::GridCurve::endEdge()
+{
+  return myCurve.end();
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::GridCurve::EdgeListIterator
+ImaGene::GridCurve::nextEdge( const EdgeListIterator & it )
+{
+  EdgeListIterator it_next = it;
+  ++it_next; // NB: if endEdge(), becomes beginEdge().
+  return ( ( it_next == endEdge() ) && myIsClosed )
+    ? beginEdge() : it_next;
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::GridCurve::EdgeListIterator
+ImaGene::GridCurve::previousEdge( const EdgeListIterator & it )
+{
+  EdgeListIterator it_prev = it;
+  --it_prev; // NB: if beginEdge(),  becomes endEdge().
+  return ( ( it_prev == endEdge() ) && myIsClosed )
+    ? --it_prev : it_prev;
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::moveToNextEdgeAndPossiblyMax
+( EdgeListIterator & it, 
+  EdgeListIterator & max )
+{
+  if ( it == max ) max = nextEdge( it );
+  it = nextEdge( it );
+  if ( it == max ) max = nextEdge( it );
+  // if ( it == max )
+  //   max = it = nextEdge( it );
+  // else 
+  //   it = nextEdge( it );
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::moveToPreviousEdgeAndPossiblyMin
+( EdgeListIterator & it, 
+  EdgeListIterator & min )
+{
+  if ( it == min ) min = previousEdge( min );
+  it = previousEdge( it );  
+  if ( it == min ) min = previousEdge( min );
+  // if ( it == min ) 
+  //   min = it = previousEdge( it );
+  // else 
+  //   it = previousEdge( it );
+}
+
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::GridCurve::merge( EdgeListIterator & it )
+{
+  ASSERT_GridCurve( it != endEdge() );
+  EdgeListIterator it_next = nextEdge( it );
+  if ( ( it_next == endEdge() ) ||
+       ( ! it->isMergeable( *it_next ) ) )
+    return false;
+  Edge new_edge;
+  it->getMerge( new_edge, *it_next );
+  removeEdge( it_next );
+  modifyEdge( it, new_edge );
+  return true;
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::splitDown( EdgeListIterator & it, 
+			       EdgeListIterator & it_after_last )
+{
+  ASSERT_GridCurve( it != endEdge() );
+  
+  std::list<Edge> edge_list;
+  it->splitDown( edge_list );
+  it_after_last = removeEdge( it );
+  it = insertEdges( it_after_last, edge_list.begin(), edge_list.end() );
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::splitUp( EdgeListIterator & it, 
+			     EdgeListIterator & it_after_last )
+{
+  ASSERT_GridCurve( it != endEdge() );
+
+  std::list<Edge> edge_list;
+  it->splitUp( edge_list );
+  it_after_last = removeEdge( it );
+  it = insertEdges( it_after_last, edge_list.begin(), edge_list.end() );
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::splitLeft( EdgeListIterator & it, 
+			       EdgeListIterator & it_after_last )
+{
+  ASSERT_GridCurve( it != endEdge() );
+
+  std::list<Edge> edge_list;
+  it->splitLeft( edge_list );
+  it_after_last = removeEdge( it );
+  it = insertEdges( it_after_last, edge_list.begin(), edge_list.end() );
+  it = previousEdge( it );
+  // if ( ( it_after_last == endEdge() ) && myIsClosed )
+  //   it_after_last = beginEdge();
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::splitRight( EdgeListIterator & it, 
+				EdgeListIterator & it_after_last )
+{
+  ASSERT_GridCurve( it != endEdge() );
+
+  std::list<Edge> edge_list;
+  it->splitRight( edge_list );
+  it_after_last = removeEdge( it );
+  it = insertEdges( it_after_last, edge_list.begin(), edge_list.end() );
+  it = previousEdge( it );
+  // if ( ( it_after_last == endEdge() ) && myIsClosed )
+  //   it_after_last = beginEdge();
+}
+
+// ----------------------- edge services ---------------------------------
+//-----------------------------------------------------------------------------
+template <typename EdgeIterator>
+inline
+ImaGene::GridCurve::EdgeListIterator
+ImaGene::GridCurve::
+insertEdges( const EdgeListIterator & it,
+	     EdgeIterator it_begin,
+	     EdgeIterator it_end )
+{
+  // Gets the previous edge.
+  EdgeListIterator it_before = previousEdge( it );
+  for ( ; it_begin != it_end; ++it_begin )
+    {
+      const Edge & n = *it_begin;
+      myLength += n.euclideanLength();
+      ++myUpdateNb;
+      myCurve.insert( it, n );
+    }
+  return nextEdge( it_before );
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::GridCurve::EdgeListIterator
+ImaGene::GridCurve::insertEdge( const EdgeListIterator & it, const Edge & n )
+{
+  myLength += n.euclideanLength();
+  ++myUpdateNb;
+  return myCurve.insert( it, n );
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::modifyEdge( EdgeListIterator & it, const Edge & n )
+{
+  myLength -= it->euclideanLength();
+  myCurve.assign( it, n ); 
+  myLength += n.euclideanLength();
+  myUpdateNb += 2;
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::GridCurve::EdgeListIterator
+ImaGene::GridCurve::removeEdge( const EdgeListIterator & it )
+{
+  myLength -= it->euclideanLength();
+  ++myUpdateNb;
+  EdgeListIterator it_next = myCurve.erase( it );
+  return ( ( it_next == endEdge() ) && myIsClosed ) 
+    ? beginEdge() : it_next;
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::GridCurve::Visitor
+ImaGene::GridCurve::begin()
+{
+  return Visitor( *this, this->beginEdge() );
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::GridCurve::Visitor
+ImaGene::GridCurve::end()
+{
+  return Visitor( *this, this->endEdge() );
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::GridCurve::Visitor
+ImaGene::GridCurve::findPointel( int x, int y, const Visitor & start )
+{
+  Visitor::Value v;
+  Visitor it = start;
+  Visitor it_end = end();
+  do
+    {
+      v = *it;
+      if ( ( v.first.x() == x ) && ( v.first.y() == y ) )
+	break;
+      ++it;
+    }
+  while ( ( it != it_end ) && ( it != start ) );
+  return it;
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::GridCurve::Visitor
+ImaGene::GridCurve::findPointel( int x, int y, unsigned char step,
+				 const Visitor & start )
+{
+  Visitor::Value v;
+  Visitor it = start;
+  Visitor it_end = end();
+  do
+    {
+      v = *it;
+      if ( ( v.first.x() == x ) && ( v.first.y() == y )
+	   && ( v.second == step ) )
+	break;
+      ++it;
+    }
+  while ( ( it != it_end ) && ( it != start ) );
+  return it;
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::undoFlip()
+{
+  ASSERT_GridCurve( isUndoPossible() );
+  myCurve.undoGroup();
+  myLength = oldLengths.top();
+  oldLengths.pop();
+}
+
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::GridCurve::isUndoPossible() const
+{
+  return myCurve.isStoring();
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::GridCurve::clearUndo()
+{
+  myCurve.clear();
+}
+
+/**
+ * The digital contour lies in Z x Z while the MLP lies in the
+ * half-integer plane (Z+1/2) x (Z+1/2). This vector gives twice
+ * the displacement to go from the former to the latter.
+ * @return this vector.
+ */
+inline
+const ImaGene::Vector2i
+ImaGene::GridCurve::twiceDV() const
+{
+  return myTwiceDV;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'GridCurve'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'GridCurve' to write.
+ * @return the output stream after the writing.
+ */
+inline
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const GridCurve & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'GridCurve::Edge'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'GridCurve::Edge' to write.
+ * @return the output stream after the writing.
+ */
+inline
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		     const GridCurve::Edge & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

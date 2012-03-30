@@ -1,0 +1,62 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : K3Isosurface_k6_l18.ih
+//
+// Creation : 2002/08/17
+//
+// Version : 2002/08/17
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in K3Isosurface_k6_l18.h 
+//
+// History :
+//	2002/08/17 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class K3Isosurface_k6_l18 declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_K3Isosurface_k6_l18(x)
+#define DEBUGCMD_K3Isosurface_k6_l18(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_K3Isosurface_k6_l18(x) if(!(x)) \
+    { cerr << "Assertion failed : (" << #x << ')' << endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << endl; abort();}
+#define DEBUGCMD_K3Isosurface_k6_l18(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+// Standard services - public :
+/**
+ * Destructor. 
+ */
+K3Isosurface_k6_l18::~K3Isosurface_k6_l18()
+{
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene
+

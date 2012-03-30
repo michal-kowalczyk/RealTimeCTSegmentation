@@ -1,0 +1,673 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : KnRCellSet.ih
+//
+// Creation : 2002/08/02
+//
+// Version : 2002/08/02
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in KnRCellSet.h 
+//
+// History :
+//	2002/08/02 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class KnRCellSet declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_KnRCellSet(x)
+#define DEBUGCMD_KnRCellSet(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_KnRCellSet(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_KnRCellSet(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+// ------------------------- Standard services ----------------------------
+
+/**
+ * Constructor.
+ * @param ptr_s a pointer on a set or '0'.
+ * @param c the reduced code of the starting cell or 'INVALID_RCELL'
+ */
+KnRCellSet::cell_iterator::cell_iterator( const KnRCellSet* ptr_s,
+				       Kn_grid c )
+  : m_set( ptr_s ), m_current( c )
+{
+}
+
+/**
+ * Copy constructor.
+ * @param other the cell iterator to clone.
+ */
+KnRCellSet::cell_iterator::cell_iterator( const cell_iterator & other )
+  : m_set( other.m_set ), m_current( other.m_current )
+{
+}
+
+
+/**
+ * Assignment.
+ * @param other the cell iterator to copy.
+ * @return a reference on 'this'.
+ */
+KnRCellSet::cell_iterator& 
+KnRCellSet::cell_iterator::operator=( const cell_iterator & other )
+{
+  m_set = other.m_set;
+  m_current = other.m_current;
+  return *this;
+}
+
+
+/**
+ * Destructor. Does nothing.
+ */
+KnRCellSet::cell_iterator::~cell_iterator()
+{
+}
+
+
+// ------------------------- iteration services ---------------------------
+
+/**
+ * @return the current cell (oriented or not depending on the set).
+ * @see KnRCellSet::cell_iterator::get
+ */
+Kn_gid 
+KnRCellSet::cell_iterator::operator*() const
+{
+  return get();
+}
+
+
+/**
+ * @return the current cell (oriented or not depending on the set).
+ * @see KnRCellSet::cell_iterator::operator*
+ */
+Kn_gid 
+KnRCellSet::cell_iterator::get() const
+{
+  return m_set->cell( m_current );
+}
+
+
+/**
+ * Pre-increment.
+ * Goes to the next cell in the set.
+ * @see KnRCellSet::cell_iterator::next
+ */
+KnRCellSet::cell_iterator& 
+KnRCellSet::cell_iterator::operator++()
+{
+  next();
+  return *this;
+}
+
+/**
+ * Goes to the next cell in the set.
+ * @see KnRCellSet::cell_iterator::operator++
+ */
+void 
+KnRCellSet::cell_iterator::next()
+{
+  m_current = m_set->ro().findNext( m_current, INVALID_RCELL );
+}
+
+
+/**
+ * Equality operator.
+ * @param other the cell iterator to compare with (must be defined in the same set).
+ * @return 'true' if their current positions coincide.
+ */
+bool 
+KnRCellSet::cell_iterator::operator==( const cell_iterator & other ) const
+{
+  ASSERT_KnRCellSet( m_set == other.m_set );
+  return m_current == other.m_current;
+}
+
+
+/**
+ * Inequality operator.
+ * @param other the cell iterator to compare with (must be defined in the same set).
+ * @return 'true' if their current positions differs.
+ */
+bool 
+KnRCellSet::cell_iterator::operator!=( const cell_iterator & other ) const
+{
+  ASSERT_KnRCellSet( m_set == other.m_set );
+  return m_current != other.m_current;
+}
+
+
+/**
+ * Inferior operator.
+ * @param other the cell iterator to compare with (must be defined in the same set).
+ * @return 'true' if the current position of 'this' is before the current position of [other].
+ */
+bool 
+KnRCellSet::cell_iterator::operator<( const cell_iterator & other ) const
+{
+  ASSERT_KnRCellSet( m_set == other.m_set );
+  return m_current < other.m_current;
+}
+
+
+
+
+// ------------------------- Standard services ------------------------------
+
+/**
+ * Destructor. 
+ */
+KnRCellSet::~KnRCellSet()
+{
+  // Nothing to do.
+}
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+KnRCellSet::KnRCellSet( const KnRCellSet & other )
+  : Shared<Bitset1>( other ),
+    m_space( other.m_space ),
+    m_sanitizer( other.m_sanitizer ),
+    m_cell_dimension( other.m_cell_dimension ),
+    m_oriented( other.m_oriented )
+{
+  // The bitset is not copied yet.
+}
+
+/**
+ * Assignment.
+ * @param other the object to clone.
+ * @return a reference on 'this'.
+ */
+KnRCellSet & 
+KnRCellSet::operator=( const KnRCellSet & other )
+{
+  if ( &other != this )
+    {
+      ASSERT_KnRCellSet( &m_space == &other.m_space );
+      Shared<Bitset1>::operator=( other );
+      m_sanitizer = other.m_sanitizer;
+      m_cell_dimension = other.m_cell_dimension;
+      m_oriented = other.m_oriented;
+    }
+  return *this;
+}
+
+  inline
+  void
+  KnRCellSet::clear()
+  {
+    rw().clear();
+  }
+
+/**
+ * @return other any set.
+ * @return 'true' if 'this' is compatible with [other] for set operations.
+ */
+bool
+KnRCellSet::isCompatibleWith( const KnRCellSet & other ) const
+{
+  return ( m_cell_dimension == other.m_cell_dimension ) 
+    && ( m_oriented == other.m_oriented )
+    && ( ro().size() == other.ro().size() );
+}
+
+
+/**
+ * @return the number of elements of the set.
+ */
+Kn_size
+KnRCellSet::nbElements() const
+{
+  return ro().nbElements();
+}
+
+/**
+ * @return the number of elements of the set.
+ */
+Kn_size
+KnRCellSet::size() const
+{
+  return ro().nbElements();
+}
+
+  /**
+     @return the dimension of the cells within this set.
+  */
+  inline
+  uint
+  KnRCellSet::dim() const
+  {
+    return m_cell_dimension;
+  }
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Set comparison services ------------------------
+
+/**
+ * @param other the object to compare with.
+ * @return 'true' if the two sets contain the same elements.
+ */
+bool
+KnRCellSet::operator==( const KnRCellSet & other ) const
+{
+  return ro() == other.ro();
+}
+
+/**
+ * @param other the object to compare with.
+ * @return 'true' if the two sets are different.
+ */
+bool
+KnRCellSet::operator!=( const KnRCellSet & other ) const
+{
+  return ! ( ro() == other.ro() );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Set services -----------------------------------
+
+
+/**
+ * Non-const access to element, eg <code> b[ i ] = true </code>
+ * @param elem an elem (between 'min()' and 'max()').
+ * @return a reference on the element.
+ * NB: if [elem] is outside the set, may cause trouble.
+ */
+KnRCellSet::reference
+KnRCellSet::operator[]( Kn_gid elem )
+{
+  if ( m_oriented )
+    return rw().operator[]( m_space.srcode( elem ) );
+  return rw().operator[]( m_space.urcode( elem ) );
+}
+
+/**
+ * Const access to element, eg <code> cout << b[ i ] </code>
+ * @param elem an elem (between 'min()' and 'max()').
+ * @return a boolean 'true' for 1, 'false' for 0.
+ * NB: if [elem] is outside the set, may cause trouble.
+ */
+bool
+KnRCellSet::operator[]( Kn_gid elem ) const
+{
+  if ( m_oriented )
+    return ro().operator[]( m_space.srcode( elem ) );
+  return ro().operator[]( m_space.urcode( elem ) );
+}
+
+
+/**
+ * Read/write accessor.
+ * [rc_offset] must be a valid index.
+ * @param rc_offset any restricted code.
+ * @return the value in the vector at index [rc_offset].
+ */
+KnRCellSet::reference
+KnRCellSet::rAt( Kn_grid rc_offset )
+{
+  return rw().operator[]( rc_offset );
+}
+
+/**
+ * Read-only accessor.
+ * [rc_offset] must be a valid index.
+ * @param rc_offset any restricted code.
+ * @return the value in the vector at index [rc_offset].
+ */
+bool
+KnRCellSet::rAt( Kn_grid rc_offset ) const
+{
+  return ro().operator[]( rc_offset );
+}
+
+
+/**
+ * Non-const access to element when using unoriented cells. Valid if it is
+ * a set of unoriented cells.
+ * @param elem the code of a cell.
+ * @return a reference on the element.
+ * NB: if [elem] is outside the set, may cause trouble.
+ */
+KnRCellSet::reference
+KnRCellSet::uAt( Kn_uid elem )
+{
+  return rw().operator[]( m_space.urcode( elem ) );
+}
+
+
+/**
+ * Const access to element when using unoriented cells. Valid if it is
+ * a set of unoriented cells.
+ * @param elem the code of a cell.
+ * @return a boolean 'true' for 1, 'false' for 0.
+ * NB: if [elem] is outside the set, may cause trouble.
+ */
+bool
+KnRCellSet::uAt( Kn_uid elem ) const
+{
+  return ro().operator[]( m_space.urcode( elem ) );
+}
+
+
+/**
+ * Non-const access to element when using oriented cells. Valid if it is
+ * a set of oriented cells.
+ * @param elem the code of a cell.
+ * @return a reference on the element.
+ * NB: if [elem] is outside the set, may cause trouble.
+ */
+KnRCellSet::reference
+KnRCellSet::sAt( Kn_uid elem )
+{
+  return rw().operator[]( m_space.srcode( elem ) );
+}
+
+
+/**
+ * Const access to element when using soriented cells. Valid if it is
+ * a set of unoriented cells.
+ * @param elem the code of a cell.
+ * @return a boolean 'true' for 1, 'false' for 0.
+ * NB: if [elem] is outside the set, may cause trouble.
+ */
+bool
+KnRCellSet::sAt( Kn_uid elem ) const
+{
+  return ro().operator[]( m_space.srcode( elem ) );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- index services --------------------------------
+
+/**
+ * @param c any valid cell (ie. a 'cellDim()' cell).
+ * @return the corresponding reduced code.
+ */
+Kn_grid 
+KnRCellSet::index( Kn_gid c ) const
+{
+  if ( m_oriented )
+    return m_space.srcode( c );
+  return m_space.urcode( c );
+}
+
+/**
+ * @param rc any restricted cell code (ie offset in the set).
+ * @return the corresponding cell in the space.
+ */
+Kn_gid
+KnRCellSet::cell( Kn_grid rc ) const
+{
+  if ( m_oriented )
+    return m_space.srdecode( rc, m_cell_dimension );
+  return m_space.urdecode( rc, m_cell_dimension );
+}
+
+
+
+
+// ------------------------- Set ops services -------------------------------
+
+/**
+ * Creates the set union of 'this' and [other].
+ * @param other the object with which to merge.
+ * @return the set union of 'this' and [other].
+ */
+KnRCellSet
+KnRCellSet::operator+( const KnRCellSet & other ) const
+{
+  ASSERT_KnRCellSet( this->isCompatibleWith( other ) );
+
+  KnRCellSet add( *this );
+  add.rw() |= other.ro();
+  return add;
+}
+
+/**
+ * Union of the set [other] with 'this'.
+ * @param other the object with which to merge.
+ * @return a reference on 'this'.
+ */
+KnRCellSet&
+KnRCellSet::operator+=( const KnRCellSet & other )
+{
+  ASSERT_KnRCellSet( this->isCompatibleWith( other ) );
+  
+  rw() |= other.ro();
+  return *this;
+}
+
+/**
+ * The element [elem] is added to 'this'.
+ * @param elem the element to add to 'this'
+ * @return a reference on 'this'.
+ */
+KnRCellSet&
+KnRCellSet::operator+=( Kn_gid elem )
+{
+  rw().set( index( elem ) );
+  return *this;
+}
+
+/**
+ * Creates the set substraction of 'this' and [other].
+ * @param other the object to substract.
+ * @return the set substraction of 'this' and [other].
+ */
+KnRCellSet
+KnRCellSet::operator-( const KnRCellSet & other ) const
+{
+  ASSERT_KnRCellSet( this->isCompatibleWith( other ) );
+
+  // A - B = ( A + B ) ^ B
+  KnRCellSet sub( *this + other );
+  sub.rw() ^= other.ro();
+  return sub;
+}
+
+/**
+ * Substraction of [other] to 'this'.
+ * @param other the object to substract.
+ * @return a reference on 'this'.
+ */
+KnRCellSet&
+KnRCellSet::operator-=( const KnRCellSet & other )
+{
+  // A - B = ( A + B ) ^ B
+  ( rw() |= other.ro() ) ^= other.ro();
+  return *this;
+}
+
+/**
+ * The element [elem] is removed from 'this'.
+ * @param elem the element to remove from 'this'
+ * @return a reference on 'this'.
+ */
+KnRCellSet&
+KnRCellSet::operator-=( Kn_gid elem )
+{
+  rw().reset( index( elem ) );
+  return *this;
+}
+
+/**
+ * Creates the set symmetric difference of 'this' and [other].
+ * @param other the object to substract symmetrically.
+ * @return the set symmetric difference of 'this' and [other].
+ */
+KnRCellSet
+KnRCellSet::operator^( const KnRCellSet & other ) const
+{
+  ASSERT_KnRCellSet( this->isCompatibleWith( other ) );
+
+  KnRCellSet symdiff( *this );
+  symdiff.rw() ^= other.ro();
+  return symdiff;
+}
+
+/**
+ * Symmetric difference of [other] to 'this'.
+ * @param other the object to substract symmetrically.
+ * @return a reference on 'this'.
+ */
+KnRCellSet&
+KnRCellSet::operator^=( const KnRCellSet & other )
+{
+  ASSERT_KnRCellSet( this->isCompatibleWith( other ) );
+
+  rw() ^= other.ro();
+  return *this;
+}
+
+/**
+ * The element [elem] is removed from 'this' if it was in 'this'. Otherwise
+ * the element is added to 'this'. Ie symmetric difference.
+ * @param elem the element to remove/add from 'this'
+ * @return a reference on 'this'.
+ */
+KnRCellSet&
+KnRCellSet::operator^=( Kn_gid elem )
+{
+  rw().flip( index( elem ) );
+  return *this;
+}
+
+/**
+ * Creates the set intersection of 'this' and [other].
+ * @param other the object with which to create an intersection.
+ * @return the set union of 'this' and [other].
+ */
+KnRCellSet
+KnRCellSet::operator*( const KnRCellSet & other ) const
+{
+  ASSERT_KnRCellSet( this->isCompatibleWith( other ) );
+
+  KnRCellSet inter( *this );
+  inter.rw() &= other.ro();
+  return inter;
+}
+
+/**
+ * Intersection of the set [other] with 'this'.
+ * @param other the object with which to intersect.
+ * @return a reference on 'this'.
+ */
+KnRCellSet&
+KnRCellSet::operator*=( const KnRCellSet & other )
+{
+  ASSERT_KnRCellSet( this->isCompatibleWith( other ) );
+
+  rw() &= other.ro();
+  return *this;
+}
+
+/**
+ * Complement of the set.
+ * @return the complement of 'this'.
+ */
+KnRCellSet
+KnRCellSet::operator~() const
+{
+  Bitset1 flipped( ro(), true );
+  return KnRCellSet( m_space, m_sanitizer, m_cell_dimension, m_oriented,
+		  flipped, true );
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Scanning services ------------------------------
+
+/**
+ * @return the iterator pointing on the first cell belonging to 'this' or the iterator equal to 'end()' if the set is empty.
+ */
+KnRCellSet::cell_iterator
+KnRCellSet::begin() const
+{
+  return cell_iterator( this, ro().findFirst( INVALID_RCELL ) );
+}
+
+/**
+ * @return the iterator pointing on the element after the last cell of the set.
+ * @see begin
+ */
+KnRCellSet::cell_iterator
+KnRCellSet::end() const
+{
+  return cell_iterator( this, INVALID_RCELL );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Protected services -----------------------------
+
+
+/**
+ * Clears up all unused bits and words of the bitset. Generally called after
+ * a flipping operation on the whole set.
+ */
+void
+KnRCellSet::doSanitize()
+{
+  
+  m_sanitizer.ro().sanitize( this->rw().data(),
+			     this->rw().data() + this->rw().nbWords() 
+			     - KnTypes::ONE );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'KnRCellSet'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'KnRCellSet' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, const KnRCellSet & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene
+

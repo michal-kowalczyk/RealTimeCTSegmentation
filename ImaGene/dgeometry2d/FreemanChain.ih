@@ -1,0 +1,563 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : FreemanChain.ih
+//
+// Creation : 2008/05/20
+//
+// Version : 2008/05/20
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in FreemanChain.h 
+//
+// History :
+//	2008/05/20 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class FreemanChain declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_FreemanChain(x)
+#define DEBUGCMD_FreemanChain(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_FreemanChain(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_FreemanChain(x) x
+#endif // else defined(NO_DEBUG)
+
+
+///////////////////////////////////////////////////////////////////////////////
+// class FreemanChain::const_iterator
+///////////////////////////////////////////////////////////////////////////////
+
+// ------------------------- Standard services -----------------------
+
+/**
+ * Default Constructor.
+ * The object is not valid.
+ */
+ImaGene::FreemanChain::const_iterator::const_iterator()
+  : m_fc( 0 ), m_pos( 0 )
+{
+}
+
+/**
+ * Constructor.
+ * Nb: complexity in O(n).
+ *
+ * @param chain a Freeman chain,
+ * @param n the position in [chain] (within 0 and chain.size()-1).
+ */
+ImaGene::FreemanChain::const_iterator::const_iterator
+( const FreemanChain & chain, uint n )
+  : m_fc( &chain ), m_pos( 0 ), m_xy( chain.x0, chain.y0 )
+{
+  if ( n < m_fc->chain.size() )
+    while ( m_pos < n )
+      {
+	this->next();
+	// JOL !!!
+	// ERROR: m_pos is already incremented in next().
+	// ++m_pos;
+      }
+  else // iterator end() 
+    m_pos = m_fc->chain.size();
+}
+
+/**
+ * Copy constructor.
+ * @param other the iterator to clone.
+ */
+ImaGene::FreemanChain::const_iterator::const_iterator
+( const const_iterator & other )
+  : m_fc( other.m_fc ), m_pos( other.m_pos ), m_xy( other.m_xy )
+{
+}
+    
+/**
+ * Assignment.
+ * @param other the iterator to copy.
+ * @return a reference on 'this'.
+ */
+ImaGene::FreemanChain::const_iterator& 
+ImaGene::FreemanChain::const_iterator::operator=
+( const const_iterator & other )
+{
+  if ( this != &other )
+    {
+      m_fc = other.m_fc;
+      m_pos = other.m_pos;
+      m_xy = other.m_xy;
+    }
+  return *this;
+}
+    
+/**
+ * Destructor. Does nothing.
+ */
+ImaGene::FreemanChain::const_iterator::~const_iterator()
+{
+}
+    
+// ------------------------- iteration services -------------------------
+      
+/**
+ * @return the current coordinates.
+ */
+ImaGene::Vector2i 
+ImaGene::FreemanChain::const_iterator::operator*() const
+{
+  return m_xy;
+}
+
+/**
+ * @return the current coordinates.
+ */
+ImaGene::Vector2i
+ImaGene::FreemanChain::const_iterator::get() const
+{
+  return m_xy;
+}
+
+/**
+ * Pre-increment.
+ * Goes to the next point on the chain.
+ */
+ImaGene::FreemanChain::const_iterator& 
+ImaGene::FreemanChain::const_iterator::operator++()
+{
+  this->next();
+  return *this;
+}
+      
+/**
+ * Goes to the next point on the chain.
+ */
+void 
+ImaGene::FreemanChain::const_iterator::next()
+{
+  if ( m_pos < m_fc->chain.size() )
+    {
+      switch ( m_fc->code( m_pos ) )
+	{
+	case 0: ++m_xy.x(); break;
+	case 1: ++m_xy.y(); break;
+	case 2: --m_xy.x(); break;
+	case 3: --m_xy.y(); break;
+	}
+      ++m_pos;
+    }
+}
+
+/**
+ * Goes to the previous point on the chain as if on a loop.
+ */
+void
+ImaGene::FreemanChain::const_iterator::nextInLoop()
+{
+  if ( m_pos < m_fc->chain.size() )
+    {
+      switch ( m_fc->code( m_pos ) )
+	{
+	case 0: ++m_xy.x(); break;
+	case 1: ++m_xy.y(); break;
+	case 2: --m_xy.x(); break;
+	case 3: --m_xy.y(); break;
+	}
+      m_pos = ( m_pos + 1 ) % m_fc->chain.size();
+    }
+}
+
+
+/**
+ * @return the current position (as an index in the Freeman chain).
+ */
+uint
+ImaGene::FreemanChain::const_iterator::getPosition() const
+{
+  return m_pos;
+}
+
+/**
+ * @return the associated Freeman chain.
+ */
+const ImaGene::FreemanChain* 
+ImaGene::FreemanChain::const_iterator::getChain() const
+{
+  return m_fc;
+}
+
+/**
+ * @return the current Freeman code (specifies the movement to
+ * the next point).
+ */
+uint 
+ImaGene::FreemanChain::const_iterator::getCode() const
+{
+  ASSERT_FreemanChain( m_fc != 0 );
+  return m_fc->code( m_pos );
+}
+
+/**
+ * Pre-decrement.
+ * Goes to the previous point on the chain.
+ */
+ImaGene::FreemanChain::const_iterator& 
+ImaGene::FreemanChain::const_iterator::operator--()
+{
+  this->previous();
+  return *this;
+}
+
+/**
+ * Goes to the previous point on the chain if possible.
+ */
+void
+ImaGene::FreemanChain::const_iterator::previous()
+{
+  if ( m_pos > 0 )
+    {
+      --m_pos;
+      switch ( m_fc->code( m_pos ) )
+	{
+	case 0: --m_xy.x(); break;
+	case 1: --m_xy.y(); break;
+	case 2: ++m_xy.x(); break;
+	case 3: ++m_xy.y(); break;
+	}
+    }
+}
+
+/**
+ * Goes to the previous point on the chain as if on a loop.
+ */
+void
+ImaGene::FreemanChain::const_iterator::previousInLoop()
+{
+  if ( m_pos == 0 ) m_pos = m_fc->chain.size() - 1;
+  else --m_pos;
+  switch ( m_fc->code( m_pos ) )
+    {
+    case 0: --m_xy.x(); break;
+    case 1: --m_xy.y(); break;
+    case 2: ++m_xy.x(); break;
+    case 3: ++m_xy.y(); break;
+    }
+}
+
+
+/**
+ * Equality operator.
+ *
+ * @param other the iterator to compare with (must be defined on
+ * the same chain).
+ *
+ * @return 'true' if their current positions coincide.
+ */
+bool 
+ImaGene::FreemanChain::const_iterator::operator==
+( const const_iterator & other ) const
+{
+  ASSERT_FreemanChain( m_fc == other.m_fc );
+  return m_pos == other.m_pos;
+}
+
+/**
+ * Inequality operator.
+ *
+ * @param other the iterator to compare with (must be defined on
+ * the same chain).
+ *
+ * @return 'true' if their current positions differs.
+ */
+bool 
+ImaGene::FreemanChain::const_iterator::operator!=
+( const const_iterator & other ) const
+{
+  ASSERT_FreemanChain( m_fc == other.m_fc );
+  return m_pos != other.m_pos;
+}
+
+
+/**
+ * Inferior operator.
+ *
+ * @param other the iterator to compare with (must be defined on
+ * the same chain).
+ *
+ * @return 'true' if the current position of 'this' is before
+ * the current position of [other].
+ */
+bool 
+ImaGene::FreemanChain::const_iterator::operator<
+( const const_iterator & other ) const
+{
+  ASSERT_FreemanChain( m_fc == other.m_fc );
+  return m_pos < other.m_pos;
+}
+
+      
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Constructor.
+ * @param s the chain code.
+ * @param x the x-coordinate of the first point.
+ * @param y the y-coordinate of the first point.
+ */
+ImaGene::FreemanChain::FreemanChain( const std::string & s, int x, int y )
+  : chain( s ), x0( x ), y0( y )
+{
+}
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+ImaGene::FreemanChain::FreemanChain( const FreemanChain & other )
+  : chain( other.chain ), x0( other.x0 ), y0( other.y0 )
+{
+}
+
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ */
+ImaGene::FreemanChain & 
+ImaGene::FreemanChain::operator=( const FreemanChain & other )
+{
+  if ( this != &other )
+    {
+      chain = other.chain;
+      x0 = other.x0;
+      y0 = other.y0;
+    }
+  return *this;
+}
+
+
+/**
+ * Iterator service.
+ * @return an iterator pointing on the first point of the chain.
+ */
+ImaGene::FreemanChain::const_iterator 
+ImaGene::FreemanChain::begin() const
+{
+  return FreemanChain::const_iterator( *this, 0 );
+}
+
+/**
+ * Iterator service.
+ * @return an iterator pointing after the last point of the chain.
+ */
+ImaGene::FreemanChain::const_iterator 
+ImaGene::FreemanChain::end() const
+{
+  return FreemanChain::const_iterator( *this, chain.size() );
+}
+
+/**
+ * @return the length of the Freeman chain code.
+ */
+uint
+ImaGene::FreemanChain::size() const
+{
+  return chain.size();
+}
+
+
+
+/**
+ * @param pos a position in the chain code.
+ * @return the code at position [pos].
+ */ 
+uint
+ImaGene::FreemanChain::code( uint pos ) const
+{
+  ASSERT_FreemanChain( pos < chain.size() );
+  return chain[ pos ] - '0';
+}
+
+/**
+ * @param pos a position in the chain code.
+ * @return the next position.
+ */ 
+uint
+ImaGene::FreemanChain::next( uint pos ) const
+{
+  ++pos;
+  if ( pos >= chain.size() )
+    pos = 0;
+  return pos;
+}
+
+/**
+ * @param pos a position in the chain code.
+ * @return the previous position.
+ */ 
+uint
+ImaGene::FreemanChain::previous( uint pos ) const
+{
+  if ( pos == 0 ) pos = chain.size() - 1;
+  else --pos;
+  return pos;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Staic services
+
+/**
+ * Returns the displacement vector of a Freeman code.
+ *
+ * @param dx (returns) the x-displacement.
+ * @param dy (returns) the x-displacement.
+ * @param c the code.
+ */
+INLINE
+void
+ImaGene::FreemanChain::displacement( int & dx, int & dy, uint code )
+{
+  switch ( code ) 
+    {
+    case 0: dx = 1; dy = 0; break;
+    case 1: dx = 0; dy = 1; break;
+    case 2: dx = -1; dy = 0; break;
+    case 3: dx = 0; dy = -1; break;
+    }
+}
+
+/**
+ * @param c a Freeman code (between 0-3).
+ * Returns the displacement vector of the Freeman code.
+ */
+INLINE
+ImaGene::Vector2i
+ImaGene::FreemanChain::displacement( uint code )
+{
+  switch ( code ) 
+    {
+    case 0: return Vector2i( 1, 0 );
+    case 1: return Vector2i( 0, 1 );
+    case 2: return Vector2i( -1, 0 );
+    case 3: return Vector2i( 0, -1 );
+    }
+  return Vector2i( 0, 0 );
+}
+
+/**
+ * @param code any Freeman code
+ * @param ccw when 'true' turns counterclockwise, otherwise turns clockwise.
+ *
+ * @return the turned code.
+ */
+INLINE
+uint
+ImaGene::FreemanChain::turnedCode( uint code, bool ccw )
+{
+  if ( ccw ) return ( code + 1 ) & 0x3;
+  else       return ( code - 1 ) & 0x3;
+}
+
+/**
+ * @param code any Freeman code.
+ *
+ * @return the opposite code.
+ */
+INLINE
+uint
+ImaGene::FreemanChain::oppositeCode( uint code )
+{
+  return ( code + 2 ) & 0x3;
+}
+
+INLINE
+bool ImaGene::FreemanChain::operator==( const FreemanChain & other ) const
+{
+  const_iterator it1=begin();
+  const_iterator it2=other.begin();
+
+  while ( it2!=other.end() && *it1!=*it2 )
+    ++it2;
+
+  // Case where the first pointel of this FreemanChain is not in other chain.
+  if ( it2==other.end() ) return false;
+
+  // Here we compare the Freeman codes.
+  while( it1!=end() )
+    {
+      if ( *it1!=*it2 ) return false;
+      ++it1; ++it2;
+      if ( it2==other.end() ) it2=other.begin();
+    }
+  return true;
+}
+
+/**
+   Given two letters forming a basis, returns the quadrant
+   (ie. the smallest letter). This function returns the same value
+   as Vector2i::quadrant for vectors that are not aligned with
+   axes. Otherwise, this function better handle those cases.
+   
+   @code
+   Vector2i v(4,0);
+   uint a, b;
+   bool ccw;
+   FreemanChain::basis( a, b, true, true );
+   uint q = quadrant( ccw, a, b );
+   
+   @param[out] ccw returns 'true' if a < b, false otherwise.
+   @param[in] a the first (small) letter of the basis (in 0,1,2,3).
+   @param[in] b the second (big) letter of the basis (in 0,1,2,3).
+   @return the quadrant number in 0,1,2,3.
+*/
+inline
+uint ImaGene::FreemanChain::quadrant( bool & ccw, uint a, uint b )
+{
+  if ( ( ( a + 1 ) & 0x3 ) == b )
+    {
+      ccw = true;
+      return a;
+    }
+  ASSERT_FreemanChain( ( ( ( b + 1 ) & 0x3 ) == a ) && "ImaGene::FreemanChain::quadrant( bool & ccw, uint a, uint b ) Invalid basis." );
+  ccw = false;
+  return b;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'FreemanChain'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'FreemanChain' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const FreemanChain & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

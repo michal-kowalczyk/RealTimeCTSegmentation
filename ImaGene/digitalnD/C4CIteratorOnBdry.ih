@@ -1,0 +1,194 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : C4CIteratorOnBdry.ih
+//
+// Creation : 2003/02/12
+//
+// Version : 2003/02/12
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in C4CIteratorOnBdry.h 
+//
+// History :
+//	2003/02/12 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class C4CIteratorOnBdry declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_C4CIteratorOnBdry(x)
+#define DEBUGCMD_C4CIteratorOnBdry(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_C4CIteratorOnBdry(x) if(!(x)) \
+    { cerr << "Assertion failed : (" << #x << ')' << endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << endl; abort();}
+#define DEBUGCMD_C4CIteratorOnBdry(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+///////////////////////////////////////////////////////////////////////////////
+// Standard services - public :
+
+/**
+ * Destructor. 
+ */
+C4CIteratorOnBdry::~C4CIteratorOnBdry()
+{
+}
+
+/**
+ * Constructor.
+ * The 4-connected contour is then defined by the bel [b] on the boundary of
+ * the object [obj], given a direction of tracking [k] and a bel adjacency.
+ * @param badj a bel adjacency defined in a digital space.
+ * @param b any bel of the object [obj].
+ * @param k any direction different from 'b.orthDir()'.
+ * @param obj any set of spels in [ks].
+ */
+C4CIteratorOnBdry::C4CIteratorOnBdry( const BelAdjacency & badj,
+			    Kn_sid b, 
+			    uint k,
+			    const KnCharSet & obj )
+  : m_obj( obj ), m_iterator( badj.sstart( b, k ) )
+{
+}
+
+/**
+ * Constructor.
+ * The 4-connected contour is then defined by the bel_iterator [iter] on
+ * the boundary of the object [obj].
+ * @param biter a bel iterator specifying the starting bel, the bel adjacency, the tracking direction.
+ * @param obj any set of spels in [ks].
+ */
+C4CIteratorOnBdry::C4CIteratorOnBdry
+( const BelAdjacency::bel_iterator & biter,
+  const KnCharSet & obj )
+  : m_obj( obj ), m_iterator( biter )
+{
+}
+
+
+/**
+ * @return a clone of the current iterator.
+ */
+C4CIterator* 
+C4CIteratorOnBdry::clone() const
+{
+  return new C4CIteratorOnBdry( m_iterator, m_obj );
+}
+
+
+
+/**
+ * @param other any other iterator.
+ * @return 'true' if [other] points to the same location as 'this'.
+ */
+bool
+C4CIteratorOnBdry::equals( const C4CIterator & other ) const
+{
+  const C4CIteratorOnBdry* it = 
+    dynamic_cast<const C4CIteratorOnBdry*>( &other );
+  return ( it != 0 ) && ( current() == it->current() );
+}
+
+
+
+// ------------------- Implementation of abstract services ------------------
+
+/**
+ * @return the current bel the iterator is pointing at.
+ */
+Kn_sid
+C4CIteratorOnBdry::current() const
+{
+  return m_iterator.current();
+}
+
+
+/**
+ * @return the current track direction.
+ */
+uint 
+C4CIteratorOnBdry::trackDir() const
+{
+  return m_iterator.trackDir();
+}
+
+
+/**
+ * @return the current orthogonal direction.
+ */
+uint
+C4CIteratorOnBdry::orthDir() const
+{
+  return m_iterator.orthDir();
+}
+
+
+
+/**
+ * Moves the iterator on the 4-connected contour to the next position.
+ * @return 0 if the move was impossible, 1 if it was a move toward the interior, 2 if it was a straight movement, 3 if it was a move toward the exterior.
+ * NB: If the Contour4Iterator is moving over a digital surface, then 'next'
+ * means moving along a direct tracking direction.
+ */
+uint
+C4CIteratorOnBdry::next()
+{
+  return m_iterator.nextOnAnyBdry( m_obj, false );
+}
+
+
+/**
+ * Moves the iterator on the 4-connected contour to the previous position.
+ * @return 0 if the move was impossible, 1 if it was a move toward the interior, 2 if it was a straight movement, 3 if it was a move toward the exterior.
+ * NB: If the Contour4Iterator is moving over a digital surface, then 
+ * 'previous' means moving along an indirect tracking direction.
+ */
+uint 
+C4CIteratorOnBdry::previous()
+{
+  return m_iterator.nextOnAnyBdry( m_obj, true );
+}
+
+
+ 
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'C4CIteratorOnBdry'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'C4CIteratorOnBdry' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, 
+	    const C4CIteratorOnBdry & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene
+

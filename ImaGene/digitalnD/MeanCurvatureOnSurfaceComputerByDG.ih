@@ -1,0 +1,101 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : MeanCurvatureOnSurfaceComputerByDG.ih
+//
+// Creation : 2003/02/28
+//
+// Version : 2003/02/28
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in MeanCurvatureOnSurfaceComputerByDG.h 
+//
+// History :
+//	2003/02/28 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class MeanCurvatureOnSurfaceComputerByDG declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <cmath>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_MeanCurvatureOnSurfaceComputerByDG(x)
+#define DEBUGCMD_MeanCurvatureOnSurfaceComputerByDG(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_MeanCurvatureOnSurfaceComputerByDG(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_MeanCurvatureOnSurfaceComputerByDG(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+// --------------------- Gaussian derivative services -----------------------
+
+/**
+ * @param x any point.
+ * @return the gaussian derivative at point [x] based on the current parameters.
+ */
+float
+MeanCurvatureOnSurfaceComputerByDG::gaussianDerivative( float x ) const
+{
+  ASSERT_MeanCurvatureOnSurfaceComputerByDG( m_delta != 0.0 );
+  uint i;
+  if ( x >= 0.0 ) 
+    {
+      i = (uint) ( std::floor( 0.5 + x / m_delta ) );
+      if ( i > m_size ) return 0.0;
+      return m_filter[ m_size + i ];
+    }
+  i = (uint) ( std::floor( 0.5 - x / m_delta ) );
+  if ( i > m_size ) return 0.0;
+  return m_filter[ m_size - i ];
+}
+
+
+/**
+ * @return the size of the filter to consider for computation.
+ * @see m_size_for_computation
+ */
+uint
+MeanCurvatureOnSurfaceComputerByDG::sizeForFiltering() const
+{
+  return m_size_for_computation;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'MeanCurvatureOnSurfaceComputerByDG'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'MeanCurvatureOnSurfaceComputerByDG' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, const MeanCurvatureOnSurfaceComputerByDG & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene

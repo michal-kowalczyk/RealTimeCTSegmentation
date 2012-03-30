@@ -1,0 +1,143 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : CurveCode.ih
+//
+// Creation : 2011/06/23
+//
+// Version : 2011/06/23
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in CurveCode.h 
+//
+// History :
+//	2011/06/23 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class CurveCode declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_CurveCode(x)
+#define DEBUGCMD_CurveCode(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_CurveCode(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_CurveCode(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+inline
+ImaGene::CurveCode::CurveCode( const CurveCode & other )
+  : myStartPt( other.myStartPt ), myIsClosed( other.myIsClosed ),
+    myCW( other.myCW ), myStartStep( other.myStartStep ),
+    myCodes( other.myCodes )
+{}
+
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ */
+inline
+ImaGene::CurveCode & 
+ImaGene::CurveCode::operator=( const CurveCode & other )
+{
+  if ( this != &other )
+    {
+      myStartPt = other.myStartPt;
+      myIsClosed = other.myIsClosed;
+      myCW = other.myCW;
+      myStartStep = other.myStartStep;
+      myCodes = other.myCodes;
+    }
+  return *this;
+}
+
+//-----------------------------------------------------------------------------
+inline
+ImaGene::Vector2i 
+ImaGene::CurveCode::startPoint() const
+{
+  return myStartPt;
+}
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::CurveCode::isClosed() const
+{
+  return myIsClosed;
+}
+
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::CurveCode::isCW() const
+{
+  return myCW;
+}
+
+//-----------------------------------------------------------------------------
+inline
+unsigned char 
+ImaGene::CurveCode::startStep() const
+{
+  return myStartStep;
+}
+
+//-----------------------------------------------------------------------------
+inline
+ImaGene::CurveCode::ConstIterator
+ImaGene::CurveCode::begin() const
+{
+  return myCodes.begin();
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::CurveCode::ConstIterator
+ImaGene::CurveCode::end() const
+{
+  return myCodes.end();
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'CurveCode'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'CurveCode' to write.
+ * @return the output stream after the writing.
+ */
+inline
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const CurveCode & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

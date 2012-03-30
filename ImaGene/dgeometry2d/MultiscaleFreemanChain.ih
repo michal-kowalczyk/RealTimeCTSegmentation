@@ -1,0 +1,179 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : MultiscaleFreemanChain.ih
+//
+// Creation : 2009/07/09
+//
+// Version : 2009/07/09
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in MultiscaleFreemanChain.h 
+//
+// History :
+//	2009/07/09 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class MultiscaleFreemanChain declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_MultiscaleFreemanChain(x)
+#define DEBUGCMD_MultiscaleFreemanChain(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_MultiscaleFreemanChain(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_MultiscaleFreemanChain(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Constructor.
+ */
+ImaGene::MultiscaleFreemanChain::MultiscaleFreemanChain()
+  : m_transform( 0 ), m_subsample( 0 ), m_src( 0 )
+{
+}
+
+/**
+ * @param idx index of a pointel (in the original chain)
+ * @return the index of the corresponding pointel in [subc].
+ */
+uint 
+ImaGene::MultiscaleFreemanChain::SubsampledChain::subpointel( uint idx ) const
+{
+  return c2subc[ idx ];
+}
+
+/**
+ * @param idx index of a surfel (in the original chain)
+ *
+ * @return the index of the corresponding surfel in [subc] and
+ * the relative position within this surfel.
+ */
+std::pair<uint,double> 
+ImaGene::MultiscaleFreemanChain::SubsampledChain::subsurfel( uint idx ) const
+{
+  uint p1 = subpointel( idx );
+  uint p2 = subpointel( ( idx + 1 ) % c2subc.size() );
+  if ( p1 == p2 )
+    {
+      uint prev_p1 = (p1 + subc2c.size() - 1 ) % subc2c.size();
+      uint plast = ( backpointel( p1 ) + 1 ) % c2subc.size();
+      uint prev_plast = backpointel( prev_p1 );
+      uint size = plast >= prev_plast 
+	? plast - prev_plast
+	: c2subc.size() + plast - prev_plast; //prev_plast - plast;
+      uint diff = idx >= prev_plast 
+	? idx - prev_plast
+	: c2subc.size() + idx - prev_plast; // prev_plast - idx;
+      double pos = -0.5 + ( ((double)diff) + 0.5 ) / (double) size;
+      if ( pos >= 0.0 ) 
+	return std::make_pair( p1, pos );
+      else
+	return std::make_pair( prev_p1, pos + 1.0 );
+    }
+  else
+    {
+      return std::make_pair( p1, 0.5 );
+    }
+}
+
+/**
+ * @param idx index of a pointel (in the chain [subc])
+ * @return the index of the corresponding pointel in the original chain.
+ */
+uint 
+ImaGene::MultiscaleFreemanChain::SubsampledChain::backpointel( uint idx ) const
+{
+  return subc2c[ idx ];
+}
+
+/**
+ * @param idx index of a surfel (in the chain [subc])
+ *
+ * @return the indexes of the corresponding surfels in the
+ * original chain (first included to second excluded).
+ */
+std::pair<uint,uint> 
+ImaGene::MultiscaleFreemanChain::SubsampledChain::backsurfels( uint idx ) const
+{
+  return std::make_pair( backpointel( idx ), 
+			 backpointel( ( idx + 1 ) % subc2c.size() ) );
+
+}
+
+/**
+ * @return an iterator on the first element of the map [m_map].
+ */
+ImaGene::MultiscaleFreemanChain::iterator
+ImaGene::MultiscaleFreemanChain::begin()
+{
+  return m_map.begin();
+}
+
+/**
+ * @return an iterator on the element after the last of the map [m_map].
+ */
+ImaGene::MultiscaleFreemanChain::iterator
+ImaGene::MultiscaleFreemanChain::end()
+{
+  return m_map.end();
+}
+
+
+/**
+ * @return a const iterator on the first element of the map [m_map].
+ */
+ImaGene::MultiscaleFreemanChain::const_iterator 
+ImaGene::MultiscaleFreemanChain::begin() const
+{
+  return m_map.begin();
+}
+
+/**
+ * @return a const iterator on the element after the last of the
+ * map [m_map].
+ */
+ImaGene::MultiscaleFreemanChain::const_iterator 
+ImaGene::MultiscaleFreemanChain::end() const
+{
+  return m_map.end();
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'MultiscaleFreemanChain'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'MultiscaleFreemanChain' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const MultiscaleFreemanChain & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

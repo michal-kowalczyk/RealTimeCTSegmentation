@@ -1,0 +1,117 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : C4CELength.ih
+//
+// Creation : 2007/02/22
+//
+// Version : 2007/02/22
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in C4CELength.h 
+//
+// History :
+//	2007/02/22 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class C4CELength declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_C4CELength(x)
+#define DEBUGCMD_C4CELength(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_C4CELength(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_C4CELength(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/** 
+ * @param idx1 the index of a surfel between 0 and 'nb_surfel'.
+ * @param idx2 the index of a surfel between 0 and 'nb_surfel'.
+ * 
+ * @return the length from the surfel [idx1] to the surfel [idx2]
+ * excluded while increasing indices.
+ */
+double
+ImaGene::C4CELength::length( uint idx1, uint idx2 ) const
+{
+  ASSERT_C4CELength( idx1 < nbSurfels() );
+  ASSERT_C4CELength( idx2 < nbSurfels() );
+  double l = 0.0;
+  do {
+    l += m_elength[ idx1 ]; 
+    m_mc.increment( idx1 );
+  } while ( idx1 != idx2 );
+  return l;
+}
+
+/** 
+ * @param idx the index of a surfel between 0 and 'nb_surfel'.
+ * 
+ * @return the elementary length of the surfel [idx].
+ */
+double 
+ImaGene::C4CELength::elength( uint idx ) const
+{
+  ASSERT_C4CELength( idx < nbSurfels() );
+  return m_elength[ idx ];
+}
+
+/** 
+ * @param idx the index of a surfel between 0 and 'nb_surfel'.
+ * 
+ * @return the elementary length of the surfel [idx].
+ */
+double & 
+ImaGene::C4CELength::elength( uint idx )
+{
+  ASSERT_C4CELength( idx < nbSurfels() );
+  return m_elength[ idx ];
+}
+
+/** 
+ * @return the number of surfels.
+ */
+uint 
+ImaGene::C4CELength::nbSurfels() const
+{
+  return m_mc.k;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'C4CELength'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'C4CELength' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const C4CELength & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

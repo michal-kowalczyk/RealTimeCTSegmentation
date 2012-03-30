@@ -1,0 +1,685 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : SurfelNeighborhood.ih
+//
+// Creation : 2005/01/10
+//
+// Version : 2005/01/10
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in SurfelNeighborhood.h 
+//
+// History :
+//	2005/01/10 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class SurfelNeighborhood declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_SurfelNeighborhood(x)
+#define DEBUGCMD_SurfelNeighborhood(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_SurfelNeighborhood(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_SurfelNeighborhood(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+// ----------------------- Context services ------------------------------
+    
+/**
+ * Sets the space and the bel adjacency for the 'SurfelNeighborhood'.
+ *
+ * @param ks the digital space.  
+ *
+ * @param bel_adjacency the bel adjacency (specified for each pair
+ * of directions which adjacent surfel is preferred: the inner one
+ * or the outer one).
+ */
+void
+ImaGene::SurfelNeighborhood::init( const KnSpace* ks, 
+				   const BelAdjacency* bel_adjacency )
+{
+  m_ks = ks;
+  m_bel_adj = bel_adjacency;
+}
+
+
+/**
+ * @return the digital space in which the SurfelNeighborhood is taken.
+ */
+const ImaGene::KnSpace* 
+ImaGene::SurfelNeighborhood::space() const
+{
+  return m_ks;
+}
+
+
+/**
+ * @return the bel adjacency chosen for the SurfelNeighborhood.
+ */
+const ImaGene::BelAdjacency*
+ImaGene::SurfelNeighborhood::belAdjacency() const
+{
+  return m_bel_adj;
+}
+
+
+
+
+/**
+ * Initializes the object with the signed surfel [s].
+ *
+ * @param s any signed surfel.
+ */
+void
+ImaGene::SurfelNeighborhood::move( Kn_sid s )
+{
+  ASSERT_SurfelNeighborhood( m_ks != 0 );
+  ASSERT_SurfelNeighborhood( m_ks->sisSurfel( s ) );
+  
+  m_surfel = s;
+  m_orth_dir = m_ks->sorthDir( s );
+  m_orth_direct_orientation = m_ks->sdirect( s, m_orth_dir );
+  
+}
+
+
+// ----------------------- Orientation ------------------------------
+
+/**
+ * Returns the direct orientation of surfel 'current()' along
+ * direction [dir], meaning the incident cell along direction
+ * [dir] and the returned orientation has a positive sign.
+ *
+ * @param dir any direction. 
+ * 
+ * @return the direct orientation along the direction [dir] of
+ * surfel 'current()'.
+ */
+bool
+ImaGene::SurfelNeighborhood::directOrientation( uint dir ) const
+{
+  return m_ks->sdirect( m_surfel, dir );
+}
+
+    
+/**
+ * @return the current surfel.
+ */
+ImaGene::Kn_sid 
+ImaGene::SurfelNeighborhood::current() const
+{
+  return m_surfel;
+}
+
+/**
+ * @return the orthogonal direction to the current surfel.
+ */
+uint
+ImaGene::SurfelNeighborhood::orthDir() const
+{
+  return m_orth_dir;
+}
+
+
+
+
+/**
+ * @param track_dir the direction where to look for the follower.
+ * @param i a number between 1 and 3.
+ * @return the [i]-th direct follower of 'current()'.
+ */ 
+ImaGene::Kn_sid
+ImaGene::SurfelNeighborhood::directFollower( uint track_dir, int i ) const
+{
+  ASSERT_SurfelNeighborhood( ( i >= 1 ) && ( i <= 3 ) );
+  switch( i ) {
+  case 1: return directFollower1( track_dir );
+  case 2: return directFollower2( track_dir );
+  case 3: return directFollower3( track_dir );
+  default: break;
+  }
+  return current();
+}
+
+
+/**
+ * @param track_dir the direction where to look for the follower.
+ * @return the first direct follower of 'current()'.
+ */ 
+ImaGene::Kn_sid
+ImaGene::SurfelNeighborhood::directFollower1( uint track_dir ) const
+{
+  return m_ks->sincident( innerSpel(),
+			  track_dir, 
+			  directOrientation( track_dir ) );
+
+}
+
+
+/**
+ * @param track_dir the direction where to look for the follower.
+ * @return the second direct follower of 'current()'.
+ */ 
+ImaGene::Kn_sid
+ImaGene::SurfelNeighborhood::directFollower2( uint track_dir ) const
+{
+  return m_ks->sadjacent( m_surfel,
+			  track_dir, 
+			  directOrientation( track_dir ) );
+}
+
+
+/**
+ * @param track_dir the direction where to look for the follower.
+ * @return the third direct follower of 'current()'.
+ */ 
+ImaGene::Kn_sid
+ImaGene::SurfelNeighborhood::directFollower3( uint track_dir ) const
+{
+  return m_ks->sincident( outerSpel(),
+			  track_dir,
+			  directOrientation( track_dir ) );
+}
+
+
+
+/**
+ * @param track_dir the direction where to look for the follower.
+ * @param i a number between 1 and 3.
+ * @param pos when 'true', indicates to look for the follower along the positive direction of the tracking axis, otherwise along the negative direction.
+ * @return the [i]-th follower of 'current()'.
+ */ 
+ImaGene::Kn_sid
+ImaGene::SurfelNeighborhood::follower( uint track_dir, int i, bool pos ) const
+{
+  ASSERT_SurfelNeighborhood( ( i >= 1 ) && ( i <= 3 ) );
+  switch( i ) {
+  case 1: return follower1( track_dir, pos );
+  case 2: return follower2( track_dir, pos );
+  case 3: return follower3( track_dir, pos );
+  default: break;
+  }
+  return current();
+}
+
+/**
+ * @param track_dir the direction where to look for the follower.
+ * @param pos when 'true', indicates to look for the follower along the positive direction of the tracking axis, otherwise along the negative direction.
+ * @return the first follower of 'current()'.
+ */ 
+ImaGene::Kn_sid
+ImaGene::SurfelNeighborhood::follower1( uint track_dir, bool pos ) const
+{
+  return m_ks->sincident( innerSpel(), track_dir, pos );
+
+}
+
+/**
+ * @param track_dir the direction where to look for the follower.
+ * @param pos when 'true', indicates to look for the follower along the positive direction of the tracking axis, otherwise along the negative direction.
+ * @return the second follower of 'current()'.
+ */ 
+ImaGene::Kn_sid
+ImaGene::SurfelNeighborhood::follower2( uint track_dir, bool pos ) const
+{
+  return m_ks->sadjacent( m_surfel, track_dir, pos );
+}
+
+/**
+ * @param track_dir the direction where to look for the follower.
+ * @param pos when 'true', indicates to look for the follower along the positive direction of the tracking axis, otherwise along the negative direction.
+ * @return the third follower of 'current()'.
+ */ 
+ImaGene::Kn_sid
+ImaGene::SurfelNeighborhood::follower3( uint track_dir, bool pos ) const
+{
+  return m_ks->sincident( outerSpel(), track_dir, pos );
+}
+
+    
+/**
+ * @param track_dir the direction where to look for the link.
+ * @param pos when 'true', indicates to look for the link along the positive direction of the tracking axis, otherwise along the negative direction.
+ * @return the link of 'current()' in direction [track_dir].
+ */ 
+ImaGene::Kn_sid
+ImaGene::SurfelNeighborhood::link( uint track_dir, bool pos ) const
+{
+  return m_ks->sincident( m_surfel, track_dir, pos );
+}
+
+
+/**
+ * @param track_dir the direction where to look for the link.
+ * @return the direct link of 'current()' in direction [track_dir].
+ */ 
+ImaGene::Kn_sid
+ImaGene::SurfelNeighborhood::directLink( uint track_dir ) const
+{
+  return m_ks->sincident( m_surfel, track_dir, 
+			  directOrientation( track_dir ) );
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- Spels services --------------------
+
+
+/**
+ * @return the positively oriented spel touching the surfel 'current()'.
+ */
+ImaGene::Kn_sid
+ImaGene::SurfelNeighborhood::innerSpel() const
+{
+  return m_ks->sincident( m_surfel, m_orth_dir, m_orth_direct_orientation );
+}
+
+/**
+ * @return the negatively oriented spel touching the surfel 'current()'.
+ */
+ImaGene::Kn_sid
+ImaGene::SurfelNeighborhood::outerSpel() const
+{
+  return m_ks->sincident( m_surfel, m_orth_dir, ! m_orth_direct_orientation );
+}
+    
+/**
+ * @return the unsigned positively oriented spel touching the
+ * surfel 'current()'.
+ */
+ImaGene::Kn_uid
+ImaGene::SurfelNeighborhood::uinnerSpel() const
+{
+  return m_ks->unsigns( innerSpel() );
+}
+
+/**
+ * @return the unsigned negatively oriented spel touching the
+ * surfel 'current()'.
+ */
+ImaGene::Kn_uid
+ImaGene::SurfelNeighborhood::uouterSpel() const
+{
+  return m_ks->unsigns( outerSpel() );
+}
+
+/**
+ * @param track_dir the direction where to look for the spel.
+ * @param pos when 'true', looks along the positive direction of the tracking axis, otherwise along the negative direction.
+ * @return the (positively oriented) spel adjacent to 'innerSpel()' in the direction [track_dir] and orientation [pos].
+ */
+ImaGene::Kn_sid
+ImaGene::SurfelNeighborhood::innerAdjSpel( uint track_dir, bool pos ) const
+{
+  return m_ks->sadjacent( innerSpel(), track_dir, pos );
+}
+
+/**
+ * @param track_dir the direction where to look for the spel.
+ * @param pos when 'true', looks along the positive direction of the tracking axis, otherwise along the negative direction.
+ * @return the (negatively oriented) spel adjacent to 'outerSpel()' in the direction [track_dir] and orientation [pos].
+ */
+ImaGene::Kn_sid
+ImaGene::SurfelNeighborhood::outerAdjSpel( uint track_dir, bool pos ) const
+{
+  return m_ks->sadjacent( outerSpel(), track_dir, pos );
+}
+
+
+/**
+ * @param track_dir the direction where to look for the spel.
+ * @param pos when 'true', looks along the positive direction of the tracking axis, otherwise along the negative direction.
+ * @return the unsigned spel adjacent to 'innerSpel()' in the direction [track_dir] and orientation [pos].
+ */
+ImaGene::Kn_uid 
+ImaGene::SurfelNeighborhood::uinnerAdjSpel( uint track_dir, bool pos ) const
+{
+  return m_ks->unsigns( innerAdjSpel( track_dir, pos ) );
+}
+
+
+/**
+ * @param track_dir the direction where to look for the spel.
+ * @param pos when 'true', looks along the positive direction of the tracking axis, otherwise along the negative direction.
+ * @return the unsigned spel adjacent to 'outerSpel()' in the direction [track_dir] and orientation [pos].
+ */
+ImaGene::Kn_uid 
+ImaGene::SurfelNeighborhood::uouterAdjSpel( uint track_dir, bool pos ) const
+{
+  return m_ks->unsigns( outerAdjSpel( track_dir, pos ) );
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- Spels services --------------------
+
+
+/**
+ * Go to the next direct or indirect adjacent bel on the boundary of [obj].
+ * The boundary may be open (it touches the space borders).
+ * Following interior or exterior bel adjacencies depends on [m_bel_adj].
+ *
+ * @param obj any object which has the 'bool const operator[ Kn_uid ]'.
+ * @param track_dir the direction where to look for the spel.
+ * @param pos when 'true' look in positive direction along [track_dir] axis, 'false' look in negative direction.
+  * @param adj_surfel (returns) the adjcent surfel in direction [track_dir] if there is one.
+ *
+ * @return 0 if the move was impossible (no bels in this direction), 1 if it was the first interior, 2 if it was the second interior, 3 if it was the third interior.
+ */
+template <typename Set>
+uint
+ImaGene::SurfelNeighborhood::adjacentOnAnyBdry
+( const Set & obj, 
+  uint track_dir,
+  bool pos,
+  Kn_sid & adj_surfel ) const
+{
+  // Check that [m_surfel] is a bel.
+  ASSERT_SurfelNeighborhood( obj[ uinnerSpel() ] );
+  ASSERT_SurfelNeighborhood( ! obj[ uouterSpel() ] );
+
+  // JOL bool track_direct = directOrientation( track_dir );
+  Kn_uid uinner_spel = uinnerSpel();
+
+  // Interior bel adjacency.
+  // bool pos = indirect ^ track_direct; // direction along tracking axis.
+
+  
+  // Check if it goes outside the space.
+  if ( pos && m_ks->uisMax( uinner_spel, track_dir ) )
+    return 0;
+  // Check if it goes outside the space.
+  else if ( ( ! pos ) && m_ks->uisMin( uinner_spel, track_dir ) )
+    return 0;
+  
+  if ( m_bel_adj->getAdjacency( m_orth_dir, track_dir ) )
+    { // nextIntOnBdry( obj, indirect );
+      // Check first next bel.
+      if ( ! obj[ uinnerAdjSpel( track_dir, pos ) ] )
+	{
+	  adj_surfel = follower1( track_dir, pos );
+	  return 1;
+	}
+      // Check second next bel.
+      if ( ! obj[ uouterAdjSpel( track_dir, pos ) ] )
+	{
+	  adj_surfel = follower2( track_dir, pos ); 
+	  return 2;
+	}
+      // The third one is then the right one.
+      adj_surfel = follower3( track_dir, pos ); 
+      return 3;
+    }
+  else
+    { // nextExtOnBdry( obj, indirect );
+      // Check first next bel.
+      if ( obj[ uouterAdjSpel( track_dir, pos ) ] )
+	{
+	  adj_surfel = follower3( track_dir, pos );
+	  return 3;
+	}
+      // Check second next bel.
+      if ( obj[ uinnerAdjSpel( track_dir, pos ) ] )
+	{
+	  adj_surfel = follower2( track_dir, pos );
+	  return 2;
+	}
+      // The third one is then the right one.
+      adj_surfel = follower1( track_dir, pos );
+      return 1;
+
+    }
+  
+}
+
+
+/**
+ * Go to the next direct or indirect adjacent bel on the oriented
+ * surface [surface].  The boundary may be open.  Following
+ * interior or exterior bel adjacencies depends on [m_bel_adj].
+ *
+ * @param surface any set of signed surfels which has the 'bool const operator[ Kn_sid ]'.
+ * @param track_dir the direction where to look for the spel.
+ * @param pos when 'true' look in positive direction along [track_dir] axis, 'false' look in negative direction.
+ * @param adj_surfel (returns) the adjcent surfel in direction [track_dir] if there is one.
+ *
+ * @return 0 if the move was impossible (no surfels in this direction), 1 if it was the first interior, 2 if it was the second interior, 3 if it was the third interior.
+ */
+template <typename Surface>
+uint
+ImaGene::SurfelNeighborhood::adjacentOnOrientedSurface
+( const Surface & surface, 
+  uint track_dir,
+  bool pos,
+  Kn_sid & adj_surfel ) const
+{
+  // Check that [m_surfel] is in the surface.
+  ASSERT_SurfelNeighborhood( surface[ m_surfel ] );
+
+  bool track_direct = directOrientation( track_dir );
+  Kn_uid uinner_spel = uinnerSpel();
+
+  // Interior bel adjacency.
+  
+  // Check if it goes outside the space.
+  if ( pos && m_ks->uisMax( uinner_spel, track_dir ) )
+    return 0;
+  // Check if it goes outside the space.
+  else if ( ( ! pos ) && m_ks->uisMin( uinner_spel, track_dir ) )
+    return 0;
+  
+  if ( m_bel_adj->getAdjacency( m_orth_dir, track_dir ) )
+    { // nextIntOnBdry( obj, indirect );
+      // Check first next bel.
+      adj_surfel = follower1( track_dir, pos );
+      if ( surface[ adj_surfel ] )
+	return 1;
+      adj_surfel = follower2( track_dir, pos ); 
+      // Check second next bel.
+      if ( surface[ adj_surfel ] )
+	return 2;
+      // The third one is then the right one.
+      adj_surfel = follower3( track_dir, pos ); 
+      return surface[ adj_surfel ] ? 3 : 0;
+    }
+  else
+    { // nextExtOnBdry( obj, indirect );
+      // Check first next bel.
+      adj_surfel = follower3( track_dir, pos );
+      if ( surface[ adj_surfel ] )
+	return 3;
+      adj_surfel = follower2( track_dir, pos ); 
+      // Check second next bel.
+      if ( surface[ adj_surfel ] )
+	return 2;
+      // The third one is then the right one.
+      adj_surfel = follower1( track_dir, pos ); 
+      return surface[ adj_surfel ] ? 1 : 0;
+    }
+}
+
+/**
+ * Go to the next direct or indirect adjacent bel on the oriented
+ * surface [surface].  The boundary may be open.  Following
+ * interior or exterior bel adjacencies depends on [m_bel_adj].
+ *
+ * @param surface any set of signed surfels which has the 'bool const operator[ Kn_sid ]'.
+ * @param track_dir the direction where to look for the spel.
+ * @param indirect when 'false', looks for direct followers, otherwise looks for indirect followers.
+ * @param adj_surfel (returns) the adjcent surfel in direction [track_dir] if there is one.
+ *
+ * @return 0 if the move was impossible (no surfels in this direction), 1 if it was the first interior, 2 if it was the second interior, 3 if it was the third interior.
+ */
+template <typename Surface>
+uint
+ImaGene::SurfelNeighborhood::adjacentOnOrientedSurfaceDirected
+( const Surface & surface, 
+  uint track_dir,
+  bool indirect, 
+  Kn_sid & adj_surfel ) const
+{
+  // Check that [m_surfel] is in the surface.
+  ASSERT_SurfelNeighborhood( surface[ m_surfel ] );
+
+  bool track_direct = directOrientation( track_dir );
+  Kn_uid uinner_spel = uinnerSpel();
+
+  // Interior bel adjacency.
+  bool pos = indirect ^ track_direct; // direction along tracking axis.
+
+  
+  // Check if it goes outside the space.
+  if ( pos && m_ks->uisMax( uinner_spel, track_dir ) )
+    return 0;
+  // Check if it goes outside the space.
+  else if ( ( ! pos ) && m_ks->uisMin( uinner_spel, track_dir ) )
+    return 0;
+  
+  if ( m_bel_adj->getAdjacency( m_orth_dir, track_dir ) )
+    { // nextIntOnBdry( obj, indirect );
+      // Check first next bel.
+      adj_surfel = follower1( track_dir, pos );
+      if ( surface[ adj_surfel ] )
+	return 1;
+      adj_surfel = follower2( track_dir, pos ); 
+      // Check second next bel.
+      if ( surface[ adj_surfel ] )
+	return 2;
+      // The third one is then the right one.
+      adj_surfel = follower3( track_dir, pos ); 
+      return surface[ adj_surfel ] ? 3 : 0;
+    }
+  else
+    { // nextExtOnBdry( obj, indirect );
+      // Check first next bel.
+      adj_surfel = follower3( track_dir, pos );
+      if ( surface[ adj_surfel ] )
+	return 3;
+      adj_surfel = follower2( track_dir, pos ); 
+      // Check second next bel.
+      if ( surface[ adj_surfel ] )
+	return 2;
+      // The third one is then the right one.
+      adj_surfel = follower1( track_dir, pos ); 
+      return surface[ adj_surfel ] ? 1 : 0;
+    }
+}
+
+
+
+/**
+ * Go to the next direct or indirect adjacent bel on the unoriented
+ * surface [surface].  The boundary may be open.  Following
+ * interior or exterior bel adjacencies depends on [m_bel_adj].
+ *
+ * @param surface any set of unsigned surfels which has the 'bool const operator[ Kn_uid ]'.
+ * @param track_dir the direction where to look for the spel.
+ * @param indirect when 'false', looks for direct followers, otherwise looks for indirect followers.
+ * @param adj_surfel (returns) the adjcent surfel in direction [track_dir] if there is one.
+ *
+ * @return 0 if the move was impossible (no surfels in this direction), 1 if it was the first interior, 2 if it was the second interior, 3 if it was the third interior.
+ */
+template <typename Surface>
+uint
+ImaGene::SurfelNeighborhood::adjacentOnUnorientedSurface
+( const Surface & surface, 
+  uint track_dir,
+  bool indirect, 
+  Kn_sid & adj_surfel ) const
+{
+  // Check that [m_surfel] is in the surface.
+  ASSERT_SurfelNeighborhood( surface[ m_ks->unsigns( m_surfel ) ] );
+
+  bool track_direct = directOrientation( track_dir );
+  Kn_uid uinner_spel = uinnerSpel();
+
+  // Interior bel adjacency.
+  bool pos = indirect ^ track_direct; // direction along tracking axis.
+
+  
+  // Check if it goes outside the space.
+  if ( pos && m_ks->uisMax( uinner_spel, track_dir ) )
+    return 0;
+  // Check if it goes outside the space.
+  else if ( ( ! pos ) && m_ks->uisMin( uinner_spel, track_dir ) )
+    return 0;
+  
+  if ( m_bel_adj->getAdjacency( m_orth_dir, track_dir ) )
+    { // nextIntOnBdry( obj, indirect );
+      // Check first next bel.
+      adj_surfel = follower1( track_dir, pos );
+      if ( surface[ m_ks->unsigns( adj_surfel ) ] )
+	return 1;
+      adj_surfel = follower2( track_dir, pos ); 
+      // Check second next bel.
+      if ( surface[ m_ks->unsigns( adj_surfel ) ] )
+	return 2;
+      // The third one is then the right one.
+      adj_surfel = follower3( track_dir, pos ); 
+      return surface[ m_ks->unsigns( adj_surfel ) ] ? 3 : 0;
+    }
+  else
+    { // nextExtOnBdry( obj, indirect );
+      // Check first next bel.
+      adj_surfel = follower3( track_dir, pos );
+      if ( surface[ m_ks->unsigns( adj_surfel ) ] )
+	return 3;
+      adj_surfel = follower2( track_dir, pos ); 
+      // Check second next bel.
+      if ( surface[ m_ks->unsigns( adj_surfel ) ] )
+	return 2;
+      // The third one is then the right one.
+      adj_surfel = follower1( track_dir, pos ); 
+      return surface[ m_ks->unsigns( adj_surfel ) ] ? 1 : 0;
+    }
+}
+
+
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'SurfelNeighborhood'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'SurfelNeighborhood' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const SurfelNeighborhood & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

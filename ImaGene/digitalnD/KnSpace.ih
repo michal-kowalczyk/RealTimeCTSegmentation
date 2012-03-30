@@ -1,0 +1,2204 @@
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+// File name : KnSpace.ih
+//
+// Creation : 2002/07/20
+//
+// Version : 2002/07/20
+//
+// Author : Jacques-Olivier Lachaud
+//
+// email : lachaud@labri.fr
+//
+// History :
+//	2002/07/20 : Mr ?Name? : ?What?
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+#include "ImaGene/digitalnD/KnUtils.h"
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_KnSpace(x)
+#define DEBUGCMD_KnSpace(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_KnSpace(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_KnSpace(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+  /////////////////////////////////////////////////////////////////////////////
+  // ------------------------- TypedObject services ---------------------------
+
+  /**
+   * @return the type id of the instantiated subclass.
+   */
+
+  uint
+  KnSpace::getTypeId() const
+  {
+    return 1;
+  }
+  
+  /*
+    misclib::TypeId KnSpace::getTypeId() const
+    {
+    return misclib::TypeId( "ImaGene::KnSpace", sizeof( KnSpace ) );
+    }
+  */
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Basic services ------------------------------
+
+/**
+ * @return the dimension of the space.
+ */
+uint
+KnSpace::dim() const
+{
+  return m_dim;
+}
+
+/**
+ * @return the width of the space in the [k]-dimension.
+ */
+Kn_size
+KnSpace::size( uint k ) const
+{
+  return m_size[ k ];
+}
+
+/**
+ * @return the size of the whole space.
+ */
+Kn_size 
+KnSpace::size() const
+{
+  return m_nb_spels;
+}
+
+/**
+ * @param k a dimension (from 0 to 'dim()').
+ * @return the number of [k]-cells in this space.
+ */
+Kn_size 
+KnSpace::nbCells( uint k ) const
+{
+  return ( (Kn_size) m_binomials[ k ] ) * size();
+}
+
+/**
+ * @param k a coordinate (from 0 to 'dim()-1').
+ * @return the width of the space in the [k]-dimension (rounded to the closest power of 2).
+ */
+Kn_size 
+KnSpace::trueSize( uint k ) const
+{
+  return KnTypes::ONE << Field_nb_bits( m_uid_coord[ k ] );
+}
+
+/**
+ * @return the true size of the whole space (meaning sizes have been rounded to the closest power of 2).
+ */
+Kn_size
+KnSpace::trueSize() const
+{
+  return KnTypes::ONE << Field_nb_bits( m_uid_coords );
+}
+
+/**
+ * @param k a dimension (from 0 to 'dim()').
+ * @return the true number of (unsigned) [k]-cells in this space.
+ */
+Kn_size
+KnSpace::trueNbCells( uint k ) const
+{
+  return ( (Kn_size) m_binomials[ k ] ) * trueSize();
+}
+
+/**
+ * @param k a coordinate (from 0 to 'dim()-1').
+ * @return the log_2 of the width of the space in the [k]-dimension (log_2(trueSize))
+ */
+uint
+KnSpace::logSize( uint k ) const
+{
+  return Field_nb_bits( m_uid_coord[ k ] );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Coding services ------------------------------
+
+/**
+ * From the coordinates of a point in Kn, builds its unsigned code.
+ * @param x an array of size 'dimension()'.
+ * @return the unsigned code of this point.
+ */
+Kn_uid 
+KnSpace::ukcode( const Kn_size* x ) const
+{
+  // First coordinate is processed before (no need to shift).
+  Kn_uid c = *(x++);
+  Kn_uid id = c >> 1;
+  uint shift_dir = m_uid_dir[ 0 ].shift;
+  id += ( c & KnTypes::ONE ) << shift_dir;
+  // Then all remaining coordinates.
+  uint k = 1;
+  while ( k != m_dim )
+    {
+      shift_dir++;
+      c = *(x++);
+      id += ( c >> 1 ) << m_uid_coord[ k++ ].shift;
+      id += ( c & KnTypes::ONE ) << shift_dir;
+    }
+  return id;
+}
+
+/**
+ * From the coordinates of a point in Kn and a sign, builds its signed code.
+ * @param x an array of size 'dimension()'.
+ * @param s the sign is Kn_Types::POS or Kn_Types::NEG.
+ * @return the signed code of this point.
+ */
+Kn_sid
+KnSpace::skcode( const Kn_size* x, Kn_sign s ) const
+{
+  // First coordinate is processed before (no need to shift).
+  Kn_sid c = *(x++);
+  Kn_sid id = c >> 1;
+  uint shift_dir = m_sid_dir[ 0 ].shift;
+  id += ( c & KnTypes::ONE ) << shift_dir;
+  // Then all remaining coordinates.
+  uint k = 1;
+  while ( k != m_dim )
+    {
+      shift_dir++;
+      c = *(x++);
+      id += ( c >> 1 ) << m_sid_coord[ k++ ].shift;
+      id += ( c & KnTypes::ONE ) << shift_dir;
+    }
+  id |= s & m_sid_sign.mask;
+  return id;
+}
+
+/**
+ * From the coordinates of a point in Kn, builds its positive code.
+ * @param x an array of size 'dimension()'.
+ * @return the positive signed code of this point.
+ */
+Kn_sid 
+KnSpace::poskcode( const Kn_size* x ) const
+{
+  return skcode( x, KnTypes::POS );
+}
+
+/**
+ * From the coordinates of a point in Kn, builds its negative code.
+ * @param x an array of size 'dimension()'.
+ * @return the negative signed code of this point.
+ */
+Kn_sid
+KnSpace::negkcode( const Kn_size* x ) const
+{
+  return skcode( x, KnTypes::NEG );
+}
+
+/**
+ * From the digital coordinates of a point in Zn and a cell type, builds its
+ * unsigned code.
+ * @param x an array of size 'dimension()'.
+ * @param c a (unsigned) celltype.
+ * @return the unsigned code of this point.
+ */
+Kn_uid
+KnSpace::ucode( const Kn_size* x, Kn_uid c ) const
+{
+  // First coordinate is processed before (no need to shift).
+  Kn_uid id = x[ 0 ];
+  // Then all remaining coordinates.
+  for ( uint k = 1; k < m_dim; ++k )
+    {
+      id += x[ k ] << m_uid_coord[ k ].shift;
+    }
+  id |= Field_select( c, m_uid_dirs );
+  return id;
+}
+
+/**
+ * From the digital coordinates of a point in Zn and a signed cell type,
+ * builds its unsigned code.
+ * @param x an array of size 'dimension()'.
+ * @param c a (signed) celltype.
+ * @return the signed code of this point.
+ */
+Kn_sid 
+KnSpace::scode( const Kn_size* x, Kn_sid c ) const
+{
+  // First coordinate is processed before (no need to shift).
+  Kn_sid id = x[ 0 ];
+  // Then all remaining coordinates.
+  for ( uint k = 1; k < m_dim; ++k )
+    {
+      id += x[ k ] << m_sid_coord[ k ].shift;
+    }
+  id |= Field_select( c, m_sid_dirs_and_sign );
+  return id;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Decoding services ------------------------------
+
+/**
+ * @param p any unsigned cell.
+ * @param k a valid dimension.
+ * @return the k-th (digital) coordinate of p
+ */
+Kn_size
+KnSpace::udecodeCoord( Kn_uid p, uint k ) const
+{
+  return Field_valueOf( p, m_uid_coord[ k ] );
+}
+
+/**
+ * @param p any signed cell.
+ * @param k a valid dimension.
+ * @return the k-th (digital) coordinate of p
+ */
+Kn_size
+KnSpace::sdecodeCoord( Kn_sid p, uint k ) const
+{
+  return Field_valueOf( p, m_sid_coord[ k ] );
+}
+
+/**
+ * Fills the array [x] with the digital coordinates of [p].
+ * @param p any unsigned cell.
+ * @param x an array of at least 'dim()' size.
+ */
+void
+KnSpace::udecodeCoords( Kn_uid p, Kn_size* x ) const
+{
+  uint k = 0;
+  while ( k < m_dim )
+    {
+      *(x++) = Field_valueOf( p, m_uid_coord[ k ] );
+      k++;
+    }
+}
+
+/**
+ * Fills the array [x] with the digital coordinates of [p].
+ * @param p any signed cell.
+ * @param x an array of at least 'dim()' size.
+ */
+void
+KnSpace::sdecodeCoords( Kn_sid p, Kn_size* x ) const
+{
+  uint k = 0;
+  while ( k < m_dim )
+    {
+      *(x++) = Field_valueOf( p, m_sid_coord[ k ] );
+      k++;
+    }
+}
+
+/**
+ * Fills the array [x] with the digital coordinates of [p].
+ * @param p any unsigned cell.
+ * @param x an array of at least 'dim()' size.
+ */
+void
+KnSpace::udecodeCoords( Kn_uid p, int* x ) const
+{
+  uint k = 0;
+  while ( k < m_dim )
+    {
+      *(x++) = Field_valueOf( p, m_uid_coord[ k ] );
+      k++;
+    }
+}
+
+/**
+ * Fills the array [x] with the digital coordinates of [p].
+ * @param p any signed cell.
+ * @param x an array of at least 'dim()' size.
+ */
+void
+KnSpace::sdecodeCoords( Kn_sid p, int* x ) const
+{
+  uint k = 0;
+  while ( k < m_dim )
+    {
+      *(x++) = Field_valueOf( p, m_sid_coord[ k ] );
+      k++;
+    }
+}
+
+/**
+ * @return the sign of the signed cell p.
+ */
+Kn_sign 
+KnSpace::decodeSign( Kn_sid p ) const
+{
+  return Field_select( p, m_sid_sign ) ? KnTypes::NEG : KnTypes::POS;
+}
+
+/**
+ * @param p any unsigned cell.
+ * @param k a valid dimension.
+ * @return the k-th (Khalimsky) coordinate of p
+ */
+Kn_size
+KnSpace::ukdecodeCoord( Kn_uid p, uint k ) const
+{
+  return
+    ( Field_valueOf( p, m_uid_coord[ k ] ) << 1 )
+    + Field_valueOf( p, m_uid_dir[ k ] );
+}
+
+/**
+ * @param p any signed cell.
+ * @param k a valid dimension.
+ * @return the k-th (Khalimsky) coordinate of p
+ */
+Kn_size
+KnSpace::skdecodeCoord( Kn_sid p, uint k ) const
+{
+  return
+    ( Field_valueOf( p, m_sid_coord[ k ] ) << 1 )
+    + Field_valueOf( p, m_sid_dir[ k ] );
+}
+
+/**
+ * Fills the array [x] with the Khalimsky coordinates of [p].
+ * @param p any unsigned cell.
+ * @param x an array of at least 'dim()' size.
+ */
+void 
+KnSpace::ukdecodeCoords( Kn_uid p, Kn_size* x ) const
+{
+  Kn_uid mask_dir = Field_valueOf( p, m_uid_dirs );
+  *(x++) = ( ( p & m_uid_coord[ 0 ].mask ) << 1 ) + ( mask_dir & 1 );
+  uint k = 1;
+  while ( k < m_dim )
+    {
+      mask_dir >>= 1;
+      *(x++) = 
+	( Field_valueOf( p, m_uid_coord[ k ] ) << 1 )
+	+ ( mask_dir & KnTypes::ONE );
+      k++;
+    }
+}
+
+/**
+ * Fills the array [x] with the digital coordinates of [p].
+ * @param p any signed cell.
+ * @param x an array of at least 'dim()' size.
+ */
+void 
+KnSpace::skdecodeCoords( Kn_sid p, Kn_size* x ) const
+{  
+  Kn_sid mask_dir = Field_valueOf( p, m_sid_dirs );
+  *(x++) = ( ( p & m_sid_coord[ 0 ].mask ) << 1 ) + ( mask_dir & 1 );
+  uint k = 1;
+  while ( k < m_dim )
+    {
+      mask_dir >>= 1;
+      *(x++) = 
+	( Field_valueOf( p, m_sid_coord[ k ] ) << 1 )
+	+ ( mask_dir & KnTypes::ONE );
+      k++;
+    }
+}
+/**
+ * Fills the array [x] with the Khalimsky coordinates of [p].
+ * @param p any unsigned cell.
+ * @param x an array of at least 'dim()' size.
+ */
+void 
+KnSpace::ukdecodeCoords( Kn_uid p, int* x ) const
+{
+  Kn_uid mask_dir = Field_valueOf( p, m_uid_dirs );
+  *(x++) = ( ( p & m_uid_coord[ 0 ].mask ) << 1 ) + ( mask_dir & 1 );
+  uint k = 1;
+  while ( k < m_dim )
+    {
+      mask_dir >>= 1;
+      *(x++) = 
+	( Field_valueOf( p, m_uid_coord[ k ] ) << 1 )
+	+ ( mask_dir & KnTypes::ONE );
+      k++;
+    }
+}
+
+/**
+ * Fills the array [x] with the digital coordinates of [p].
+ * @param p any signed cell.
+ * @param x an array of at least 'dim()' size.
+ */
+void 
+KnSpace::skdecodeCoords( Kn_sid p, int* x ) const
+{  
+  Kn_sid mask_dir = Field_valueOf( p, m_sid_dirs );
+  *(x++) = ( ( p & m_sid_coord[ 0 ].mask ) << 1 ) + ( mask_dir & 1 );
+  uint k = 1;
+  while ( k < m_dim )
+    {
+      mask_dir >>= 1;
+      *(x++) = 
+	( Field_valueOf( p, m_sid_coord[ k ] ) << 1 )
+	+ ( mask_dir & KnTypes::ONE );
+      k++;
+    }
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// -------------------- Conversion signed/unsigned --------------------------
+
+/**
+ * Creates a signed cell from an unsigned one and a given sign.
+ * @param p any unsigned cell.
+ * @param s a sign.
+ * @return the signed version of the cell [p] with sign [s].
+ */
+Kn_sid 
+KnSpace::signs( Kn_uid p, Kn_sign s ) const
+{
+  return (Kn_sid) 
+    ( Field_select( p, m_uid_coords )
+      + ( Field_select( p, m_uid_dirs ) << 1 )
+      + ( Field_mask( m_sid_sign ) & s ) );
+}
+
+/**
+ * Creates a positively signed cell from an unsigned one.
+ * @param p any unsigned cell.
+ * @return the signed version of the cell [p] with positive sign.
+ */
+Kn_sid 
+KnSpace::signsPos( Kn_uid p ) const
+{
+  return (Kn_sid) 
+    ( Field_select( p, m_uid_coords )
+      + ( Field_select( p, m_uid_dirs ) << 1 ) );
+}
+
+/**
+ * Creates a negatively signed cell from an unsigned one.
+ * @param p any unsigned cell.
+ * @return the signed version of the cell [p] with negative sign.
+ */
+Kn_sid 
+KnSpace::signsNeg( Kn_uid p ) const
+{
+  return (Kn_sid) 
+    ( Field_select( p, m_uid_coords )
+      + ( Field_select( p, m_uid_dirs ) << 1 )
+      + Field_mask( m_sid_sign ) );
+}
+
+/**
+ * Creates an unsigned cell from a signed one.
+ * @param p any signed cell.
+ * @return the unsigned version of the cell [p].
+ */
+Kn_uid 
+KnSpace::unsigns( Kn_sid p ) const
+{
+  return (Kn_uid)
+    ( Field_select( p, m_sid_coords )
+      + ( Field_select( p, m_sid_dirs ) >> 1 ) );
+}
+
+/**
+ * Creates the signed cell with the inverse sign of [p].
+ * @param p any signed cell.
+ * @return the cell [p] with opposite sign.
+ */
+Kn_sid
+KnSpace::sopp( Kn_sid p ) const
+{
+  return p ^ Field_mask( m_sid_sign );
+}
+
+
+/**
+ * Creates a positively signed cell from an signed one.
+ * @param p any signed cell.
+ * @return the cell [p] with positive sign.
+ */
+Kn_sid
+KnSpace::toPos( Kn_sid p ) const
+{
+  return p & Field_inv_mask( m_sid_sign );
+}
+
+/**
+ * Creates a negatively signed cell from an signed one.
+ * @param p any signed cell.
+ * @return the cell [p] with negative sign.
+ */
+Kn_sid
+KnSpace::toNeg( Kn_sid p ) const
+{
+  return p | Field_mask( m_sid_sign );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// -------------------- Conversion between cell-types -----------------------
+
+/**
+ * Creates a spel-like cell with the same coordinates as the given cell.
+ * @param p any unsigned cell.
+ * @return an unsigned spel-like cell with the same coordinates as [p].
+ */
+Kn_uid
+KnSpace::uspel( Kn_uid p ) const
+{
+  return Field_select( p, m_uid_coords ) | Field_mask( m_uid_dirs );
+}
+
+
+/**
+ * Creates a spel-like cell with the same coordinates as the given cell.
+ * @param p any signed cell.
+ * @return a signed spel-like cell with the same coordinates as [p].
+ */
+Kn_sid
+KnSpace::sspel( Kn_sid p ) const
+{
+  return Field_unselect( p, m_sid_dirs ) | Field_mask( m_sid_dirs );
+}
+
+
+/**
+ * Creates a pointel-like cell with the same coordinates as the given cell.
+ * @param p any unsigned cell.
+ * @return an unsigned pointel-like cell with the same coordinates as [p].
+ */
+Kn_uid
+KnSpace::upointel( Kn_uid p ) const
+{
+  return Field_select( p, m_uid_coords );
+}
+
+
+/**
+ * Creates a pointel-like cell with the same coordinates as the given cell.
+ * @param p any signed cell.
+ * @return a signed pointel-like cell with the same coordinates as [p].
+ */
+Kn_sid
+KnSpace::spointel( Kn_sid p ) const
+{
+  return Field_unselect( p, m_sid_dirs );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// -------------------- Coordinates services -----------------------
+
+/**
+ * @param p any unsigned cell.
+ * @return a word containing only the coordinates of [p].
+ * NB: equivalent to returning the pointel with same coordinates.
+ */
+Kn_coords
+KnSpace::ucoords( Kn_uid p ) const
+{
+  return Field_select( p, m_uid_coords );
+}
+
+
+/**
+ * @param p any signed cell.
+ * @return a word containing only the coordinates of [p].
+ * NB: equivalent to returning the unsigned pointel with same coordinates.
+ */
+Kn_coords 
+KnSpace::scoords( Kn_sid p ) const
+{
+  return Field_select( p, m_sid_coords );
+}
+
+/**
+ * Removes the [i]-coordinate from [p].
+ * @param p a coordinate word with n coordinates.
+ * @param i any coordinate.
+ * @return a coordinate word with n-1-coordinates.
+ */
+Kn_coords
+KnSpace::project( Kn_coords p, uint i ) const
+{
+  Kn_coords m = (~ (Kn_coords)0) << m_uid_coord[ i ].shift;
+  Kn_coords q = p >> m_uid_coord[ i ].nb_bits;
+  return ( q & m ) | ( p & ~m );
+}
+
+
+/**
+ * Removes the [i]-coordinate and the [j]-coordinate from [p].
+ * @param p a coordinate word with n coordinates.
+ * @param i any coordinate.
+ * @param j any coordinate different from [i].
+ * @return a coordinate word with n-2-coordinates.
+ */
+Kn_coords 
+KnSpace::project( Kn_coords p, uint i, uint j ) const
+{
+  ASSERT_KnSpace( i != j );
+  if ( i > j )
+    return project( project( p, i ), j );
+  return project( project( p, j ), i );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Cell topology services -------------------------
+
+/**
+ * @param p any unsigned cell.
+ * @return the topology word of [p].
+ */
+uint
+KnSpace::utopology( Kn_uid p ) const
+{
+  return (uint) Field_valueOf( p, m_uid_dirs );
+}
+
+
+/**
+ * @param p any signed cell.
+ * @return the topology word of [p].
+ */
+uint
+KnSpace::stopology( Kn_sid p ) const
+{
+  return (uint) Field_valueOf( p, m_sid_dirs );
+}
+
+
+/**
+ * @param p any unsigned cell.
+ * @return the dimension of the cell [p].
+ */
+uint
+KnSpace::udim( Kn_uid p ) const
+{
+  if ( dim() <= 8 )
+    return KnUtils::countSetBits( (uint8) utopology( p ) );
+
+  return KnUtils::countSetBits( utopology( p ) );
+}
+
+
+/**
+ * @param p any signed cell.
+ * @return the dimension of the cell [p].
+ */
+uint
+KnSpace::sdim( Kn_sid p ) const
+{
+  if ( dim() <= 8 )
+    return KnUtils::countSetBits( (uint8) stopology( p ) );
+
+  return KnUtils::countSetBits( stopology( p ) );
+}
+
+
+/**
+ * @param b any unsigned cell.
+ * @return 'true' if [b] is a surfel (spans all but one coordinate).
+ */
+bool
+KnSpace::uisSurfel( Kn_uid b ) const
+{
+  return udim( b ) == ( dim() - 1 );
+}
+
+/**
+ * @param b any signed cell.
+ * @return 'true' if [b] is a surfel (spans all but one coordinate).
+ */
+bool
+KnSpace::sisSurfel( Kn_sid b ) const
+{
+  return sdim( b ) == ( dim() - 1 );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// -------------------- Restricted cell codes services ----------------------
+
+
+/**
+ * Useful for mappings from set of k-cells.
+ * @param c any unsigned cell.
+ * @return the restricted cell code of [c] (every k-cell has a unique restricted code).
+ */
+Kn_urid
+KnSpace::urcode( Kn_uid c ) const
+{
+  return m_urcode[ utopology( c ) ] | Field_select( c, m_uid_coords );
+}
+
+
+/**
+ * Useful for mappings from set of signed k-cells.
+ * @param c any signed cell.
+ * @return the signed restricted cell code of [c] (every signed k-cell has a unique restricted code).
+ */
+Kn_srid 
+KnSpace::srcode( Kn_sid c ) const
+{
+  return m_srcode[ stopology( c ) ] | Field_select( c, m_sid_sign_coords );
+}
+
+
+/**
+ * Useful for mappings 'f' from set of signed k-cells but with f(c)=f(-c).
+ * @param c any signed cell.
+ * @return the unsigned restricted cell code of [c] (every signed k-cell has a unique restricted code).
+ */
+Kn_urid 
+KnSpace::srucode( Kn_sid c ) const
+{
+  return m_urcode[ stopology( c ) ] | Field_select( c, m_sid_coords );
+}
+
+
+/**
+ * @param c any unsigned restricted cell code.
+ * @param k the dimension of [c].
+ * @return the cell code of [c].
+ */
+Kn_uid 
+KnSpace::urdecode( Kn_urid c, uint k ) const
+{
+  return m_urdecode[ k ][ Field_valueOf( c, m_uid_dirs ) ] 
+    | Field_select( c, m_uid_coords );
+}
+
+
+/**
+ * @param c any signed restricted cell code.
+ * @param k the dimension of [c].
+ * @return the cell code of [c].
+ */
+Kn_sid 
+KnSpace::srdecode( Kn_srid c, uint k ) const
+{
+  return m_srdecode[ k ][ Field_valueOf( c, m_sid_dirs ) ] 
+    | Field_select( c, m_sid_sign_coords );
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// -------------------- Iterator services for cells ------------------------
+
+/**
+ * Given an unsigned cell [p], returns an iterator to iterate over each 
+ * coordinate the cell spans. (A spel spans all coordinates; a surfel all but
+ * one, etc). Example: <pre>
+ * Kn_uid p;
+ * KnSpace::dir_iterator q;
+ * // Variant 1
+ * for ( q = ks.ubegin_dirs( p ); q != 0; ++q ) ...
+ * // Variant 2
+ * for ( q = ks.ubegin_dirs( p ); ! q.end(); ++q ) ...
+ * </pre>
+ * @param p any unsigned cell.
+ * @return an iterator that points on the first coordinate spanned by the cell.
+ */
+KnSpace::dir_iterator
+KnSpace::ubegin_dirs( Kn_uid p ) const
+{
+  return dir_iterator( Field_valueOf( p, m_uid_dirs ) );
+}
+
+/**
+ * Given a signed cell [p], returns an iterator to iterate over each 
+ * coordinate the cell spans. (A spel spans all coordinates; a surfel all but
+ * one, etc). Example: <pre>
+ * Kn_sid p;
+ * KnSpace::dir_iterator q;
+ * // Variant 1
+ * for ( q = ks.sbegin_dirs( p ); q != 0; ++q ) ...
+ * // Variant 2
+ * for ( q = ks.sbegin_dirs( p ); ! q.end(); ++q ) ...
+ * </pre>
+ * @param p any signed cell.
+ * @return an iterator that points on the first coordinate spanned by the cell.
+ */
+KnSpace::dir_iterator
+KnSpace::sbegin_dirs( Kn_sid p ) const
+{
+  return dir_iterator( Field_valueOf( p, m_sid_dirs ) );
+}
+
+/**
+ * Given an unsigned cell [p], returns an iterator to iterate over each 
+ * coordinate the cell does not span. (A spel spans all coordinates; 
+ * a surfel all but one, etc). Example: <pre>
+ * Kn_uid p;
+ * KnSpace::dir_iterator q;
+ * // Variant 1
+ * for ( q = ks.ubegin_inv_dirs( p ); q != 0; ++q ) ...
+ * // Variant 2
+ * for ( q = ks.ubegin_inv_dirs( p ); ! q.end(); ++q ) ...
+ * </pre>
+ * @param p any unsigned cell.
+ * @return an iterator that points on the first coordinate not spanned by the cell.
+ */
+KnSpace::dir_iterator
+KnSpace::ubegin_inv_dirs( Kn_uid p ) const
+{
+  return dir_iterator( Field_valueOf( p ^ Field_mask( m_uid_dirs),
+				      m_uid_dirs ) );
+}
+
+/**
+ * Given a signed cell [p], returns an iterator to iterate over each 
+ * coordinate the cell does not span. (A spel spans all coordinates; 
+ * a surfel all but one, etc). Example: <pre>
+ * Kn_sid p;
+ * KnSpace::dir_iterator q;
+ * // Variant 1
+ * for ( q = ks.sbegin_inv_dirs( p ); q != 0; ++q ) ...
+ * // Variant 2
+ * for ( q = ks.sbegin_inv_dirs( p ); ! q.end(); ++q ) ...
+ * </pre>
+ * @param p any signed cell.
+ * @return an iterator that points on the first coordinate spanned by the cell.
+ */
+KnSpace::dir_iterator
+KnSpace::sbegin_inv_dirs( Kn_sid p ) const
+{
+  return dir_iterator( Field_valueOf( p ^ Field_mask( m_sid_dirs ),
+				      m_sid_dirs ) );
+}
+
+
+/**
+ * Given an unsigned surfel [s], returns its orthogonal direction (ie,
+ * the coordinate where the surfel is closed).
+ *
+ * @param s an unsigned surfel
+ * @return the orthogonal direction of [s]
+ */
+uint
+KnSpace::uorthDir( Kn_uid s ) const
+{
+  return KnUtils::getLSB( Field_valueOf( s ^ Field_mask( m_uid_dirs ),
+					 m_uid_dirs ) );
+}
+
+/**
+ * Given a signed surfel [s], returns its orthogonal direction (ie,
+ * the coordinate where the surfel is closed).
+ *
+ * @param s a signed surfel
+ * @return the orthogonal direction of [s]
+ */
+uint
+KnSpace::sorthDir( Kn_sid s ) const
+{
+  return KnUtils::getLSB( Field_valueOf( s ^ Field_mask( m_sid_dirs ),
+					 m_sid_dirs ) );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// -------------------- Coded geometry services ----------------------------
+
+/**
+ * Useful for scanning the space.
+ * NB: you can also code it with coordinates in {0,1}.
+ * @return the first cell of the space with the same type as [p].
+ */
+Kn_uid
+KnSpace::ufirst( Kn_uid p ) const
+{
+  return Field_unselect( p, m_uid_coords );
+}
+
+/**
+ * @return the unsigned cell of the space with the lowest id.
+ */
+Kn_uid
+KnSpace::ufirst() const
+{
+  return KnTypes::ZERO;
+}
+
+/**
+ * @return the surfel-like unsigned cell of the space with the lowest id.
+ */
+Kn_uid
+KnSpace::ufirstSurfel() const
+{
+  return Field_mask( m_uid_dirs )
+    & ( ~ Field_mask( m_uid_dir[ dim() - 1 ] ) );
+}
+
+/**
+ * @param r the dimension of the cell.
+ * @return the unsigned [r]-cell of the space with the lowest id.
+ */
+Kn_uid 
+KnSpace::ufirstCell( uint r ) const
+{
+  Kn_uid p = KnTypes::ZERO;
+  for ( uint k = 0; k < r; ++k )
+    p |= Field_mask( m_uid_dir[ k ] );
+  return p;
+}
+
+  
+/**
+ * @return the last cell of the space with the same type as [p].
+ */
+Kn_uid
+KnSpace::ulast( Kn_uid p ) const
+{
+  return Field_unselect( p, m_uid_coords ) | m_uid_coded_maxs;
+}
+
+/**
+ * @return the unsigned cell of the space with the highest id.
+ */
+Kn_uid
+KnSpace::ulast() const
+{
+  return Field_mask( m_uid_dirs ) | m_uid_coded_maxs;
+}
+
+/**
+ * @return the surfel-like unsigned cell of the space with the highest id.
+ */
+Kn_uid 
+KnSpace::ulastSurfel() const
+{
+  return Field_mask( m_uid_dirs )
+    & ( ~ Field_mask( m_uid_dir[ 0 ] ) ) | m_uid_coded_maxs;
+}
+
+/**
+ * @param r the dimension of the cell.
+ * @return the unsigned [r]-cell of the space with the highest id.
+ */
+Kn_uid
+KnSpace::ulastCell( uint r ) const
+{
+  Kn_uid p = KnTypes::ZERO;
+  for ( uint k = dim() - r; k < dim(); ++k )
+    p |= Field_mask( m_uid_dir[ k ] );
+  return p | m_uid_coded_maxs;
+}
+
+
+/**
+ * NB: you can go out of the space.
+ * @param p any cell.
+ * @param k the coordinate that is changed.
+ * @return the same element as [p] except for an incremented coordinate [k].
+ */
+Kn_uid
+KnSpace::ugetIncr( Kn_uid p, uint k ) const
+{
+  return p + m_uid_coded_incr[ k ];
+}
+
+/**
+ * Increment [p] in the [0]-direction (x).
+ * NB: you can go out of the space.
+ * @param p (modified) any cell.
+ */
+void
+KnSpace::uincrX( Kn_uid & p )
+{
+  ++p;
+}
+
+/**
+ * Useful to check if you are going out of the space.
+ * @param p any cell.
+ * @param k the tested coordinate.
+ * @return true if [p] cannot have its [k]-coordinate augmented without leaving the space.
+ */
+bool
+KnSpace::uisMax( Kn_uid p, uint k ) const
+{
+  return Field_select( p, m_uid_coord[ k ] ) == m_uid_coded_max[ k ];
+}
+/**
+ * Useful to check if you are going out of the space.
+ * @param p any cell.
+ * @param k the concerned coordinate.
+ * @return the cell similar to [p] but with the maximum allowed [k]-coordinate.
+ */
+Kn_uid
+KnSpace::ugetMax( Kn_uid p, uint k ) const
+{
+  return Field_unselect( p, m_uid_coord[ k ] ) | m_uid_coded_max[ k ];
+}
+/**
+ * NB: you can go out of the space.
+ * @param p any cell.
+ * @param k the coordinate that is changed.
+ * @return the same element as [p] except for an decremented coordinate [k].
+ */
+Kn_uid
+KnSpace::ugetDecr( Kn_uid p, uint k ) const
+{
+  return p - m_uid_coded_incr[ k ];
+}
+/**
+ * Useful to check if you are going out of the space.
+ * @param p any cell.
+ * @param k the tested coordinate.
+ * @return true if [p] cannot have its [k]-coordinate decreased without leaving the space.
+ */
+bool
+KnSpace::uisMin( Kn_uid p, uint k ) const
+{
+  // min coordinate is 0.
+  return Field_select( p, m_uid_coord[ k ] ) == KnTypes::ZERO;
+}
+/**
+ * Useful to check if you are going out of the space.
+ * @param p any cell.
+ * @param k the concerned coordinate.
+ * @return the cell similar to [p] but with the minimum allowed [k]-coordinate.
+ */
+Kn_uid
+KnSpace::ugetMin( Kn_uid p, uint k ) const
+{
+  // min coordinate is 0.
+  return Field_unselect( p, m_uid_coord[ k ] );
+}
+/**
+ * NB: you can go out of the space.
+ * @param p any cell.
+ * @param k the coordinate that is changed.
+ * @param x the increment.
+ * @return the same element as [p] except for a coordinate [k] incremented with x.
+ */
+Kn_uid
+KnSpace::ugetAdd( Kn_uid p, uint k, Kn_size x ) const
+{
+  return p + Field_codeOf( x, m_uid_coord[ k ] );
+}
+/**
+ * NB: you can go out of the space.
+ * @param p any cell.
+ * @param k the coordinate that is changed.
+ * @param x the decrement.
+ * @return the same element as [p] except for a coordinate [k] decremented with x.
+ */
+Kn_uid
+KnSpace::ugetSub( Kn_uid p, uint k, Kn_size x ) const
+{
+  return p - Field_codeOf( x, m_uid_coord[ k ] );
+}
+/**
+ * Useful to check if you are going out of the space.
+ * @param p any cell.
+ * @param k the coordinate that is tested.
+ * @return the number of increment to do to reach the maximum value.
+ */
+Kn_size
+KnSpace::udistanceMax( Kn_uid p, uint k ) const
+{
+  return ( m_uid_coded_max[ k ] - Field_select( p, m_uid_coord[ k ] ) ) 
+    >> Field_shift( m_uid_coord[ k ] );
+}
+/**
+ * Useful to check if you are going out of the space.
+ * @param p any cell.
+ * @param k the coordinate that is tested.
+ * @return the number of decrement to do to reach the minimum value.
+ */
+Kn_size
+KnSpace::udistanceMin( Kn_uid p, uint k ) const
+{
+  return Field_valueOf( p, m_uid_coord[ k ] );
+}
+
+/**
+ * Code coordinates in a digital space. It is in fact a pointel of the space.
+ * @param x an array of size 'dimension()'.
+ * @return the unsigned code of the corresponding pointel.
+ */
+Kn_uid
+KnSpace::ucodeCoords( const Kn_size* x ) const
+{
+  // First coordinate is processed before (no need to shift).
+  Kn_uid c = *(x++);
+  // Then all remaining coordinates.
+  uint k = 1;
+  while ( k != m_dim )
+    {
+      c += *(x++) << m_uid_coord[ k++ ].shift;
+    }
+  return c;
+}
+
+/**
+ * Add the coded positive coordinates [coord] (ie a pointel) to [p]. 
+ * NB: you can go out of the space.
+ * @param p any cell.
+ * @param coord any pointel.
+ * @return the unsigned code of the cell [p] translated by [coord].
+ */
+Kn_uid
+KnSpace::utranslatePos( Kn_uid p, Kn_uid coord ) const
+{
+  return p + coord;
+}
+
+/**
+ * Get the coded bound of [p] in the [k]th direction constrained by
+ * [bound].
+ * @param p any cell.
+ * @param bound the element acting as bound.
+ * @param k the concerned coordinate.
+ * @return the unsigned code of the bound of [p].
+ */
+Kn_uid
+KnSpace::ugetBound( Kn_uid p, Kn_uid bound, uint k ) const
+{
+  return Field_unselect( p, m_uid_coord[ k ] ) 
+    | Field_select( bound, m_uid_coord[ k ] );
+}
+
+/**
+ * Get the coded bound of [p] in the 0th direction (x) constrained by
+ * [bound]. (For speed-up)
+ * @param p any cell.
+ * @param bound the element acting as bound.
+ * @return the unsigned code of the bound of [p].
+ */
+Kn_uid
+KnSpace::ugetBoundX( Kn_uid p, Kn_uid bound ) const
+{
+  return Field_unselect( p, (*m_uid_coord) ) 
+    | Field_select( bound, (*m_uid_coord) );
+}
+
+/**
+ * Increment the cell [p] to its next position (as classically done in
+ * a scanning).
+ * NB: also it is very generic, it is better to use a 'KnSpaceScanner' for
+ * an efficient scanning (when you know the dimension of the space at compile
+ * time.
+ * Exemple: <pre> 
+ * KnSpace kn( ... );
+ * Kn_uid first, last; // lower and upper bounds 
+ * Kn_uid p = first;
+ * do 
+ *   { // ... whatever [p] is the current cell
+ *   }
+ * while ( kn.uincrInBounds( p, first, last ) ); 
+ * </pre>
+ * @param p any cell.
+ * @param lower the lower bound.
+ * @param upper the upper bound.
+ * @return true if p is still within the bounds, false if the scanning is finished.
+ */
+bool 
+KnSpace::uincrInBounds( Kn_uid & p, Kn_uid lower, Kn_uid upper ) const
+{
+  uint k;
+  if ( p == ugetBoundX( p, upper ) )
+    {
+      if ( p == upper ) return false;
+      p = ugetBoundX( p, lower );
+      for ( k = 1; k < m_dim; ++k )
+	{
+	  if ( p == ugetBound( p, upper, k ) )
+	    p = ugetBound( p, lower, k );
+	  else  
+	    { 
+	      p = ugetIncr( p, k );
+	      break;
+	    }
+	}
+      return true;
+    }
+  uincrX( p );
+  return true;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// -------------------- Signed Coded geometry services --------------------
+
+/**
+ * Useful for scanning the space.
+ * NB: you can also code it with coordinates in {0,1}.
+ * @return the first cell of the space with the same type as [p].
+ */
+Kn_sid
+KnSpace::sfirst( Kn_sid p ) const
+{
+  return Field_unselect( p, m_sid_coords );
+}
+
+/**
+ * @return the signed cell of the space with the lowest id.
+ */
+Kn_sid
+KnSpace::sfirst() const
+{
+  return KnTypes::ZERO;
+}
+
+/**
+ * @return the surfel-like signed cell of the space with the lowest id.
+ */
+Kn_sid
+KnSpace::sfirstSurfel() const
+{
+  return Field_mask( m_sid_dirs )
+    & ( ~ Field_mask( m_sid_dir[ dim() - 1 ] ) );
+}
+
+/**
+ * @param r the dimension of the cell.
+ * @return the signed [r]-cell of the space with the lowest id.
+ */
+Kn_sid 
+KnSpace::sfirstCell( uint r ) const
+{
+  Kn_sid p = KnTypes::ZERO;
+  for ( uint k = 0; k < r; ++k )
+    p |= Field_mask( m_sid_dir[ k ] );
+  return p;
+}
+
+
+/**
+ * @return the last cell of the space with the same type as [p].
+ */
+Kn_sid
+KnSpace::slast( Kn_sid p ) const
+{
+  return Field_unselect( p, m_sid_coords ) | m_sid_coded_maxs;
+}
+
+/**
+ * @return the signed cell of the space with the highest id.
+ */
+Kn_sid
+KnSpace::slast() const
+{
+  return Field_mask( m_sid_dirs_and_sign ) | m_sid_coded_maxs;
+}
+
+/**
+ * @return the surfel-like signed cell of the space with the highest id.
+ */
+Kn_sid 
+KnSpace::slastSurfel() const
+{
+  return ( Field_mask( m_sid_dirs_and_sign )
+	   & ( ~ Field_mask( m_sid_dir[ 0 ] ) ) ) 
+    | m_sid_coded_maxs;
+}
+
+/**
+ * @param r the dimension of the cell.
+ * @return the signed [r]-cell of the space with the highest id.
+ */
+Kn_sid
+KnSpace::slastCell( uint r ) const
+{
+  Kn_sid p = Field_mask( m_sid_sign );
+  for ( uint k = dim() - r; k < dim(); ++k )
+    p |= Field_mask( m_sid_dir[ k ] );
+  return p | m_sid_coded_maxs;
+}
+
+
+
+
+
+/**
+ * NB: you can go out of the space.
+ * @param p any cell.
+ * @param k the coordinate that is changed.
+ * @return the same element as [p] except for an incremented coordinate [k].
+ */
+Kn_sid
+KnSpace::sgetIncr( Kn_sid p, uint k ) const
+{
+  return p + m_sid_coded_incr[ k ];
+}
+
+/**
+ * Increment [p] in the [0]-direction (x).
+ * NB: you can go out of the space.
+ * @param p (modified) any cell.
+ */
+void
+KnSpace::sincrX( Kn_sid & p )
+{
+  ++p;
+}
+
+/**
+ * Useful to check if you are going out of the space.
+ * @param p any cell.
+ * @param k the tested coordinate.
+ * @return true if [p] cannot have its [k]-coordinate augmented without leaving the space.
+ */
+bool
+KnSpace::sisMax( Kn_sid p, uint k ) const
+{
+  return Field_select( p, m_sid_coord[ k ] ) == m_sid_coded_max[ k ];
+}
+/**
+ * Useful to check if you are going out of the space.
+ * @param p any cell.
+ * @param k the concerned coordinate.
+ * @return the cell similar to [p] but with the maximum allowed [k]-coordinate.
+ */
+Kn_sid
+KnSpace::sgetMax( Kn_sid p, uint k ) const
+{
+  return Field_unselect( p, m_sid_coord[ k ] ) | m_sid_coded_max[ k ];
+}
+/**
+ * NB: you can go out of the space.
+ * @param p any cell.
+ * @param k the coordinate that is changed.
+ * @return the same element as [p] except for an decremented coordinate [k].
+ */
+Kn_sid
+KnSpace::sgetDecr( Kn_sid p, uint k ) const
+{
+  return p - m_sid_coded_incr[ k ];
+}
+/**
+ * Useful to check if you are going out of the space.
+ * @param p any cell.
+ * @param k the tested coordinate.
+ * @return true if [p] cannot have its [k]-coordinate decreased without leaving the space.
+ */
+bool
+KnSpace::sisMin( Kn_sid p, uint k ) const
+{
+  // min coordinate is 0.
+  return Field_select( p, m_sid_coord[ k ] ) == KnTypes::ZERO;
+}
+/**
+ * Useful to check if you are going out of the space.
+ * @param p any cell.
+ * @param k the concerned coordinate.
+ * @return the cell similar to [p] but with the minimum allowed [k]-coordinate.
+ */
+Kn_sid
+KnSpace::sgetMin( Kn_sid p, uint k ) const
+{
+  // min coordinate is 0.
+  return Field_unselect( p, m_sid_coord[ k ] );
+}
+/**
+ * NB: you can go out of the space.
+ * @param p any cell.
+ * @param k the coordinate that is changed.
+ * @param x the increment.
+ * @return the same element as [p] except for a coordinate [k] incremented with x.
+ */
+Kn_sid
+KnSpace::sgetAdd( Kn_sid p, uint k, Kn_size x ) const
+{
+  return p + Field_codeOf( x, m_sid_coord[ k ] );
+}
+/**
+ * NB: you can go out of the space.
+ * @param p any cell.
+ * @param k the coordinate that is changed.
+ * @param x the decrement.
+ * @return the same element as [p] except for a coordinate [k] decremented with x.
+ */
+Kn_sid
+KnSpace::sgetSub( Kn_sid p, uint k, Kn_size x ) const
+{
+  return p - Field_codeOf( x, m_sid_coord[ k ] );
+}
+/**
+ * Useful to check if you are going out of the space.
+ * @param p any cell.
+ * @param k the coordinate that is tested.
+ * @return the number of increment to do to reach the maximum value.
+ */
+Kn_size
+KnSpace::sdistanceMax( Kn_sid p, uint k ) const
+{
+  return ( m_sid_coded_max[ k ] - Field_select( p, m_sid_coord[ k ] ) ) 
+    >> Field_shift( m_sid_coord[ k ] );
+}
+/**
+ * Useful to check if you are going out of the space.
+ * @param p any cell.
+ * @param k the coordinate that is tested.
+ * @return the number of decrement to do to reach the minimum value.
+ */
+Kn_size
+KnSpace::sdistanceMin( Kn_sid p, uint k ) const
+{
+  return Field_valueOf( p, m_sid_coord[ k ] );
+}
+
+/**
+ * Code coordinates in a digital space. It is in fact a pointel of the space.
+ * @param x an array of size 'dimension()'.
+ * @return the signed code of the corresponding pointel.
+ */
+Kn_sid
+KnSpace::scodeCoords( const Kn_size* x ) const
+{
+  // First coordinate is processed before (no need to shift).
+  Kn_sid c = *(x++);
+  // Then all remaining coordinates.
+  uint k = 1;
+  while ( k != m_dim )
+    {
+      c += *(x++) << m_sid_coord[ k++ ].shift;
+    }
+  return c;
+}
+
+/**
+ * Add the coded positive coordinates [coord] (ie a pointel) to [p]. 
+ * NB: you can go out of the space.
+ * @param p any cell.
+ * @param coord any pointel.
+ * @return the unsigned code of the cell [p] translated by [coord].
+ */
+Kn_sid
+KnSpace::stranslatePos( Kn_sid p, Kn_sid coord ) const
+{
+  return p + coord;
+}
+
+/**
+ * Get the coded bound of [p] in the [k]th direction constrained by
+ * [bound].
+ * @param p any cell.
+ * @param bound the element acting as bound.
+ * @param k the concerned coordinate.
+ * @return the unsigned code of the bound of [p].
+ */
+Kn_sid
+KnSpace::sgetBound( Kn_sid p, Kn_sid bound, uint k ) const
+{
+  return Field_unselect( p, m_sid_coord[ k ] ) 
+    | Field_select( bound, m_sid_coord[ k ] );
+}
+
+/**
+ * Get the coded bound of [p] in the 0th direction (x) constrained by
+ * [bound]. (For speed-up)
+ * @param p any cell.
+ * @param bound the element acting as bound.
+ * @return the unsigned code of the bound of [p].
+ */
+Kn_sid
+KnSpace::sgetBoundX( Kn_sid p, Kn_sid bound ) const
+{
+  return Field_unselect( p, (*m_sid_coord) ) 
+    | Field_select( bound, (*m_sid_coord) );
+}
+
+/**
+ * Increment the cell [p] to its next position (as classically done in
+ * a scanning).
+ * NB: also it is very generic, it is better to use a 'KnSpaceScanner' for
+ * an efficient scanning (when you know the dimension of the space at compile
+ * time.
+ * Exemple: <pre> 
+ * KnSpace kn( ... );
+ * Kn_sid first, last; // lower and upper bounds 
+ * Kn_sid p = first;
+ * do 
+ *   { // ... whatever [p] is the current cell
+ *   }
+ * while ( kn.sincrInBounds( p, first, last ) ); 
+ * </pre>
+ * @param p any cell.
+ * @param lower the lower bound.
+ * @param upper the upper bound.
+ * @return true if p is still within the bounds, false if the scanning is finished.
+ */
+bool 
+KnSpace::sincrInBounds( Kn_sid & p, Kn_sid lower, Kn_sid upper ) const
+{
+  uint k;
+  if ( p == sgetBoundX( p, upper ) )
+    {
+      if ( p == upper ) return false;
+      p = sgetBoundX( p, lower );
+      for ( k = 1; k < m_dim; ++k )
+	{
+	  if ( p == sgetBound( p, upper, k ) )
+	    p = sgetBound( p, lower, k );
+	  else  
+	    { 
+	      p = sgetIncr( p, k );
+	      break;
+	    }
+	}
+      return true;
+    }
+  sincrX( p );
+  return true;
+}
+
+
+
+
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////////////////////
+// -------------------- Geometry services ----------------------------------
+
+/**
+ * @param p any unsigned cell.
+ * @return the coordinates of the centroid of the cell [p] in Rn.
+ */
+Vector
+KnSpace::ucentroid( Kn_uid p ) const
+{
+  Vector v( m_dim );
+  ucentroid( p, v );
+  return v;
+}
+
+/**
+ * @param p any unsigned cell.
+ * @param k any coordinate axis.
+ * @return the k-coordinate of the centroid of the cell [p] in Rn.
+ */
+float
+KnSpace::ucentroid( Kn_uid p, uint k ) const
+{
+  return Field_valueOf( p, m_uid_coord[ k ] )
+    + ( Field_select( p, m_uid_dir[ k ] ) ? 0.5f : 0.0f );
+}
+
+
+/**
+ * Returns in [v] the coordinates of the centroid of the cell [p] in Rn.
+ * @param p any unsigned cell.
+ * @param v any vector of size 'dim()'.
+ */
+void
+KnSpace::ucentroid( Kn_uid p, Vector & v ) const
+{
+  ASSERT_KnSpace( v.size() == dim() );
+  
+  Kn_uid mask_dir = Field_valueOf( p, m_uid_dirs );
+  v.rw( 0 ) = ( p & m_uid_coord[ 0 ].mask )
+    + ( ( mask_dir & 1 ) ? 0.5 : 0.0 );
+  uint k = 1;
+  while ( k < m_dim )
+    {
+      mask_dir >>= 1;
+      v.rw( k ) =
+	( Field_valueOf( p, m_uid_coord[ k ] ) )
+	+ ( ( mask_dir & 1 ) ? 0.5 : 0.0 );
+      k++;
+    }
+}
+
+/**
+ * @param p any signed cell.
+ * @return the coordinates of the centroid of the cell [p] in Rn.
+ */
+Vector
+KnSpace::scentroid( Kn_sid p ) const
+{
+  Vector v( m_dim );
+  scentroid( p, v );
+  return v;
+}
+
+/**
+ * @param p any signed cell.
+ * @param k any coordinate axis.
+ * @return the k-coordinate of the centroid of the cell [p] in Rn.
+ */
+float
+KnSpace::scentroid( Kn_sid p, uint k ) const
+{
+  return Field_valueOf( p, m_sid_coord[ k ] )
+    + ( Field_select( p, m_sid_dir[ k ] ) ? 0.5f : 0.0f );
+}
+
+/**
+ * Returns in [v] the coordinates of the centroid of the cell [p] in Rn.
+ * @param p any signed cell.
+ * @param v any vector of size 'dim()'.
+ */
+void
+KnSpace::scentroid( Kn_sid p, Vector & v ) const
+{
+  ASSERT_KnSpace( v.size() == dim() );
+
+  Kn_uid mask_dir = Field_valueOf( p, m_sid_dirs );
+  v.rw( 0 ) = ( p & m_sid_coord[ 0 ].mask )
+    + ( ( mask_dir & 1 ) ? 0.5 : 0.0 );
+  uint k = 1;
+  while ( k < m_dim )
+    {
+      mask_dir >>= 1;
+      v.rw( k ) =
+	( Field_valueOf( p, m_sid_coord[ k ] ) )
+	+ ( ( mask_dir & 1 ) ? 0.5 : 0.0 );
+      k++;
+    }
+}
+
+/**
+ * Returns the basis of vectors that forms the geometry of the cell [p].
+ * To get all base vectors, just keep one coordinate different from 0, and
+ * sets the other to zero.
+ * NB: if [p] is a 1-cell, then the base is constituted of only one vector,
+ * which is the returned one.
+ * @param p any unsigned cell.
+ * @return a vector coding the vector basis.
+ */
+const Vector & 
+KnSpace::uvectorBasis( Kn_uid p ) const
+{
+  return m_basis[ Field_valueOf( p, m_uid_dirs ) ];
+}
+
+/**
+ * Returns the basis of vectors orthogonal to the one that forms the geometry
+ * of the cell [p].
+ * To get all orthogonal base vectors, just keep one coordinate different
+ * from 0, and sets the other to zero.
+ * NB: if [p] is a n-1-cell, then the base is constituted of only one vector,
+ * which is the returned one. (ususally called the "normal" of the cell.
+ * @param p any unsigned cell.
+ * @return a vector coding the vector basis.
+ */
+const Vector & 
+KnSpace::uorthVectorBasis( Kn_uid p ) const
+{
+  return m_orth_basis[ Field_valueOf( p, m_uid_dirs ) ];
+}
+
+/**
+ * Returns the basis of vectors that forms the geometry of the cell [p].
+ * To get all base vectors, just keep one coordinate different from 0, and
+ * sets the other to zero.
+ * NB: if [p] is a 1-cell, then the base is constituted of only one vector,
+ * which is the returned one.
+ * @param p any signed cell.
+ * @return a vector coding the vector basis.
+ */
+const Vector & 
+KnSpace::svectorBasis( Kn_sid p ) const
+{
+  return m_basis[ Field_valueOf( p, m_sid_dirs ) ];
+}
+
+/**
+ * Returns the basis of vectors orthogonal to the one that forms the geometry
+ * of the cell [p].
+ * To get all orthogonal base vectors, just keep one coordinate different
+ * from 0, and sets the other to zero.
+ * NB: if [p] is a n-1-cell, then the base is constituted of only one vector,
+ * which is the returned one. (ususally called the "normal" of the cell.
+ * @param p any signed cell.
+ * @return a vector coding the vector basis.
+ */
+const Vector & 
+KnSpace::sorthVectorBasis( Kn_sid p ) const
+{
+  return m_orth_basis[ Field_valueOf( p, m_sid_dirs ) ];
+}
+
+/**
+ * Returns the normal vector of the surfel [b] pointing in the direct 
+ * orientation (usually inside).
+ * @param p any signed surfel.
+ * @return a vector coding the vector basis.
+ */
+Vector 
+KnSpace::snormalInside( Kn_sid b ) const
+{
+  Vector n = this->sorthVectorBasis( b );
+  uint i = this->sorthDir( b );
+  bool direct = this->sdirect( b, i );
+  if ( ! direct )
+      n.rw( i ) = - n.ro( i );
+//   if ( ! direct )
+//     for ( uint i = 0; i < n.size(); ++i )
+//       n.rw( i ) = - n.ro( i );
+  return n;
+}
+
+/**
+ * Returns the normal vector of the surfel [b] pointing in the direct 
+ * orientation (usually inside).
+ * @param p any signed surfel.
+ * @param n (returns) a vector coding the vector basis.
+ */
+void
+KnSpace::snormalInside( Kn_sid b, Vector & n ) const
+{
+  n = this->sorthVectorBasis( b );
+  uint i = this->sorthDir( b );
+  bool direct = this->sdirect( b, i );
+  if ( ! direct )
+      n.rw( i ) = - n.ro( i );
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// -------------------- Adjacency services ----------------------------------
+
+/**
+ * Given a cell [p], a coordinate [k], and a positive or negative
+ * displacement [pos], return the adjacent (up or low) cell of same type
+ * as [p] in this direction. <p>
+ * NB: You may go out of the space.
+ * @param p any unsigned cell.
+ * @param k any coordinate.
+ * @param pos 'true' is positive along coordinate, 'false' negative.
+ * @return the cell adjacent to [p] along [pos][k].
+ */
+Kn_uid
+KnSpace::uadjacent( Kn_uid p, uint k, bool pos ) const
+{
+  ASSERT_KnSpace( ( 0 <= k ) && ( k < dim() ) );
+  return pos ? p + m_uid_coded_incr[ k ] : p - m_uid_coded_incr[ k ];
+}
+
+/**
+ * Given a cell [p], a coordinate [k], and a positive or negative
+ * displacement [pos], return the adjacent (up or low) cell of same type
+ * as [p] in this direction. <p>
+ * NB: You may go out of the space.
+ * @param p any signed cell.
+ * @param k any coordinate.
+ * @param pos 'true' is positive along coordinate, 'false' negative.
+ * @return the cell adjacent to [p] along [pos][k].
+ */
+Kn_sid
+KnSpace::sadjacent( Kn_sid p, uint k, bool pos ) const
+{
+  ASSERT_KnSpace( ( 0 <= k ) && ( k < dim() ) );
+  return pos ? p + m_sid_coded_incr[ k ] : p - m_sid_coded_incr[ k ];
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// -------------------- Incidence services ----------------------------------
+
+/**
+ * A l-cell [p2] is in the low-incidence of a k-cell [p1] if [p2] is a face
+ * of [p1].
+ * NB: '[lvl] == 0' implies that p1 and p2 are equal.
+ * TODO: we could use a log2(nb_incident) algorithm to check if [p1] and [p2]
+ * are incident. nb_incident is bounded by 2^dim().
+ * @param p1 any unsigned cell.
+ * @param p2 any unsigned cell.
+ * @param lvl (returns) the level of the low-incidency ( dim(k)-dim(l) ).
+ * @return 'true' if [p2] is a face of [p1] ([p2] [lvl]-low-incident to [p1])
+ */
+bool 
+KnSpace::uisInLowIncidence( Kn_uid p1, Kn_uid p2, int & lvl ) const
+{
+  // Since it uses uint8, 'dim()' should not be greater than 8.
+  ASSERT_KnSpace( dim() < 8 );
+  // Extracts cell types.
+  uint8 p1dirs = Field_valueOf( p1, m_uid_dirs );
+  uint8 p2dirs = Field_valueOf( p2, m_uid_dirs );
+  // Check LUT to see if these cells can be incident.
+  if ( m_low_incident[ ( p1dirs << m_dim ) + p2dirs ] )
+    { // Their cell-types indicate that [p2] can be a face of [p1].
+      // Type of incidence:
+      uint8 diff = p1dirs - p2dirs;
+      // Now, we check coordinates.
+      Kn_uid delta_coords = Field_select( ( p1 - p2 ), m_uid_coords );
+      // The number of bits set give the log2 of the number of incident cells.
+      lvl = KnUtils::countSetBits( diff );
+      // We look into the LUT of possible coordinate differences.
+      Kn_uid* ptr = m_uid_coded_coords_vtx + ( diff << m_dim );
+      Kn_uid* ptr_end = ptr + ( 1 << lvl );
+      // Loop on all possible coordinate differences. Note that they are
+      // sorted to speed up the detection of non-incident cells.
+      while ( ptr_end-- != ptr )
+	{
+	  Kn_uid val = *ptr_end;
+	  // NB: The following is faster than:
+	  // if ( delta_coords >= val ) return delta_coords == val;
+	  if ( delta_coords > val )       return false;
+	  else if ( delta_coords == val ) return true;
+	}
+    }
+  return false;
+}
+
+/**
+ * A l-cell [p2] is in the up-incidence of a k-cell [p1] if [p1] is a face
+ * of [p2].
+ * NB: '[lvl] == 0' implies that p1 and p2 are equal.
+ * TODO: we could use a log2(nb_incident) algorithm to check if [p1] and [p2]
+ * are incident. nb_incident is bounded by 2^dim().
+ * @param p1 any unsigned cell.
+ * @param p2 any unsigned cell.
+ * @param lvl (returns) the level of the up-incidency ( dim(l)-dim(k) ).
+ * @return 'true' if [p1] is a face of [p2] ([p2] [lvl]-up-incident to [p1])
+ */
+bool 
+KnSpace::uisInUpIncidence( Kn_uid p1, Kn_uid p2, int & lvl ) const
+{
+  // Since it uses uint8, 'dim()' should not be greater than 8.
+  ASSERT_KnSpace( dim() < 8 );
+  // Extracts cell types.
+  uint8 p1dirs = Field_valueOf( p1, m_uid_dirs );
+  uint8 p2dirs = Field_valueOf( p2, m_uid_dirs );
+  // Check LUT to see if these cells can be incident.
+  if ( m_up_incident[ ( p1dirs << m_dim ) + p2dirs ] )
+    { // Their cell-types indicate that [p1] can be a face of [p2].
+      // Type of incidence:
+      uint8 diff =  p2dirs - p1dirs;
+      // Now, we check coordinates.
+      Kn_uid delta_coords = Field_select( ( p2 - p1 ), m_uid_coords );
+      // The number of bits set give the log2 of the number of incident cells.
+      lvl = KnUtils::countSetBits( diff );
+      // We look into the LUT of possible coordinate differences.
+      Kn_uid* ptr = m_uid_coded_coords_vtx + ( diff << m_dim );
+      Kn_uid* ptr_end = ptr + ( 1 << lvl );
+      // Loop on all possible coordinate differences. Note that they are
+      // sorted to speed up the detection of non-incident cells.
+      while ( ptr_end-- != ptr )
+	{
+	  Kn_uid val = *ptr_end;
+	  // NB: The following is faster than:
+	  // if ( delta_coords >= val ) return delta_coords == val;
+	  if ( delta_coords > val )       return false;
+	  else if ( delta_coords == val ) return true;
+	}
+    }
+  return false;
+}
+
+/**
+ * A k-cell [p1] and a l-cell [p2] are incident if one is a face of the
+ * other.
+ * NB: if (k-l) is positive, [p1] has [p2] in its lower-incidence
+ * and [p2] has [p1] in its upper-incidence.
+ * NB: '[lvl] == 0' implies that p1 and p2 are equal.
+ * @param p1 any unsigned cell.
+ * @param p2 any unsigned cell.
+ * @param lvl (returns) the level of the incidency ( dim(k)-dim(l) ).
+ * @return 'true' if the two cells are [lvl]-incident.
+ */
+bool
+KnSpace::uareIncident( Kn_uid p1, Kn_uid p2, int & lvl ) const
+{
+  // Since it uses uint8, 'dim()' should not be greater than 8.
+  ASSERT_KnSpace( dim() < 8 );
+  // Extracts cell types.
+  uint8 p1dirs = Field_valueOf( p1, m_uid_dirs );
+  uint8 p2dirs = Field_valueOf( p2, m_uid_dirs );
+  uint offset = ( p1dirs << m_dim ) + p2dirs;
+  // Check LUT to see if these cells can be incident.
+  if ( m_low_incident[ offset ] )
+    { // Their cell-types indicate that [p2] can be a face of [p1].
+      // Type of incidence:
+      uint8 diff = p1dirs - p2dirs;
+      // Now, we check coordinates.
+      Kn_uid delta_coords = Field_select( ( p1 - p2 ), m_uid_coords );
+      // The number of bits set give the log2 of the number of incident cells.
+      lvl = KnUtils::countSetBits( diff );
+      // We look into the LUT of possible coordinate differences.
+      Kn_uid* ptr = m_uid_coded_coords_vtx + ( diff << m_dim );
+      Kn_uid* ptr_end = ptr + ( 1 << lvl );
+      // Loop on all possible coordinate differences. Note that they are
+      // sorted to speed up the detection of non-incident cells.
+      while ( ptr_end-- != ptr )
+	{
+	  Kn_uid val = *ptr_end;
+	  // NB: The following is faster than:
+	  // if ( delta_coords >= val ) return delta_coords == val;
+	  if ( delta_coords > val )       return false;
+	  else if ( delta_coords == val ) return true;
+	}
+      return false;
+    }
+  else if ( m_up_incident[ offset ] )
+    { // Their cell-types indicate that [p1] can be a face of [p2].
+      // Type of incidence:
+      uint8 diff = p2dirs - p1dirs;
+      // Now, we check coordinates.
+      Kn_uid delta_coords = Field_select( ( p2 - p1 ), m_uid_coords );
+      // The number of bits set give the log2 of the number of incident cells.
+      lvl = KnUtils::countSetBits( diff );
+      // We look into the LUT of possible coordinate differences.
+      Kn_uid* ptr = m_uid_coded_coords_vtx + ( diff << m_dim );
+      Kn_uid* ptr_end = ptr + ( 1 << lvl );
+      // Loop on all possible coordinate differences. Note that they are
+      // sorted to speed up the detection of non-incident cells.
+      while ( ptr_end-- != ptr )
+	{
+	  Kn_uid val = *ptr_end;
+	  // NB: The following is faster than:
+	  // if ( delta_coords >= val ) return delta_coords == val;
+	  if ( delta_coords > val )       return false;
+	  else if ( delta_coords == val )
+	    { 
+	      lvl = -lvl;
+	      return true;
+	    }
+	}
+      return false;
+    }
+  return false;
+}
+
+
+/**
+ * Given a cell [p], a coordinate [k], and a positive or negative
+ * displacement [pos], return the 1-low-incident cell to [p].
+ * The positive incident has a [k]-coordinate with +1 compared to [p],
+ * the negative has the same coordinates as [p]. 
+ * <p>
+ * NB: You may go out of the space.
+ * @param p any unsigned cell.
+ * @param k any coordinate.
+ * @param pos 'true' is positive along coordinate, 'false' negative.
+ * @return the cell 1-low-incident to [p] along [pos][k].
+ */
+Kn_uid
+KnSpace::ulowIncident( Kn_uid p, uint k, bool pos ) const
+{
+  ASSERT_KnSpace( Field_select( p, m_uid_dir[ k ] ) );
+  if ( pos )
+    return ( p & Field_inv_mask( m_uid_dir[ k ] ) ) + m_uid_coded_incr[ k ];
+  return ( p & Field_inv_mask( m_uid_dir[ k ] ) );
+}
+
+/**
+ * Given a cell [p], a coordinate [k], and a positive or negative
+ * displacement [pos], return the 1-up-incident cell to [p].
+ * The negative incident has a [k]-coordinate with -1 compared to [p],
+ * the positive has the same coordinates as [p]. 
+ * <p>
+ * NB: You may go out of the space.
+ * @param p any unsigned cell.
+ * @param k any coordinate.
+ * @param pos 'true' is positive along coordinate, 'false' negative.
+ * @return the cell 1-up-incident to [p] along [pos][k].
+ */
+Kn_uid
+KnSpace::uupIncident( Kn_uid p, uint k, bool pos ) const
+{
+  ASSERT_KnSpace( ! Field_select( p, m_uid_dir[ k ] ) );
+  if ( pos )
+    return ( p | Field_mask( m_uid_dir[ k ] ) );
+  return ( p | Field_mask( m_uid_dir[ k ] ) ) - m_uid_coded_incr[ k ];
+}
+
+/**
+ * Given a cell [p], a coordinate [k], and a positive or negative
+ * displacement [pos], return the 1-incident cell to [p]
+ * in this direction. The negative incident has a [k]-coordinate 
+ * with -1 compared to [p], the positive has the same coordinates as [p]. 
+ * <p>
+ * NB: You may go out of the space.
+ * @param p any unsigned cell.
+ * @param k any coordinate.
+ * @param pos 'true' is positive along coordinate, 'false' negative.
+ * @return the cell 1-up-incident to [p] along [pos][k].
+ */
+Kn_uid
+KnSpace::uincident( Kn_uid p, uint k, bool pos ) const
+{
+  Kn_uid q = p ^ Field_mask( m_uid_dir[ k ] );
+  if ( Field_select( p, m_uid_dir[ k ] ) )
+    { 
+      if ( pos ) // +-low-incidence
+	return q + m_uid_coded_incr[ k ];
+      return q;
+    }
+  if ( pos )
+    return q;
+  return q - m_uid_coded_incr[ k ];
+}
+
+/**
+ * Given a signed cell [p], a coordinate [k], and a positive or negative
+ * displacement [pos], return the 1-low-incident cell to [p].
+ * The positive incident has a [k]-coordinate with +1 compared to [p],
+ * the negative has the same coordinates as [p]. 
+ * <p>
+ * NB: You may go out of the space.
+ * @param p any signed cell.
+ * @param k any coordinate.
+ * @param pos 'true' is positive along coordinate, 'false' negative.
+ * @return the cell 1-low-incident to [p] along [pos][k].
+ */
+Kn_sid
+KnSpace::slowIncident( Kn_sid p, uint k, bool pos ) const
+{
+  ASSERT_KnSpace( Field_select( p, m_sid_dir[ k ] ) );
+  uint offset = ( k << ( m_dim + 1 ) )
+    + Field_valueOf( p, m_sid_dirs_and_sign );
+  if ( pos )
+    return 
+      ( m_sid_incident2[ offset ] << m_sid_dirs_and_sign.shift ) 
+      | Field_select( p, m_sid_coords )
+      + m_sid_coded_incr[ k ];
+  return
+    ( m_sid_incident1[ offset ] << m_sid_dirs_and_sign.shift )
+    | Field_select( p, m_sid_coords );
+}
+
+/**
+ * Given a signed cell [p], a coordinate [k], and a positive or negative
+ * displacement [pos], return the 1-up-incident cell to [p].
+ * The negative incident has a [k]-coordinate with -1 compared to [p],
+ * the positive has the same coordinates as [p]. 
+ * <p>
+ * NB: You may go out of the space.
+ * @param p any signed cell.
+ * @param k any coordinate.
+ * @param pos 'true' is positive along coordinate, 'false' negative.
+ * @return the cell 1-up-incident to [p] along [pos][k].
+ */
+Kn_sid
+KnSpace::supIncident( Kn_sid p, uint k, bool pos ) const
+{
+  ASSERT_KnSpace( ! ( Field_select( p, m_sid_dir[ k ] ) ) );
+
+  uint offset = ( k << ( m_dim + 1 ) )
+    + Field_valueOf( p, m_sid_dirs_and_sign );
+  // incident1 and incident2 are inverted compared with low-incidence.
+  if ( pos )
+    return 
+      ( m_sid_incident1[ offset ] << m_sid_dirs_and_sign.shift ) 
+      | Field_select( p, m_sid_coords );
+  return
+    ( m_sid_incident2[ offset ] << m_sid_dirs_and_sign.shift )
+    | Field_select( p, m_sid_coords )
+    - m_sid_coded_incr[ k ];
+}
+
+/**
+ * Given a signed cell [p], a coordinate [k], and a positive or negative
+ * displacement [pos], return the signed 1-incident cell to [p] (up or low).
+ * The positive incident has a [k]-coordinate +1(low)+0(up) compared to [p],
+ * The negative incident has a [k]-coordinate +0(low)-1(up) compared to [p],
+ * <p>
+ * NB: You may go out of the space.
+ * @param p any signed cell.
+ * @param k any coordinate.
+ * @param pos 'true' is positive along coordinate, 'false' negative.
+ * @return the cell 1-incident to [p] along [pos][k].
+ */
+Kn_sid
+KnSpace::sincident( Kn_sid p, uint k, bool pos ) const
+{
+  uint offset = ( k << ( m_dim + 1 ) )
+    + Field_valueOf( p, m_sid_dirs_and_sign );
+  if ( Field_select( p, m_sid_dir[ k ] ) ) // low-incidence
+    {
+      if ( pos )
+	return 
+	  ( m_sid_incident2[ offset ] << m_sid_dirs_and_sign.shift ) 
+	  | Field_select( p, m_sid_coords )
+	  + m_sid_coded_incr[ k ];
+      
+      return
+	( m_sid_incident1[ offset ] << m_sid_dirs_and_sign.shift )
+	| Field_select( p, m_sid_coords );
+    }
+  if ( pos )
+    return 
+      ( m_sid_incident1[ offset ] << m_sid_dirs_and_sign.shift ) 
+      | Field_select( p, m_sid_coords );
+  return
+    ( m_sid_incident2[ offset ] << m_sid_dirs_and_sign.shift )
+    | Field_select( p, m_sid_coords )
+    - m_sid_coded_incr[ k ];
+}
+
+
+/**
+ * Return 'true' if the direct orientation of [p] along [k] is in the
+ * positive coordinate direction. The direct orientation in a direction
+ * allows to go from positive incident cells to positive incident cells.
+ * This means that <code>
+ * ks.decodeSign( ks.sincident( p, k, ks.sdirect( p, k ) ) )
+ * == KnTypes::POS </code> 
+ * is always true.
+ * @param p any signed cell.
+ * @param k any coordinate.
+ * @return the direct orientation of [p] along [k].
+ */
+bool
+KnSpace::sdirect( Kn_sid p, uint k ) const
+{
+  return m_sid_direct_orientation[ Field_valueOf( p, m_sid_dirs_and_sign )
+				     + ( k << ( dim() + 1 ) ) ];
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------
+std::ostream&
+operator<<( std::ostream & that_stream, 
+	    const KnSpace & that_object_to_display )
+{
+  that_object_to_display.selfDisplay(that_stream);
+  return that_stream;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene

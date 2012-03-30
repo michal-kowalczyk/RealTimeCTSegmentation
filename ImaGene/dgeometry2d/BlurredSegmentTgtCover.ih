@@ -1,0 +1,183 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : BlurredSegmentTgtCover.ih
+//
+// Creation : 
+//
+// Version : 
+//
+// Author : MS
+//
+// Summary : Implementation of inline methods defined in BlurredSegmentTgtCover.h 
+//
+// History :
+//	2010/8/10 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class BlurredSegmentTgtCover declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+#include <deque>
+#include "ImaGene/base/Vector2i.h"
+#include "ImaGene/base/Vector.h"
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_BlurredSegmentTgtCover(x)
+#define DEBUGCMD_BlurredSegmentTgtCover(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_BlurredSegmentTgtCover(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_BlurredSegmentTgtCover(x) x
+#endif // else defined(NO_DEBUG)
+
+namespace ImaGene {
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+// -------------------- Tangential cover services ---------------------------
+
+/**
+ * @return the indice of the first point in the line segment.
+ */
+int
+ImaGene::BlurredSegmentTgtCover::Segment::first() const
+{
+  return m_first;
+}
+
+/**
+ * @return the indice of the last point in the line segment.
+ */
+int
+ImaGene::BlurredSegmentTgtCover::Segment::last() const
+{
+  return m_last;
+}
+
+/**
+ * @return coefficient a in (a,b,mu,omega) characterizing the line segment.
+ */
+double
+ImaGene::BlurredSegmentTgtCover::Segment::a() const
+{
+  return m_a;
+}
+
+/**
+ * @return coefficient b in (a,b,mu,omega) characterizing the line segment.
+ */
+double
+ImaGene::BlurredSegmentTgtCover::Segment::b() const
+{
+  return m_b;
+}
+
+/**
+ * @return coefficient mu in (a,b,mu,omega) characterizing the line segment.
+ */
+double
+ImaGene::BlurredSegmentTgtCover::Segment::mu() const
+{
+  return m_mu;
+}
+
+/**
+ * @return coefficient omega in (a,b,mu,omega) characterizing the line segment.
+ */
+double
+ImaGene::BlurredSegmentTgtCover::Segment::omega() const
+{
+  return m_omega;
+}
+
+/**
+ * @return Moyenne of the lenght of Maximal Segment.
+ */
+double
+ImaGene::BlurredSegmentTgtCover::Inclusion::moyenne() const
+{
+  return m_moyenne;
+}
+
+/**
+ * @return ecart_type of the lenght of Maximal Segment.
+ */
+double 
+ImaGene::BlurredSegmentTgtCover::Inclusion::ecart_type() const
+{
+  return m_ecart_type;
+}
+
+/**
+ * @return the total points of a contour.
+ */
+std::vector<Vector2D> 
+ImaGene::BlurredSegmentTgtCover::getPointsContour() const
+{
+  return PointsCurve;
+}
+
+/**
+ * @return the m_segments(first_point,last_point,a,b,mu,omega) of the
+ * tangential cover of the contour.
+ */
+std::vector<BlurredSegmentTgtCover::Segment> 
+ImaGene::BlurredSegmentTgtCover::getSegmentContour() const
+{
+ return m_Segments;
+}
+
+/**
+ * @return the m_inclusion(moyenne and ecart_type) of lenght of the
+ * tangential cover of the contour.
+ */
+BlurredSegmentTgtCover::Inclusion
+ImaGene::BlurredSegmentTgtCover::getInclusion() const
+{
+ return m_inclusion;
+}
+
+/**
+ * @return the points bound (P,Q,S) of the 
+ * tangential cover of the contour.
+ */
+std::vector<Vector2D> 
+ImaGene::BlurredSegmentTgtCover::getPointsBoundTC() const
+{
+  std::vector<Vector2D> vectpoints;
+  vectpoints.push_back( sav_P );
+  vectpoints.push_back( sav_Q );
+  vectpoints.push_back( sav_S );
+  return vectpoints;
+}
+
+/**
+ * test if a point is Left|On|Right of an infinite line.
+ * Input: three pointd P0, P1 and P2
+ * Return: >0 for P2 left of the line through P0 and P1
+ *         =0 for P2 on the line
+ *         <0 for P2 right of the line.   
+ */
+double 
+ImaGene::BlurredSegmentTgtCover::IsLeft( int P0 , int P1 , int P2 ) const
+{
+  return ( PointsCurve[P1].x() - PointsCurve[P0].x() ) * ( PointsCurve[P2].y() - PointsCurve[P0].y() ) - 
+         ( PointsCurve[P2].x() - PointsCurve[P0].x() ) * ( PointsCurve[P1].y() - PointsCurve[P0].y() );
+}
+
+};
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

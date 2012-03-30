@@ -1,0 +1,107 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : SmoothingEmbedder.ih
+//
+// Creation : 2004/02/04
+//
+// Version : 2004/02/04
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in SmoothingEmbedder.h 
+//
+// History :
+//	2004/02/04 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class SmoothingEmbedder declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_SmoothingEmbedder(x)
+#define DEBUGCMD_SmoothingEmbedder(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_SmoothingEmbedder(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_SmoothingEmbedder(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/**
+ * Destructor. Does nothing.
+ */
+ImaGene::SmoothingEmbedder::~SmoothingEmbedder()
+{
+}
+
+
+/**
+ * Constructor.
+ * The embedder is not valid yet.
+ * @see init
+ */
+ImaGene::SmoothingEmbedder::SmoothingEmbedder()
+  : Embedder()
+{
+}
+
+
+/**
+ * Constructor.
+ * @param geom_context the geometry context used for the smoothing.
+ */
+ImaGene::SmoothingEmbedder::SmoothingEmbedder
+( DigitalSurfaceGeometry* geom_context )
+{
+  setGeometry( geom_context );
+}
+
+
+/**
+ * Sets the geometry (and the space) used for the smoothing.
+ * @param geom_context the geometry context used for the smoothing.
+ */
+void
+ImaGene::SmoothingEmbedder::setGeometry
+( DigitalSurfaceGeometry* geom_context )
+{
+  if ( geom_context != 0 )
+    init( geom_context->space() );
+  else init( 0 );
+  m_geom_ctxt = geom_context;
+}
+
+
+/**
+ * @return a clone of 'this'.
+ */
+ImaGene::Embedder* 
+ImaGene::SmoothingEmbedder::clone() const
+{
+  return new SmoothingEmbedder( m_geom_ctxt );
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

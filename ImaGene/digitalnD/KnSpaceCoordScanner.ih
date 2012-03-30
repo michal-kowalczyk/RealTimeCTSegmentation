@@ -1,0 +1,120 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : KnSpaceCoordScanner.ih
+//
+// Creation : 2003/07/03
+//
+// Version : 2003/07/03
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in KnSpaceCoordScanner.h 
+//
+// History :
+//	2003/07/03 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class KnSpaceCoordScanner declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+#include "ImaGene/digitalnD/KnSpace.h"
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_KnSpaceCoordScanner(x)
+#define DEBUGCMD_KnSpaceCoordScanner(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_KnSpaceCoordScanner(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_KnSpaceCoordScanner(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Generic iteration services ---------------------
+
+/**
+ * Generic increment the cell [p] to its next position (as classically done 
+ * in a scanning).
+ * Exemple: <pre> 
+ * KnSpace kn( ... );
+ * Kn_uid first, last; // lower and upper bounds 
+ * KnSpaceCoordScanner scanner( kn, first, last );
+ * Kn_uid p = scanner..lower_bound;
+ * Vector vp = ks.ucentroid( p );
+ * do 
+ *   { // ... whatever [p] is the current cell
+ *     // ... and [vp] its centroid
+ *   }
+ * while ( scanner.uincrement( p, vp ) ); 
+ * </pre>
+ * @param p any cell (modified).
+ * @param c the centroid of [p] (modified).
+ * @return true if p is still within the bounds, false if the scanning is finished.
+ */
+bool 
+KnSpaceCoordScanner::increment( Kn_uid & p, Vector & c ) const
+{
+  uint k;
+  if ( p == space.ugetBoundX( p, upper_bound ) )
+    {
+      if ( p == upper_bound ) return false;
+      p = space.ugetBoundX( p, lower_bound );
+      c.rw( 0 ) = space.ucentroid( p, 0 );
+      for ( k = 1; k < space.dim(); ++k )
+	{
+	  if ( p == space.ugetBound( p, upper_bound, k ) )
+	    {
+	      p = space.ugetBound( p, lower_bound, k );
+	      c.rw( k ) = space.ucentroid( p, k );
+	    }
+	  else  
+	    { 
+	      p = space.ugetIncr( p, k );
+	      c.rw( k ) += 1.0f;
+	      break;
+	    }
+	}
+      return true;
+    }
+  space.uincrX( p );
+  c.rw( 0 ) += 1.0f;
+  return true;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'KnSpaceCoordScanner'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'KnSpaceCoordScanner' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, const KnSpaceCoordScanner & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene

@@ -1,0 +1,557 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Vector2i.ih
+//
+// Creation : 2003/02/12
+//
+// Version : 2003/02/12
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Vector2i.h 
+//
+// History :
+//	2003/02/12 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Vector2i declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Vector2i(x)
+#define DEBUGCMD_Vector2i(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Vector2i(x) if(!(x)) \
+    { cerr << "Assertion failed : (" << #x << ')' << endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << endl; abort();}
+#define DEBUGCMD_Vector2i(x) x
+#endif // else defined(NO_DEBUG)
+
+
+namespace ImaGene {
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+// ------------------------- Standard services ------------------------------
+
+/**
+ * Destructor. 
+ */
+Vector2i::~Vector2i()
+{
+}
+
+/**
+ * Constructor. Does nothing.
+ */
+Vector2i::Vector2i()
+{
+}
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+Vector2i::Vector2i( const Vector2i & other )
+  : m_x( other.m_x ), m_y( other.m_y )
+{
+}
+
+/**
+ * Assignment.
+ * @param other the object to clone.
+ * @return a reference on 'this'.
+ */
+Vector2i & 
+Vector2i::operator=( const Vector2i & other )
+{
+  m_x = other.m_x;
+  m_y = other.m_y;
+  return *this;
+}
+
+/**
+ * Constructor from two values.
+ * @param vx first value.
+ * @param vy second value.
+ */
+Vector2i::Vector2i( int vx, int vy )
+  : m_x( vx ), m_y( vy )
+{
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Geometry services -----------------------
+
+
+/**
+ * This vector is supposed to be a tangent vector of some contour.
+ * It can be used to compute a local length measure of the contour.
+ * This length depends on the coherence of this vector with the trivial x-axis.
+ * Defined as y/sqrt(x*x+y*y).
+ * @pre m_x > 0
+ * @return the corrected length associated with this line segment.
+ */
+float
+Vector2i::correctedLength() const
+{
+  return m_x / sqrt( (float) m_y * (float) m_y + (float) m_x * (float) m_x );
+// sqrt( (float) ( m_y*m_y + m_x*m_x ) );
+}
+
+
+/**
+ * This vector is supposed to be a tangent vector of some contour.
+ * It can be used to compute a local length measure of the contour.
+ * This length depends only the normal to the segment.
+ * Defined as sqrt(x*x+y*y)/(|x|+|y|).
+ * @pre m_x > 0
+ * @return the corrected length associated with this line segment.
+ */
+float
+Vector2i::averagedLength() const
+{
+  return sqrt( (float) m_y * (float) m_y + (float) m_x * (float) m_x ) 
+    / ( ( m_y >= 0 ? m_y : -m_y ) + m_x );
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Freeman move services --------------------------
+
+/**
+ * Moves according to the 4-connected Freeman move [freeman_code].
+ *
+ * @param freeman_code the Freeman code (0 east, 1 north, 2 west, 3 south).
+ */
+void
+Vector2i::move4( uint freeman_code )
+{
+  switch ( freeman_code )
+    {
+    case 0: ++m_x; break;
+    case 1: ++m_y; break;
+    case 2: --m_x; break;
+    case 3: --m_y; break;
+    }
+}
+
+/**
+ * Our convention for quadrants is :
+ * - 0: x > 0, y >= 0
+ * - 1: y > 0, x <= 0
+ * - 2: x < 0, y <= 0
+ * - 3: y < 0, x >= 0
+ * - 4 for vector (0,0)
+ * This guarantees that turnLeft and turnRight change quadrant accordingly.
+ *
+ * @return the quadrant in which is the current vector (between 0-3).
+ */
+uint
+Vector2i::quadrant() const
+{
+  if ( m_x >= 0 )
+    { 
+      if ( m_y < 0 ) return 3;
+      if ( m_x > 0 ) return 0;
+      // x == 0 && y >= 0
+      return m_y > 0 ? 1 : 4;
+    }
+  else
+    { // x < 0
+      if ( m_y <= 0 ) return 2;
+      return 1;
+    }
+}
+
+/**
+ * @return the Vector2i with the absolute values of the components of 'this' 
+ */
+Vector2i
+Vector2i::abs() const
+{
+  return Vector2i( m_x >= 0 ? m_x : -m_x, 
+		   m_y >= 0 ? m_y : -m_y );
+}
+
+/**
+ * @return the Vector2i with the absolute values of the components
+ * of 'this' and such that 0 <= y <= x.
+ */
+Vector2i
+Vector2i::firstOctant() const
+{
+  Vector2i v = this->abs();
+  if ( v.m_x < v.m_y ) std::swap( v.m_x, v.m_y );
+  return v;
+}
+
+  
+
+// ------------------------- Reference frame services -----------------------
+
+/**
+ * Turn reference frame to the right (clockwise).
+ */
+void
+Vector2i::turnRight()
+{
+  int tmp = m_x;
+  m_x = -m_y;
+  m_y = tmp;
+}
+
+
+/**
+ * Turn reference frame to the left (counterclokckwise).
+ */
+void
+Vector2i::turnLeft()
+{
+  int tmp = m_x;
+  m_x = m_y;
+  m_y = -tmp;
+}
+
+/**
+ * Flip vector so that its x-coordinate is positive.
+ */
+void
+Vector2i::flipForPositiveX()
+{
+  if ( m_x < 0 )
+    {
+      m_x = -m_x;
+      m_y = -m_y;
+    }
+}
+
+
+
+// ------------------------- Vector services --------------------------------
+
+/**
+ * @return the norm of the current vector.
+ */
+float
+Vector2i::norm() const
+{
+  return sqrt( (float) ( m_x * m_x + m_y * m_y ) );
+}
+
+/**
+ * @return the norm1 of the current vector.
+ */
+int
+Vector2i::norm1() const
+{
+  return ( m_x >= 0 ? m_x : -m_x ) + ( m_y >= 0 ? m_y : -m_y );
+}
+
+
+// ------------------------- Accessors --------------------------------------
+
+/**
+ * @return the value of the first vector element.
+ */
+int 
+Vector2i::x() const
+{
+  return m_x;
+}
+
+/**
+ * @return a reference on the first vector element.
+ */
+int & 
+Vector2i::x()
+{
+  return m_x;
+}
+
+/**
+ * @return the value of the second vector element.
+ */
+int 
+Vector2i::y() const
+{
+  return m_y;
+}
+
+/**
+ * @return a reference on the second vector element.
+ */
+int & 
+Vector2i::y()
+{
+  return m_y;
+}
+  
+
+// ------------------------- Operations -------------------------------------
+
+/**
+ * Add [other] to 'this'.
+ * @param other the object to clone.
+ * @return a reference on 'this'.
+ */
+Vector2i & 
+Vector2i::operator+=( const Vector2i & other )
+{
+  m_x += other.m_x;
+  m_y += other.m_y;
+  return *this;
+}
+
+
+/**
+ * Sub [other] from 'this'.
+ * @param other the object to clone.
+ * @return a reference on 'this'.
+ */
+Vector2i & 
+Vector2i::operator-=( const Vector2i & other )
+{
+  m_x -= other.m_x;
+  m_y -= other.m_y;
+  return *this;
+}
+  
+  /**
+   * Multiply 'this' by integer [c].
+   * @param c any integer.
+   * @return a reference on 'this'.
+   */
+  Vector2i & 
+  Vector2i::operator*=( int c )
+  {
+    m_x *= c;
+    m_y *= c;
+    return *this;
+  }
+  
+  /**
+   * Divides 'this' by integer [c].
+   * @param c any non-null integer.
+   * @return a reference on 'this'.
+   */
+  Vector2i & 
+  Vector2i::operator/=( int c )
+  {
+    m_x /= c;
+    m_y /= c;
+    return *this;
+  }
+
+
+/**
+ * Computes the sum of 'this' and [other].
+ * @param other the object to add.
+ * @return a new object.
+ */
+Vector2i 
+Vector2i::operator+( const Vector2i & other ) const
+{
+  return Vector2i( m_x + other.m_x, m_y + other.m_y );
+}
+
+/**
+ * Unary minus operator.
+ * @return a new object.
+ */
+Vector2i Vector2i::operator-( ) const
+{
+  return Vector2i( -m_x, -m_y );
+}
+
+/**
+ * Computes the difference of 'this' and [other].
+ * @param other the object to subtract.
+ * @return a new object.
+ */
+Vector2i
+Vector2i::operator-( const Vector2i & other ) const
+{
+  return Vector2i( m_x - other.m_x, m_y - other.m_y );
+}
+
+
+
+/**
+ * @param other any other vector.
+ * @return the determinant of 'this' and [other].
+ */
+int
+Vector2i::det( const Vector2i & other ) const
+{
+  return m_x * other.m_y - m_y * other.m_x;
+}
+
+/**
+ * @param other any other vector.
+ * @return the scalar product of 'this' and [other].
+ */
+int
+Vector2i::operator*( const Vector2i & other ) const
+{
+  return m_x * other.m_x + m_y * other.m_y;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Comparison -------------------------------------
+
+/**
+ * Compares [other] to 'this'.
+ * @param other the object to compare.
+ * @return 'true' if [other] is equal to 'this', 'false' otherwise.
+ */
+bool
+Vector2i::operator==( const Vector2i & other ) const
+{
+  return ( m_x == other.m_x ) && ( m_y == other.m_y );
+}
+
+
+/**
+ * Compares [other] to 'this'.
+ * @param other the object to compare.
+ * @return 'true' if [other] is not equal to 'this', 'false' otherwise.
+ */
+bool
+Vector2i::operator!=( const Vector2i & other ) const
+{
+  return ( m_x != other.m_x ) || ( m_y != other.m_y );
+}
+
+
+  /////////////////////////////////////////////////////////////////////////////
+  // ------------------------- static services---------------------------------
+
+  /**
+   * Our convention for quadrants is :
+   * - 0: x > 0, y >=0
+   * - 1: y > 0, x <= 0
+   * - 2: x < 0, y <= 0
+   * - 3: y < 0, x >= 0
+   * - 4 for vector (0,0)
+   * This guarantees that turnLeft and turnRight change quadrant accordingly.
+   *
+   * @param quadrant a number between 0-3.
+   * @return the natural x-vector corresponding to this quadrant.
+   */
+  INLINE
+  Vector2i
+  Vector2i::quadrantX( uint quadrant )
+  {
+    Vector2i v;
+    switch ( quadrant ) {
+    case 0: v = Vector2i( 1, 0 ); break;
+    case 1: v = Vector2i( 0, 1 ); break;
+    case 2: v = Vector2i( -1, 0 ); break;
+    case 3: v = Vector2i( 0, -1 ); break;
+    }
+    return v;
+  }
+
+  /**
+   * Our convention for quadrants is :
+   * - 0: x > 0, y >=0
+   * - 1: y > 0, x <= 0
+   * - 2: x < 0, y <= 0
+   * - 3: y < 0, x >= 0
+   * - 4 for vector (0,0)
+   * This guarantees that turnLeft and turnRight change quadrant accordingly.
+   *
+   * @param quadrant a number between 0-3.  @return the natural
+   * y-vector corresponding to this quadrant (to the left of
+   * quadrantX).
+   */
+  INLINE
+  Vector2i 
+  Vector2i::quadrantY( uint quadrant )
+  {
+    Vector2i v;
+    switch ( quadrant ) {
+    case 0: v = Vector2i( 0, 1 ); break;
+    case 1: v = Vector2i( -1, 0 ); break;
+    case 2: v = Vector2i( 0, -1 ); break;
+    case 3: v = Vector2i( 1, 0 ); break;
+    }
+    return v;
+  }
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'Vector2i'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'Vector2i' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+operator<<( std::ostream & that_stream, const Vector2i & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+/**
+ * @param c any integer.
+ * @param v any vector.
+ * @return the multiplication of [v] by coefficient [c].
+ */
+Vector2i
+operator*( int c, const Vector2i & v )
+{
+  return Vector2i( c * v.x(), c * v.y() );
+}
+
+/**
+ * @param v any vector.
+ * @param c any integer.
+ * @return the multiplication of [v] by coefficient [c].
+ */
+Vector2i
+operator*( const Vector2i & v, int c )
+{
+  return Vector2i( c * v.x(), c * v.y() );
+}
+
+/**
+ * @param v any vector.
+ * @param c any non-null integer.
+ * @return the (euclidean) division of [v] by coefficient [c].
+ */
+Vector2i
+operator/( const Vector2i & v, int c )
+{
+  return Vector2i( v.x() / c, v.y() / c );
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace ImaGene
+

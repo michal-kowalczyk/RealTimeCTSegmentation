@@ -1,0 +1,151 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Proxy.ih
+//
+// Creation : 2007/02/21
+//
+// Version : 2007/02/21
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Proxy.h 
+//
+// History :
+//	2007/02/21 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Proxy declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Proxy(x)
+#define DEBUGCMD_Proxy(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Proxy(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_Proxy(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+// ----------------------- Standard services ------------------------------
+
+/**
+ * Destructor. 
+ */
+template <typename T>
+ImaGene::Proxy<T>::~Proxy()
+{
+  ASSERT_Proxy( m_t != 0 );
+  delete m_t;
+}
+
+/** 
+ * Constructs a proxy around dyn. alloc. pointer [ptr_t]. The
+ * proxy possesses now this instance and will delete it at his end
+ * of life.
+ * 
+ * @param ptr_t a dyn. alloc. pointer on a 'T'.
+ */
+template <typename T>
+ImaGene::Proxy<T>::Proxy( T* ptr_t )
+{
+  ASSERT_Proxy( ptr_t != 0 );
+  m_t = ptr_t;
+}
+
+/** 
+ * cast operator.
+ * 
+ * @return the referenced object.
+ */
+template <typename T>
+ImaGene::Proxy<T>::operator T*()
+{
+  return m_t;
+}
+
+/** 
+ * Dereferencing operator.
+ * 
+ * @return the referenced object.
+ */
+template <typename T>
+T& 
+ImaGene::Proxy<T>::operator*()
+{
+  return *m_t;
+}
+
+
+/** 
+ * Const dereferencing operator.
+ * 
+ * @return the referenced object.
+ */
+template <typename T>
+const T& 
+ImaGene::Proxy<T>::operator*() const
+{
+  return *m_t;
+}
+
+/** 
+ * Dereferencing operator.
+ * 
+ * @return the referenced object.
+ */
+template <typename T>
+T*
+ImaGene::Proxy<T>::operator->()
+{
+  return m_t;
+}
+
+
+/** 
+ * Const dereferencing operator.
+ * 
+ * @return the referenced object.
+ */
+template <typename T>
+const T* 
+ImaGene::Proxy<T>::operator->() const
+{
+  return m_t;
+}
+
+
+/**
+ * Checks the validity/consistency of the object.
+ * @return 'true' if the object is valid, 'false' otherwise.
+ */
+template <typename T>
+bool 
+ImaGene::Proxy<T>::OK() const
+{
+  return m_t != 0;
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

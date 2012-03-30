@@ -1,0 +1,91 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : CentroidEmbedder.ih
+//
+// Creation : 2004/02/04
+//
+// Version : 2004/02/04
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in CentroidEmbedder.h 
+//
+// History :
+//	2004/02/04 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class CentroidEmbedder declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_CentroidEmbedder(x)
+#define DEBUGCMD_CentroidEmbedder(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_CentroidEmbedder(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_CentroidEmbedder(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/**
+ * Destructor. Does nothing.
+ */
+ImaGene::CentroidEmbedder::~CentroidEmbedder()
+{
+}
+
+
+/**
+ * Constructor.
+ * The embedder is not valid yet.
+ * @see init
+ */
+ImaGene::CentroidEmbedder::CentroidEmbedder()
+  : Embedder()
+{
+}
+
+
+/**
+ * Constructor.
+ * @param space the digital space where the cells are defined.
+ */
+ImaGene::CentroidEmbedder::CentroidEmbedder( const KnSpace* space )
+  : Embedder( space )
+{
+}
+
+
+/**
+ * @return a clone of 'this'.
+ */
+ImaGene::Embedder* 
+ImaGene::CentroidEmbedder::clone() const
+{
+  return new CentroidEmbedder( this->space() );
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+
