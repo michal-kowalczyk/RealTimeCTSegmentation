@@ -1,0 +1,208 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : CFraction.ih
+//
+// Creation : 2009/10/22
+//
+// Version : 2009/10/22
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in CFraction.h 
+//
+// History :
+//	2009/10/22 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class CFraction declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_CFraction(x)
+#define DEBUGCMD_CFraction(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_CFraction(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_CFraction(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+// ----------------------- Standard services ------------------------------
+
+/**
+ * Destructor. 
+ */
+INLINE 
+ImaGene::CFraction::~CFraction()
+{}
+
+/**
+ * Constructor. The fraction is not valid.
+ */
+ImaGene::CFraction::CFraction()
+{}
+
+/**
+ * Constructor. Initializes the fraction p/q.
+ *
+ * @pre p <= q
+ * @param p the numerator.
+ * @param q the denominator.
+ */
+ImaGene::CFraction::CFraction( uint p, uint q )
+{
+  ASSERT_CFraction( p <= q );
+  init( p, q );
+}
+
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ * Forbidden by default.
+ */
+ImaGene::CFraction::CFraction( const CFraction & other )
+  : m_p( other.m_p ), m_q( other.m_q ), m_u( other.m_u )
+{}
+
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ * Forbidden by default.
+ */
+ImaGene::CFraction & 
+ImaGene::CFraction::operator=( const CFraction & other )
+{
+  if ( this != &other )
+    {
+      m_p = other.m_p;
+      m_q = other.m_q;
+      m_u = other.m_u;
+    }
+  return *this;
+}
+
+// ----------------------- Accessors --------------------------------------
+
+/**
+ * @return the numerator of the fraction.
+ */
+uint 
+ImaGene::CFraction::p() const
+{
+  return m_p.back();
+}
+
+/**
+ * @return the denominator of the fraction.
+ */
+uint 
+ImaGene::CFraction::q() const
+{
+  return m_q.back();
+}
+
+/**
+ * @return the depth or complexity of the simple continued
+ * fraction (-1 means empty fraction).
+ */
+int
+ImaGene::CFraction::depth() const
+{
+  return ((int) m_u.size()) - 1;
+}
+
+/**
+ * @return 'true' if the depth or complexity of the simple continued
+ * fraction is even.
+ */
+bool
+ImaGene::CFraction::even() const
+{
+  return ( depth() & 0x1 ) == 0;
+}
+
+/**
+ * @return 'true' if the depth or complexity of the simple continued
+ * fraction is odd.
+ */
+bool 
+ImaGene::CFraction::odd() const
+{
+  return ( depth() & 0x1 ) != 0;
+}
+
+/**
+ * @param k the index of the partial coefficient (between 0 and \ref depth())
+ * @return the k-th partial coefficient.
+ */
+uint
+ImaGene::CFraction::uk( int k ) const
+{
+  ASSERT_CFraction( ( k >= 0 ) && ( k <= depth() ) );
+  return m_u[ k ];
+}
+
+/**
+ * @param k the index of the partial quotient (between 0 and \ref depth())
+ * @return the numerator of the k-th partial quotient.
+ */
+uint 
+ImaGene::CFraction::pk( int k ) const
+{
+  ASSERT_CFraction( k <= depth() );
+  if ( k >= 0 ) return m_p[ k ];
+  else if ( k == -1 ) return 1;
+  else return 0;
+}
+
+/**
+ * @param k the index of the partial quotient (between 0 and \ref depth())
+ * @return the numerator of the k-th partial quotient.
+ */
+uint
+ImaGene::CFraction::qk( int k ) const
+{
+  ASSERT_CFraction( k <= depth() );
+  if ( k >= 0 ) return m_q[ k ];
+  else if ( k == -1 ) return 0;
+  else return 1;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'CFraction'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'CFraction' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const CFraction & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

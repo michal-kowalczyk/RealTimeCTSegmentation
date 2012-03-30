@@ -1,0 +1,317 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : PGMFilter.ih
+//
+// Creation : 2010/05/19
+//
+// Version : 2010/05/19
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in PGMFilter.h 
+//
+// History :
+//	2010/05/19 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class PGMFilter declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+#include <sstream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_PGMFilter(x)
+#define DEBUGCMD_PGMFilter(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_PGMFilter(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_PGMFilter(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Destructor. 
+ */
+template <typename IMAGE>
+INLINE
+ImaGene::PGMFilter<IMAGE>::~PGMFilter()
+{}
+
+/**
+ * Constructor. Does nothing.
+ */
+template <typename IMAGE>
+INLINE
+ImaGene::PGMFilter<IMAGE>::PGMFilter()
+  : m_error( Ok )
+{}
+
+/**
+ * Reads an input stream (which should follow the PGM format) to
+ * create the image [ptr_image].
+ *
+ * @param ptr_image if 0, it points on the dyn. alloc. created
+ * image, otherwise, the pointed image is modified.
+ * @param in the input stream (coded in PGM).
+ *
+ * @return 'true' if everyhing went well, otherwise 'false'. In
+ * this case, errorCode()
+ */
+template <typename IMAGE>
+INLINE
+bool 
+ImaGene::PGMFilter<IMAGE>::genericRead( IMAGE* & ptr_image, std::istream & in )
+{
+  m_error = Ok;
+  bool allocated = false;
+  uint nb_read = 0;
+  // Checks if imageis already allocated.
+  if ( ptr_image == 0 )
+    {
+      ptr_image = new IMAGE;
+      allocated = true;
+    }
+
+  std::string str;
+  std::getline( in, str );
+  if ( ! in.good() ) return false;
+  if ( str != "P5" ) return false;
+  do
+    {
+      std::getline( in, str );
+      if ( ! in.good() ) return false;
+    }
+  while ( str[ 0 ] == '#' || str=="");
+  std::istringstream str_in( str );
+  uint width, height;
+  str_in >> width >> height;
+
+  std::getline( in, str );
+  std::istringstream str2_in( str );
+  uint64 max_value;
+  str2_in >> max_value;
+  uint64 b = max_value;
+  uint64 a = ptr_image->maxElementValue() < max_value 
+    ? ptr_image->maxElementValue() : max_value;
+  ASSERT_PGMFilter( ptr_image->minElementValue() <= 0 );
+  
+  std::cerr << "# PGM " << width << " " << height
+	    << " " << max_value << " from <" << str << ">" << std::endl;
+
+  ptr_image->init( width, height );
+  uint size = ( max_value <= 0xff ) ? 1 : ( ( max_value <= 0xffff ) ? 2 : 4 );
+  if ( size != 1 ) 
+    m_error = NotImplementedPGMFormatError;
+  if ( ptr_image->OK() )
+    {
+      in >> std::noskipws;
+      Pixel p = ptr_image->lowest();
+      Pixel q = ptr_image->highest();
+      uint64 val; 
+      for ( Pixel z = p; z.y < q.y; z.y++ )
+	for ( z.x = p.x; z.x < q.x; z.x++ )
+	  {
+	    unsigned char c;
+	    in >> c;
+	    if ( in.good() ) ++nb_read;
+	    uint64 v = ( (uint64) c ) * a / b;
+	    ptr_image->set( z, (typename IMAGE::value_type) v );
+	  }
+      if ( in.fail() || in.bad() )
+	{
+	  m_error = IOError;
+	  std::cerr << "# nbread=" << nb_read << std::endl;
+	  if ( allocated ) 
+	    {
+	      delete ptr_image;
+	      ptr_image = 0;
+	    }
+	}
+      in >> std::skipws;
+    }
+  else
+    {
+      m_error = ImageError;
+      if ( allocated ) 
+	{
+	  delete ptr_image;
+	  ptr_image = 0;
+	}
+    }
+
+  return m_error == Ok;
+}
+
+
+/**
+ * Reads an input stream (which should follow the PGM format) to
+ * modify the image [ref_image].
+ *
+ * @param ref_image a reference to the image is updated from the stream.
+ * @param in the input stream (coded in PGM).
+ *
+ * @return 'true' if everyhing went well, otherwise 'false'. In
+ * @see errorCode()
+ */
+template <typename IMAGE>
+INLINE
+bool
+ImaGene::PGMFilter<IMAGE>::read( IMAGE & ref_image, std::istream & in )
+{
+  IMAGE* ptr_image = &ref_image;
+  return genericRead( ptr_image, in );
+}
+
+/**
+ * Reads an input stream (which should follow the PGM format) to
+ * create the returned dynamically allocated image.
+ *
+ * @param in the input stream (coded in PGM).
+ *
+ * @return the pointer on the allocated image (or 0 if an error occured).
+ * @see errorCode()
+ */
+template <typename IMAGE>
+INLINE
+IMAGE* 
+ImaGene::PGMFilter<IMAGE>::read( std::istream & in )
+{
+  IMAGE* ptr_image = 0;
+  bool success = genericRead( ptr_image, in );
+  if ( ! success )
+    {
+      if ( ptr_image != 0 ) delete ptr_image;
+      ptr_image = 0;
+    }
+  return ptr_image;
+}
+
+
+/**
+ * Writes on an output stream (in PGM format) the image [ptr_image].
+ *
+ * @param image a const reference on an image.
+ * @param in the input stream (coded in PGM).
+ *
+ * @return 'true' if everyhing went well, otherwise 'false'. In
+ * this case, errorCode()
+ */
+template <typename IMAGE>
+INLINE
+bool 
+ImaGene::PGMFilter<IMAGE>::write( const IMAGE & image, std::ostream & out )
+{
+  m_error = Ok;
+
+  out << "P5" << std::endl
+      << "# CREATOR: ImaGene::PGMFilter<IMAGE>::write " 
+      << "(jacques-olivier.lachaud@univ-savoie.fr)" << std::endl;
+  uint64 max_value = image.maxElementValue();
+  out << image.width() << " " << image.height() << std::endl
+      << max_value << std::endl;
+  
+  Pixel p = image.lowest();
+  Pixel q = image.highest();
+  uint64 val; 
+  uint size = ( max_value <= 0xff ) ? 1 : ( ( max_value <= 0xffff ) ? 2 : 4 );
+  if ( size != 1 ) 
+    m_error = NotImplementedPGMFormatError;
+  else
+    {
+      for ( Pixel z = p; z.y < q.y; z.y++ )
+	for ( z.x = p.x; z.x < q.x; z.x++ )
+	  out << (char) image.at( z );
+      out << std::endl;
+    }
+  return m_error == Ok;
+}
+
+/**
+ * @return the code of the last error or Ok if the last operation went ok.
+ */
+template <typename IMAGE>
+INLINE
+typename ImaGene::PGMFilter<IMAGE>::ErrorType 
+ImaGene::PGMFilter<IMAGE>::errorCode() const
+{
+  return m_error;
+}
+
+/**
+ * @return the message corresponding to the last error.
+ */
+template <typename IMAGE>
+INLINE
+std::string 
+ImaGene::PGMFilter<IMAGE>::errorMessage() const
+{
+  switch( errorCode() ) 
+    {
+    case Ok: return "Ok";
+    case IOError: return "I/O Error";
+    case ImageError: return "Error resizing image.";
+    case NotImplementedPGMFormatError: return "This PGM format is not supported.";
+    }
+  return "Unknown Error";
+}
+
+
+/**
+ * Writes/Displays the object on an output stream.
+ * @param that_stream the output stream where the object is written.
+ */
+template <typename IMAGE>
+INLINE
+void 
+ImaGene::PGMFilter<IMAGE>::selfDisplay( std::ostream& that_stream ) const
+{
+  that_stream << "[PGMFilter: " << errorMessage() << "]";
+}
+
+/**
+ * Checks the validity/consistency of the object.
+ * @return 'true' if the object is valid, 'false' otherwise.
+ */
+template <typename IMAGE>
+INLINE
+bool 
+ImaGene::PGMFilter<IMAGE>::OK() const
+{
+  return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'PGMFilter'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'PGMFilter' to write.
+ * @return the output stream after the writing.
+ */
+template <typename IMAGE>
+INLINE
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		     const PGMFilter<IMAGE> & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

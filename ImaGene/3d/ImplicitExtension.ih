@@ -1,0 +1,399 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : ImplicitExtension.ih
+//
+// Creation : 2008/02/27
+//
+// Version : 2008/02/27
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in ImplicitExtension.h 
+//
+// History :
+//	2008/02/27 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class ImplicitExtension declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_ImplicitExtension(x)
+#define DEBUGCMD_ImplicitExtension(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_ImplicitExtension(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_ImplicitExtension(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * @return the dimension of mapping domain (0 is any).
+ * @see m_d
+ */
+uint
+ImaGene::ImplicitExtension::dimIn() const
+{
+  return m_d + 1;
+}
+
+
+/**
+ * Destructor. 
+ */
+ImaGene::StandardExtension::~StandardExtension()
+{
+}
+
+/**
+ * Constructor. 
+ */
+ImaGene::StandardExtension::StandardExtension()
+{
+}
+
+
+/**
+ * @return a clone of 'this'.
+ */
+ImaGene::ImplicitSurface* 
+ImaGene::StandardExtension::clone() const
+{
+  StandardExtension* ie = new StandardExtension;
+  ie->init( m_is, m_d );
+  return ie;
+}
+
+/**
+ * Evaluates the function at coordinates [xyz]. The surface lies
+ * at isovalue 0. By convention, negative is outside and positive
+ * is inside.
+ *
+ * @param xyz an array of coordinate.
+ * @return a real value.
+ */
+float 
+ImaGene::StandardExtension::operator()( const float xyz[] ) const
+{
+  return m_is->operator()( xyz ) - xyz[ m_d ];
+}
+
+
+/**
+ * Evaluates the gradient of the function at coordinates
+ * [xyz]. The surface lies at isovalue 0. By convention, negative
+ * is outside and positive is inside.
+ *
+ * @param xyz an array of coordinate.
+ * @param grad (returns) the gradient vector.
+ */
+void 
+ImaGene::StandardExtension::gradient( const float xyz[], float grad[] ) const
+{
+  m_is->gradient( xyz, grad );
+  grad[ m_d ] = -1.0f;
+}
+
+
+
+
+/**
+ * Destructor. 
+ */
+ImaGene::GradientNormalizedExtension::~GradientNormalizedExtension()
+{
+}
+
+/**
+ * Constructor. 
+ */
+ImaGene::GradientNormalizedExtension::GradientNormalizedExtension()
+{
+}
+
+
+/**
+ * @return a clone of 'this'.
+ */
+ImaGene::ImplicitSurface* 
+ImaGene::GradientNormalizedExtension::clone() const
+{
+  GradientNormalizedExtension* ie = new GradientNormalizedExtension;
+  ie->init( m_is, m_d );
+  return ie;
+}
+
+/**
+ * Evaluates the function at coordinates [xyz]. The surface lies
+ * at isovalue 0. By convention, negative is outside and positive
+ * is inside.
+ *
+ * @param xyz an array of coordinate.
+ * @return a real value.
+ */
+float 
+ImaGene::GradientNormalizedExtension::operator()( const float xyz[] ) const
+{
+  float grad[ m_d ];
+  m_is->gradient( xyz, grad );
+  float n = 0.0f;
+  for ( uint i = 0; i < m_d; ++i )
+    n += Mathutils::sqr( grad[ i ] );
+  
+  return m_is->operator()( xyz ) / sqrt( n ) - xyz[ m_d ];
+}
+
+
+/**
+ * Evaluates the gradient of the function at coordinates
+ * [xyz]. The surface lies at isovalue 0. By convention, negative
+ * is outside and positive is inside.
+ *
+ * @param xyz an array of coordinate.
+ * @param grad (returns) the gradient vector.
+ */
+void 
+ImaGene::GradientNormalizedExtension::gradient( const float xyz[], float grad[] ) const
+{
+  std::cerr << "[GradientNormalizedExtension::gradient] unusable gradient" 
+	    << std::endl;
+  m_is->gradient( xyz, grad );
+  grad[ m_d ] = -1.0f;
+}
+
+
+
+/**
+ * Destructor. 
+ */
+ImaGene::GradientProductExtension::~GradientProductExtension()
+{
+}
+
+/**
+ * Constructor. 
+ */
+ImaGene::GradientProductExtension::GradientProductExtension()
+{
+}
+
+
+/**
+ * @return a clone of 'this'.
+ */
+ImaGene::ImplicitSurface* 
+ImaGene::GradientProductExtension::clone() const
+{
+  GradientProductExtension* ie = new GradientProductExtension;
+  ie->init( m_is, m_d );
+  return ie;
+}
+
+/**
+ * Evaluates the function at coordinates [xyz]. The surface lies
+ * at isovalue 0. By convention, negative is outside and positive
+ * is inside.
+ *
+ * @param xyz an array of coordinate.
+ * @return a real value.
+ */
+float 
+ImaGene::GradientProductExtension::operator()( const float xyz[] ) const
+{
+  float grad[ m_d ];
+  m_is->gradient( xyz, grad );
+  float n = 0.0f;
+  for ( uint i = 0; i < m_d; ++i )
+    n += Mathutils::sqr( grad[ i ] );
+  
+  return m_is->operator()( xyz ) - xyz[ m_d ] * sqrt( n ) ;
+}
+
+
+/**
+ * Evaluates the gradient of the function at coordinates
+ * [xyz]. The surface lies at isovalue 0. By convention, negative
+ * is outside and positive is inside.
+ *
+ * @param xyz an array of coordinate.
+ * @param grad (returns) the gradient vector.
+ */
+void 
+ImaGene::GradientProductExtension::gradient( const float xyz[], float grad[] ) const
+{
+  std::cerr << "[GradientProductExtension::gradient] unusable gradient" 
+	    << std::endl;
+  m_is->gradient( xyz, grad );
+  grad[ m_d ] = -1.0f;
+}
+
+
+/**
+ * Destructor. 
+ */
+ImaGene::MaxGradientProductExtension::~MaxGradientProductExtension()
+{
+}
+
+/**
+ * Constructor. 
+ */
+ImaGene::MaxGradientProductExtension::MaxGradientProductExtension()
+{
+}
+
+
+/**
+ * @return a clone of 'this'.
+ */
+ImaGene::ImplicitSurface* 
+ImaGene::MaxGradientProductExtension::clone() const
+{
+  MaxGradientProductExtension* ie = new MaxGradientProductExtension;
+  ie->init( m_is, m_d );
+  return ie;
+}
+
+/**
+ * Evaluates the function at coordinates [xyz]. The surface lies
+ * at isovalue 0. By convention, negative is outside and positive
+ * is inside.
+ *
+ * @param xyz an array of coordinate.
+ * @return a real value.
+ */
+float 
+ImaGene::MaxGradientProductExtension::operator()( const float xyz[] ) const
+{
+  float grad[ m_d ];
+  m_is->gradient( xyz, grad );
+  float n = fabs( grad[ 0 ] );
+  for ( uint i = 1; i < m_d; ++i )
+    {
+      n += fabs( grad[ i ] );
+//       float nf =  fabs( grad[ i ] );
+//       if ( nf > n ) n = nf;
+    }
+  return m_is->operator()( xyz ) - xyz[ m_d ] * n;
+}
+
+
+/**
+ * Evaluates the gradient of the function at coordinates
+ * [xyz]. The surface lies at isovalue 0. By convention, negative
+ * is outside and positive is inside.
+ *
+ * @param xyz an array of coordinate.
+ * @param grad (returns) the gradient vector.
+ */
+void 
+ImaGene::MaxGradientProductExtension::gradient( const float xyz[], float grad[] ) const
+{
+  std::cerr << "[MaxGradientProductExtension::gradient] unusable gradient" 
+	    << std::endl;
+  m_is->gradient( xyz, grad );
+  grad[ m_d ] = -1.0f;
+}
+
+
+/**
+ * Destructor. 
+ */
+ImaGene::GradientFactorExtension::~GradientFactorExtension()
+{
+}
+
+/**
+ * Constructor. 
+ */
+ImaGene::GradientFactorExtension::GradientFactorExtension( float a )
+  : m_a( a )
+{
+}
+
+
+/**
+ * @return a clone of 'this'.
+ */
+ImaGene::ImplicitSurface* 
+ImaGene::GradientFactorExtension::clone() const
+{
+  GradientFactorExtension* ie = new GradientFactorExtension( m_a );
+  ie->init( m_is, m_d );
+  return ie;
+}
+
+/**
+ * Evaluates the function at coordinates [xyz]. The surface lies
+ * at isovalue 0. By convention, negative is outside and positive
+ * is inside.
+ *
+ * @param xyz an array of coordinate.
+ * @return a real value.
+ */
+float 
+ImaGene::GradientFactorExtension::operator()( const float xyz[] ) const
+{
+  float grad[ m_d ];
+  m_is->gradient( xyz, grad );
+  float n = 0.0f;
+  for ( uint i = 0; i < m_d; ++i )
+    n += Mathutils::sqr( grad[ i ] );
+  
+  return m_a * m_is->operator()( xyz ) - m_a * xyz[ m_d ] * sqrt( n ) ;
+}
+
+
+/**
+ * Evaluates the gradient of the function at coordinates
+ * [xyz]. The surface lies at isovalue 0. By convention, negative
+ * is outside and positive is inside.
+ *
+ * @param xyz an array of coordinate.
+ * @param grad (returns) the gradient vector.
+ */
+void 
+ImaGene::GradientFactorExtension::gradient( const float xyz[], float grad[] ) const
+{
+  std::cerr << "[GradientFactorExtension::gradient] unusable gradient" 
+	    << std::endl;
+  m_is->gradient( xyz, grad );
+  grad[ m_d ] = -1.0f;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'ImplicitExtension'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'ImplicitExtension' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const ImplicitExtension & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

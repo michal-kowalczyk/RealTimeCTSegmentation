@@ -1,0 +1,384 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : DigitalElevationMap.ih
+//
+// Creation : 2010/05/21
+//
+// Version : 2010/05/21
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in DigitalElevationMap.h 
+//
+// History :
+//	2010/05/21 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class DigitalElevationMap declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_DigitalElevationMap(x)
+#define DEBUGCMD_DigitalElevationMap(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_DigitalElevationMap(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_DigitalElevationMap(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/**
+ * Destructor. 
+ */
+INLINE
+ImaGene::DigitalElevationMap::~DigitalElevationMap()
+{
+  clear();
+}
+
+/**
+ * Constructor. The object is not valid.
+ */
+INLINE
+ImaGene::DigitalElevationMap::DigitalElevationMap()
+  : m_space( 0 ), m_space_2d( 0 ), m_object_bdry( 0 ), m_bel_adj( 0 )
+{
+}
+
+/**
+ * Clear object. The object is as it was just instantiated.
+ */
+INLINE
+void 
+ImaGene::DigitalElevationMap::clear()
+{
+  if ( m_object_bdry != 0 ) 
+    {
+      delete m_object_bdry;
+      m_object_bdry = 0;
+    }
+  if ( m_bel_adj != 0 ) 
+    {
+      delete m_bel_adj;
+      m_bel_adj = 0;
+    }
+  if ( m_space != 0 ) 
+    {
+      delete m_space;
+      m_space = 0;
+    }
+  if ( m_space_2d != 0 ) 
+    {
+      delete m_space_2d;
+      m_space_2d = 0;
+    }
+  m_image.free();
+}
+
+/**
+ * @return the lowest pixel of the image (generally (0,0)).
+ */
+INLINE
+ImaGene::Pixel
+ImaGene::DigitalElevationMap::lowest() const
+{
+  return m_x0;
+}
+
+/**
+ * @return the highest pixel of the image (generally (width,height)).
+ */
+INLINE
+ImaGene::Pixel
+ImaGene::DigitalElevationMap::highest() const
+{
+  return m_x1;
+}
+    
+
+
+/**
+ * Initializes the map from the image [image], a class which must
+ * provide the types:
+ *
+ * - pixel_type: type of the pixel (generally ImaGene::Pixel)
+ * - value_type: type of the image value (generally integer)
+ *
+ * and the methods
+ * 
+ * - pixel_type lowest() : lowest pixel
+ * - pixel_type highest() : first pixel outside (width,height)
+ * - value_type at( const pixel_type & p ) : value at pixel p
+ *
+ * @param image an image defining the elevation map.
+ */
+template <typename IMAGE>
+INLINE
+void
+ImaGene::DigitalElevationMap::init( const IMAGE & image )
+{
+  clear();
+  typename IMAGE::pixel_type p = image.lowest();
+  typename IMAGE::pixel_type q = image.highest();
+  m_image.init( (uint) (q.x - p.x), (uint) (q.y - p.y) );
+  m_x0.x = p.x; 
+  m_x0.y = p.y;
+  m_x1.x = q.x; 
+  m_x1.y = q.y;
+  int max = image.at( p );
+  int min = image.at( p );
+  for ( typename IMAGE::pixel_type z = p; z.y < q.y; z.y++ )
+    for ( z.x = p.x; z.x < q.x; z.x++ )
+      {
+	int val = (int) image.at( z );
+	if ( val < min ) min = val;
+	else if ( val > max ) max = val;
+	m_image.set( z.x - (int) p.x, z.y - (int) p.y, val );
+      }
+  m_z_low = min - 1;
+  m_z_high = max + 1;
+  Kn_size sizes[ 3 ];
+  sizes[ 0 ] = (Kn_size) ( (int) q.x - (int) p.x );
+  sizes[ 1 ] = (Kn_size) ( (int) q.y - (int) p.y );
+  sizes[ 2 ] = (Kn_size) ( ( m_z_high - m_z_low ) + 1 );
+  m_space = new KnSpace( 3, sizes );
+  m_space_2d = new KnSpace( 2, sizes );
+  KnCharSet object = KnCharSet::create( *m_space, 3, false, 0 );
+  Kn_uid voxel_archetype = m_space->uspel( m_space->ufirst() );
+  for ( typename IMAGE::pixel_type z = p; z.y < q.y; z.y++ )
+    for ( z.x = p.x; z.x < q.x; z.x++ )
+      {
+// 	std::cerr << "(" << z.x << "," << z.y << ")";
+// 	std::cerr.flush();
+	sizes[ 0 ] = z.x - m_x0.x;
+	sizes[ 1 ] = z.y - m_x0.y;
+	sizes[ 2 ] = 0;
+	Kn_size max_z = (Kn_size) ( 1 + (int) image.at( z ) - m_z_low );
+	Kn_uid voxel = m_space->ucode( sizes, voxel_archetype );
+	sizes[ 2 ] = max_z;
+	Kn_uid end_voxel = m_space->ucode( sizes, voxel_archetype );
+	while ( voxel != end_voxel )
+	  {
+	    object += voxel;
+	    voxel = m_space->uadjacent( voxel, 2, true );
+	  } 
+      }
+  m_bel_adj = new BelAdjacency( *m_space, true );
+  m_object_bdry = new ObjectBoundary( *m_bel_adj, object );
+}
+
+
+/**
+ * @return the (3D) digital space.
+ */
+INLINE
+ImaGene::KnSpace* 
+ImaGene::DigitalElevationMap::space() const
+{
+  return m_space;
+}
+
+/**
+ * @return the (2D) digital space.
+ */
+INLINE
+ImaGene::KnSpace* 
+ImaGene::DigitalElevationMap::space2D() const
+{
+  return m_space_2d;
+}
+
+/**
+ * @return the volume associated with the elevation map.
+ */
+INLINE
+ImaGene::KnCharSet
+ImaGene::DigitalElevationMap::object() const
+{
+  ASSERT_DigitalElevationMap( ( m_object_bdry != 0 ) 
+			      && "You should initialize your elevation map before." );
+  return m_object_bdry->object();
+}
+
+/**
+ * @return the pointer on the object boundary (the upper surface)
+ * associated with the elevation map.
+ */
+INLINE
+const ImaGene::ObjectBoundary* 
+ImaGene::DigitalElevationMap::objectBoundary() const
+{
+  return m_object_bdry;
+}
+
+/**
+ * The elevation as an image between (0,0) and (width-1,height-1).
+ */
+INLINE
+const ImaGene::Image2D<int> & 
+ImaGene::DigitalElevationMap::elevation() const
+{
+  return m_image;
+}
+
+/**
+ * @return the surfel on the volume at the given pixel coordinates.
+ */
+INLINE
+ImaGene::Kn_sid 
+ImaGene::DigitalElevationMap::topSurfel( Pixel p ) const
+{
+  Kn_size sizes[ 3 ];
+  sizes[ 0 ] = (Kn_size) ( (int) p.x - (int) m_x0.x );
+  sizes[ 1 ] = (Kn_size) ( (int) p.y - (int) m_x0.y );
+  int val = m_image.at( sizes[ 0 ], sizes[ 1 ] );
+  sizes[ 2 ] = (Kn_size) ( val - m_z_low );
+  Kn_sid voxel_archetype = space()->sfirstCell( 3 );
+  Kn_sid voxel = space()->scode( sizes, voxel_archetype ); 
+  // surfel is incident to voxel along direction z (2).
+  Kn_sid bel = space()->sincident( voxel, 2, true );
+  ASSERT_DigitalElevationMap( (*objectBoundary())[ bel ] 
+			      && "Surfel is inconsistent with elevation map." );
+  return bel;
+}
+
+/**
+ * @param p any pixel in the original image frame.
+ *
+ * @return the coded pixel on the digital plane at the given pixel coordinates.
+ */
+INLINE
+ImaGene::Kn_uid 
+ImaGene::DigitalElevationMap::upixel( Pixel p ) const
+{
+  Kn_size sizes[ 2 ];
+  sizes[ 0 ] = (Kn_size) ( (int) p.x - (int) m_x0.x );
+  sizes[ 1 ] = (Kn_size) ( (int) p.y - (int) m_x0.y );
+  Kn_uid pixel_archetype = space2D()->ufirstCell( 2 );
+  Kn_uid pixel = space2D()->ucode( sizes, pixel_archetype ); 
+  return pixel;
+}
+
+/**
+ * Projects the given cell in 3D space onto the 2D space.
+ * @param cell any signed cell.
+ * @return the projected signed cell.
+ */
+INLINE
+ImaGene::Kn_sid 
+ImaGene::DigitalElevationMap::sproject( Kn_sid cell ) const
+{
+  Kn_size sizes[ 3 ];
+  space()->skdecodeCoords( cell, sizes );
+  return space2D()->skcode( sizes, space()->decodeSign( cell ) );
+}
+
+/**
+ * Projects the given cell in 3D space onto the 2D space.
+ * @param cell any unsigned cell.
+ * @return the projected unsigned cell.
+ */
+INLINE
+ImaGene::Kn_uid
+ImaGene::DigitalElevationMap::uproject( Kn_uid cell ) const
+{
+  Kn_size sizes[ 3 ];
+  space()->ukdecodeCoords( cell, sizes );
+  return space2D()->ukcode( sizes );
+}
+
+/**
+ * @param p any valid pixel in the image.
+ *
+ * @return a dyn. alloc. iterator moving horizontally on the
+ * digital elevation surface (XZ iterator).
+ */
+INLINE
+ImaGene::C4CIteratorOnSurface* 
+ImaGene::DigitalElevationMap::createHIterator( Pixel p ) const
+{
+  Kn_sid top = topSurfel( p );
+  return objectBoundary()->newC4CIterator( top, 0 );
+}
+
+/**
+ * @param p any valid pixel in the image.
+ *
+ * @return a dyn. alloc. iterator moving vertically on the digital
+ * elevation surface (YZ iterator).
+ */
+INLINE
+ImaGene::C4CIteratorOnSurface* 
+ImaGene::DigitalElevationMap::createVIterator( Pixel p ) const
+{
+  Kn_sid top = topSurfel( p );
+  return objectBoundary()->newC4CIterator( top, 1 );
+}
+
+/**
+ * @param p any valid pixel in the image.
+ * @param i a coordinate index (0 or 1).
+ *
+ * @return a dyn. alloc. iterator moving vertically on the digital
+ * elevation surface (XZ or YZ iterator).
+ */
+INLINE
+ImaGene::C4CIteratorOnSurface* 
+ImaGene::DigitalElevationMap::createIterator( Pixel p, uint i ) const
+{
+  Kn_sid top = topSurfel( p );
+  return objectBoundary()->newC4CIterator( top, i );
+}
+
+
+/**
+ * @param p any valid pixel in the image.
+ *
+ * @return a dyn. alloc. tracker that may move arbitrarily from
+ * the initial topSurfel on the elevation surface.
+ */
+INLINE
+ImaGene::DigitalSurfaceTracker* 
+ImaGene::DigitalElevationMap::createTracker( Pixel p ) const
+{
+  Kn_sid top = topSurfel( p );
+  return objectBoundary()->newTracker( top );
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'DigitalElevationMap'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'DigitalElevationMap' to write.
+ * @return the output stream after the writing.
+ */
+INLINE
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const DigitalElevationMap & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

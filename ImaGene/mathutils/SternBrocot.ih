@@ -1,0 +1,390 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : SternBrocot.ih
+//
+// Creation : 2011/02/28
+//
+// Version : 2011/02/28
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in SternBrocot.h 
+//
+// History :
+//	2011/02/28 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class SternBrocot declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+#include "ImaGene/mathutils/Mathutils.h"
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_SternBrocot(x)
+#define DEBUGCMD_SternBrocot(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_SternBrocot(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_SternBrocot(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+//-----------------------------------------------------------------------------
+inline
+ImaGene::SternBrocot::Node::
+Node( int p1, int q1, int u1, int k1, 
+      Node* ascendant_left1, Node* ascendant_right1, 
+      Node* descendant_left1, Node* descendant_right1,
+      Node* inverse1 )
+  : p( p1 ), q( q1 ), u( u1 ), k( k1 ), 
+    ascendantRight( ascendant_right1 ), ascendantLeft( ascendant_left1 ),
+    descendantRight( descendant_right1 ), descendantLeft( descendant_left1 ),
+    inverse( inverse1 )
+{
+  // std::cerr << "(" << p1 << "/" << q1 << "," << u1 << "," << k1 << ")";
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::SternBrocot::SBFraction::
+SBFraction( Node* sb_node )
+  : myNode( sb_node )
+{
+}
+//-----------------------------------------------------------------------------
+inline
+bool 
+ImaGene::SternBrocot::SBFraction::
+null() const
+{
+  return myNode == 0;
+}
+//-----------------------------------------------------------------------------
+inline
+int 
+ImaGene::SternBrocot::SBFraction::
+p() const
+{
+  return myNode ? myNode->p : 0;
+}
+//-----------------------------------------------------------------------------
+inline
+int 
+ImaGene::SternBrocot::SBFraction::
+q() const
+{
+  return myNode ? myNode->q : 0;
+}
+//-----------------------------------------------------------------------------
+inline
+int 
+ImaGene::SternBrocot::SBFraction::
+u() const
+{
+  ASSERT_SternBrocot( myNode != 0 );
+  return myNode->u;
+}
+//-----------------------------------------------------------------------------
+inline
+int 
+ImaGene::SternBrocot::SBFraction::
+k() const
+{
+  ASSERT_SternBrocot( myNode != 0 );
+  return myNode->k;
+}
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::SternBrocot::SBFraction::
+equals( unsigned int p, unsigned int q ) const
+{
+  return ( this->p() == p ) && ( this->q() == q );
+}
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::SternBrocot::SBFraction::
+lessThan( unsigned int p, unsigned int q ) const
+{
+  int64 d = ( (int64) this->p() ) * ( (int64) q )
+    - ( (int64) this->q() ) * ( (int64) p );
+  return d < 0LL;
+}
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::SternBrocot::SBFraction::
+moreThan( unsigned int p, unsigned int q ) const
+{
+  int64 d = ( (int64) this->p() ) * ( (int64) q )
+    - ( (int64) this->q() ) * ( (int64) p );
+  return d > 0LL;
+}
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::SternBrocot::SBFraction::
+operator==( const SBFraction & other ) const
+{
+  return myNode == other.myNode;
+}
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::SternBrocot::SBFraction::
+operator<( const SBFraction & other ) const
+{
+  return this->lessThan( other.p(), other.q() );
+}
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::SternBrocot::SBFraction::
+operator>( const SBFraction & other ) const
+{
+  return this->moreThan( other.p(), other.q() );
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::SternBrocot::SBFraction
+ImaGene::SternBrocot::SBFraction::
+left() const
+{
+  if ( myNode->descendantLeft == 0 )
+    {
+      Node* pleft = myNode->ascendantLeft;
+      Node* n = new Node( p() + pleft->p, 
+			  q() + pleft->q,
+			  odd() ? u() + 1 : 2,
+			  odd() ? k() : k() + 1,
+			  pleft, myNode,
+			  0, 0, 0 );
+      SBFraction inv = SBFraction( myNode->inverse );
+      Node* invpright = inv.myNode->ascendantRight;
+      Node* invn = new Node( inv.p() + invpright->p,
+			     inv.q() + invpright->q,
+			     inv.even() ? inv.u() + 1 : 2,
+			     inv.even() ? inv.k() : inv.k() + 1,
+			     myNode->inverse, invpright,
+			     0, 0, n );
+      n->inverse = invn;
+      myNode->inverse->descendantRight = invn;
+      myNode->descendantLeft = n;
+    }
+  return SBFraction( myNode->descendantLeft );
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::SternBrocot::SBFraction
+ImaGene::SternBrocot::SBFraction::
+right() const
+{
+  if ( myNode->descendantRight == 0 )
+    {
+      SBFraction inv( myNode->inverse );
+      inv.left();
+      ASSERT_SternBrocot( myNode->descendantRight !=  0 );
+    }
+  return SBFraction( myNode->descendantRight );
+}
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::SternBrocot::SBFraction::
+even() const
+{
+  return ( k() & 1 ) == 0;
+}
+//-----------------------------------------------------------------------------
+inline
+bool
+ImaGene::SternBrocot::SBFraction::
+odd() const
+{
+  return ( k() & 1 ) != 0;
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::SternBrocot::SBFraction
+ImaGene::SternBrocot::SBFraction::
+father() const
+{
+  return SBFraction( odd() ? myNode->ascendantRight : myNode->ascendantLeft );
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::SternBrocot::SBFraction
+ImaGene::SternBrocot::SBFraction::
+previousPartial() const
+{
+  return SBFraction( odd() ? myNode->ascendantLeft : myNode->ascendantRight );
+  // return SBFraction( odd() 
+  // 		     ? myNode->ascendantLeft->descendantRight
+  // 		     : myNode->ascendantRight->descendantLeft );
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::SternBrocot::SBFraction
+ImaGene::SternBrocot::SBFraction::
+inverse() const
+{
+  return SBFraction( myNode->inverse );
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::SternBrocot::SBFraction
+ImaGene::SternBrocot::SBFraction::
+partial( int kp ) const
+{
+  ASSERT_SternBrocot( ( -2 <= kp ) && ( kp <= k() ) );
+  return reduced( k() - kp );
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::SternBrocot::SBFraction
+ImaGene::SternBrocot::SBFraction::
+reduced( int i ) const
+{
+  ASSERT_SternBrocot( (0 <= i ) && ( i <= ( k()+2 ) ) );
+  Node* n = this->myNode;
+
+  bool left = ( n->k & 1 ) ? true : false;
+  while ( i-- > 0 )
+    {
+      n = left ? n->ascendantLeft : n->ascendantRight;
+      left = ! left;
+    }
+  return SBFraction( n );
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::SternBrocot::SBFraction::
+getSplit( SBFraction & f1, SBFraction & f2 ) const
+{
+  // TOCHECK
+  f1.myNode = myNode->ascendantLeft;
+  f2.myNode = myNode->ascendantRight;
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::SternBrocot::SBFraction::
+getSplitBerstel( SBFraction & f1, unsigned int & nb1, 
+		 SBFraction & f2, unsigned int & nb2 ) const
+{
+  // TOCHECK
+  if ( odd() )
+    {
+      f1.myNode = myNode->ascendantLeft;
+      nb1 = this->u();
+      f2.myNode = f1.myNode->ascendantRight;
+      nb2 = 1;
+    }
+  else
+    {
+      f2.myNode = myNode->ascendantRight;
+      nb2 = this->u();
+      f1.myNode = f2.myNode->ascendantLeft;
+      nb1 = 1;
+    }
+}
+//-----------------------------------------------------------------------------
+inline
+void
+ImaGene::SternBrocot::SBFraction::
+cfrac( std::vector<unsigned int> & quotients ) const
+{
+  ASSERT_SternBrocot( this->k() >= 0 );
+  int i = this->k();
+  quotients.resize( i + 1 );
+  quotients[ i-- ] = this->u();
+  Node* n = myNode;
+  bool left = ( n->k & 1 ) ? true : false;
+  while ( i >= 0 )
+    {
+      ASSERT_SternBrocot( n->k >= 0 );
+      n = left ? n->ascendantLeft : n->ascendantRight;
+      quotients[ i ] = i == n->k ? n->u : 1;
+      i--;
+      left = ! left;
+    }
+}
+
+//-----------------------------------------------------------------------------
+inline
+ImaGene::SternBrocot::SBFraction
+ImaGene::SternBrocot::zeroOverOne()
+{
+  return SBFraction( &myZeroOverOne );
+}
+//-----------------------------------------------------------------------------
+inline
+ImaGene::SternBrocot::SBFraction
+ImaGene::SternBrocot::oneOverZero()
+{
+  return SBFraction( &myOneOverZero );
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'SternBrocot'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'SternBrocot' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const SternBrocot & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'SternBrocot::SBFraction'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'SternBrocot' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		     const SternBrocot::SBFraction & that_object_to_display )
+{
+  that_stream << "[SBFraction f=" << that_object_to_display.p() 
+	      << "/" << that_object_to_display.q()
+	      << " u=" << that_object_to_display.u()
+	      << " k=" << that_object_to_display.k()
+	      << std::flush;
+  std::vector<unsigned int> quotients;
+  if ( that_object_to_display.k() >= 0 )
+    {
+      that_object_to_display.cfrac( quotients );
+      that_stream << " [" << quotients[ 0 ];
+      for ( unsigned int i = 1; i < quotients.size(); ++i )
+	that_stream << "," << quotients[ i ];
+      that_stream << "]";
+    }
+  that_stream << " ]";
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

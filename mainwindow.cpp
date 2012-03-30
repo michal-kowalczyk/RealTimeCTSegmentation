@@ -8,12 +8,9 @@
 #include <QPen>
 #include <QMouseEvent>
 #include <QDebug>
-#include <QtOpenGL>
-
-#include <math.h>
-
 
 #include "camerasupport.h"
+#include "meaningfulscales.h"
 
 
 MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow), frame (0), contour (0), tree (0){
@@ -29,8 +26,6 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainW
 
     cameraSupport = new CameraSupport (WIDTH, HEIGHT);
 
-    ui -> canvas -> resize (WIDTH, HEIGHT);
-
     timer = new QTimer (this);
     connect (timer, SIGNAL(timeout()), this, SLOT(updateFrame()));
     timer -> start (MILISECONDS_FOR_REFRESH);
@@ -42,17 +37,20 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainW
     currentFrame = 0;
     fps = 0;
 
-    marker = new QImage (WIDTH, HEIGHT, QImage::Format_ARGB32);
+    marker = new QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
     marker -> fill (qRgba (0, 0, 0, 0));
 
-    segmentationResult = new QImage (WIDTH, HEIGHT, QImage::Format_ARGB32);
+    segmentationResult = new QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
     segmentationResult -> fill (qRgba (0, 0, 0, 0));
+
+    boxes = 0;
 
     repaint = true;
 
     frameCounter = 0;
     time1 = time2 = time3 = time4 = time5 = time6 = time7 = time8 = 0;
 }
+
 
 MainWindow::~MainWindow (){
     delete cameraSupport;
@@ -70,6 +68,7 @@ MainWindow::~MainWindow (){
 
     delete ui;
 }
+
 
 void MainWindow::setOrientation(ScreenOrientation orientation)
 {
@@ -137,17 +136,29 @@ void MainWindow::updateFrame (){
             delete frame;
             frame = 0;
         }
-        frame = new QImage(cameraSupport -> GetRGB (), WIDTH, HEIGHT, QImage::Format_RGB888);
-        //ui -> canvas -> setImage (frame);
+        frame = new QImage((unsigned char *)cameraSupport -> GetRGBA (), WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);//Format_RGB888
 
         computeCT ();
+
+        if (ui -> meaningulScalesCheckBox -> isChecked ()){
+            time9 -= clock ();
+            MeaningfulScales ms(*segmentationResult);
+            time9 += clock ();
+            if (boxes)
+                delete boxes;
+            boxes = new QImage (ms.GetResult());
+        }
 
         repaint = true;
         update (0, 0, WIDTH, HEIGHT);
 
         frameTime[currentFrame] = clock();
-        fps++;
 
+        /*fps = 1;
+        while (frameTime[currentFrame] - frameTime[(currentFrame - fps) % totalFrames] < CLOCKS_PER_SEC)
+            fps++;*/
+
+        fps++;
         while (frameTime[currentFrame] - frameTime[(currentFrame - fps) % totalFrames] > CLOCKS_PER_SEC)
             fps--;
 
@@ -178,13 +189,21 @@ void MainWindow::transparencyChanged (int value){
 
 
 Image<U8> MainWindow::getLibTIMFromFrame (){
-    const unsigned char *rgb = cameraSupport -> GetRGB ();
+    const unsigned char *rgb = (unsigned char *)cameraSupport -> GetRGBA ();
     Image<U8> result (WIDTH, HEIGHT);
-    unsigned int i = 0;
+    unsigned int i;
+    if (ui -> redRadioButton -> isChecked())
+        i = 0;
+    else if (ui -> greenRadioButton -> isChecked())
+        i = 1;
+    else if (ui -> blueRadioButton -> isChecked())
+        i = 2;
+    else
+        i = 0;
     unsigned int size = WIDTH * HEIGHT;
     for (unsigned int j = 0; j < size; j++){
         result (j) = rgb[i];
-        i += 3;
+        i += 4;
     }
 
     /*Image<U8> result2 (WIDTH, HEIGHT);
@@ -229,7 +248,7 @@ Image<U8> MainWindow::convertQImageToLibTIM (QImage *image){
 
 
 QImage *MainWindow::convertLibTIMToQImage (Image<U8> &image, int alpha){
-    QImage *result = new QImage (WIDTH, HEIGHT, QImage::Format_ARGB32);
+    QImage *result = new QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
     unsigned int size = WIDTH * HEIGHT;
     unsigned int *bits = (unsigned int *)result -> bits ();
     U8 value;
@@ -241,7 +260,7 @@ QImage *MainWindow::convertLibTIMToQImage (Image<U8> &image, int alpha){
             bits[i] = qRgba (0, 0, 0, 0);
     }
 
-    /*QImage *result2 = new QImage (WIDTH, HEIGHT, QImage::Format_ARGB32);
+    /*QImage *result2 = new QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
     for (unsigned int x = 0; x < WIDTH; x++)
         for (unsigned int y = 0; y < HEIGHT; y++){
             value = image (x, y);
@@ -268,13 +287,24 @@ void MainWindow::computeCT (){
         tree = 0;
     }
 
-    if (cameraSupport -> GetRGB () != 0){
+    if (cameraSupport -> GetRGBA () != 0){
         if (ui -> markerCheckbox -> isChecked () || ui -> resultCheckbox -> isChecked () || ui -> contourCheckbox -> isChecked ()){
             //TEST FOR EACH FRAME (SIZE: 400 x 300)
             //200 :  3945 ,  12038 ,  124553 ,  1330 ,  4156 ,  14740
             //200 :  3459 ,  12158 ,  125187 ,  1438 ,  4266 ,  14495 //optimizing getLibTIMFromFrame function
             //200 :  3495 ,  4211 ,  135086 ,  2054 ,  4956 ,  14784 //optimizing convertQImageToLibTIM function
             //200 :  3677 ,  4268 ,  137953 ,  2564 ,  5684 ,  1523 //optimizing convertLibTIMToQImage function
+            //200 :  3976 ,  4644 ,  140883 ,  1807 ,  4823 ,  1502 ,  13841 ,  7185 // extended research version
+            //200 :  3916 ,  4655 ,  133632 ,  1609 ,  4645 ,  1562 ,  8590 ,  7054 // using Premultiplied image format
+            //200 :  3905 ,  4167 ,  128858 ,  1478 ,  4046 ,  1414 ,  4490 ,  6371 // using RGBA frame instead of RGB
+            /* it's possible to make it better:
+              1. time6 is ~2.5 times smaller then time1 and time2.
+                 time6 - convertLibTIMToQImage  WIDTH * HEIGHT iterations   read LibTIM::Image  write QImage
+                 time1 - getLibTIMFromFrame     WIDTH * HEIGHT iterations   write LibTIM::Image read QImage
+                 time2 - convertQImageToLibTIM  WIDTH * HEIGHT iterations   write LibTIM::Image read QImage
+                 Conclusion: writing LibTIM::Image is slowler then writing QImage
+              2. in convertion between YUV and RGB removing clamp function would decrease time of execution
+            */
             time1 -= clock ();
             inputImage = getLibTIMFromFrame ();
             time1 += clock ();
@@ -286,7 +316,6 @@ void MainWindow::computeCT (){
             time3 -= clock ();
             tree = new ComponentTree<U8> (inputImage, markerImage);
             time3 += clock ();
-
 
             time4 -= clock ();
             tree -> m_root -> calpha = computeCAlpha (tree -> m_root, alpha);
@@ -420,36 +449,45 @@ void MainWindow::mouseMoveEvent (QMouseEvent* event){
 }
 
 
-
 void MainWindow::paintEvent (QPaintEvent *event){
     if (!repaint)
         return;
 
     if (frame){
         time7 -= clock ();
-        QRect area = event -> rect ();
-        QPoint topLeft = area.topLeft ();
-
-//        ui -> canvas -> setImage (frame);
-        //ui -> canvas -> setImage (cameraSupport->GetRGB());
+        /*canvas -> SetFrame(frame);
+        if (ui -> resultCheckbox -> isChecked () && segmentationResult != 0)
+            canvas -> SetSegmentation(segmentationResult);
+        if (ui -> contourCheckbox -> isChecked () && contour != 0)
+            canvas -> SetContour(contour);
+        if (ui -> markerCheckbox -> isChecked () && marker != 0)
+            canvas -> SetMarker(marker);
+        canvas -> Update();*/
 
         //THIS DISPLAYS FRAME ON SOME GUI ELEMENTS, BUT IT WORKS!
         /*QPainter displayPainter (this);
         displayPainter.beginNativePainting();
-        glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, 640, 480, 0, GL_RGB, GL_UNSIGNED_BYTE, cameraSupport -> GetRGB());
+        glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, cameraSupport -> GetRGB());
         displayPainter.endNativePainting();*/
 
+        /*Display *display = QX11Info::display();
+        Drawable hd = handle();
+        GC gc = XCreateGC(display, hd, 0, 0);*/
+
+        QPoint topLeft = event -> rect ().topLeft ();
         QPainter displayPainter (this);
-        displayPainter.drawImage (topLeft, *frame, area);
+        displayPainter.drawImage (topLeft, *frame);
         if (ui -> resultCheckbox -> isChecked () && segmentationResult != 0)
-            displayPainter.drawImage (topLeft, *segmentationResult, area);
+            displayPainter.drawImage (topLeft, *segmentationResult);
         if (ui -> contourCheckbox -> isChecked () && contour != 0)
-            displayPainter.drawImage (topLeft, *contour, area);
+            displayPainter.drawImage (topLeft, *contour);
+        if (ui -> meaningulScalesCheckBox -> isChecked () && boxes != 0)
+            displayPainter.drawImage (topLeft, *boxes);
         if (ui -> markerCheckbox -> isChecked () && marker != 0)
-            displayPainter.drawImage (topLeft, *marker, area);
+            displayPainter.drawImage (topLeft, *marker);
         time7 += clock ();
 
         frameCounter++;
-        qDebug () << frameCounter << ": " << time1 / frameCounter << ", " << time2 / frameCounter << ", " << time3 / frameCounter << ", " << time4 / frameCounter << ", " << time5 / frameCounter << ", " << time6 / frameCounter << ", " << time7 / frameCounter << ", " << time8 / frameCounter << ". FPS: " << fps ;
+        qDebug () << frameCounter << ": " << time1 / frameCounter << ", " << time2 / frameCounter << ", " << time3 / frameCounter << ", " << time4 / frameCounter << ", " << time5 / frameCounter << ", " << time6 / frameCounter << ", " << time7 / frameCounter << ", " << time8 / frameCounter << ", " << time9 / frameCounter << ". FPS: " << fps ;
     }
 }

@@ -1,0 +1,51 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : ImplicitSurfaceHelper.ih
+//
+// Creation : 2008/03/20
+//
+// Version : 2008/03/20
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in ImplicitSurfaceHelper.h 
+//
+// History :
+//	2008/03/20 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class ImplicitSurfaceHelper declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_ImplicitSurfaceHelper(x)
+#define DEBUGCMD_ImplicitSurfaceHelper(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_ImplicitSurfaceHelper(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_ImplicitSurfaceHelper(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

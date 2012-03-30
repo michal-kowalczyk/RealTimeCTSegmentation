@@ -1,0 +1,77 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : ImplicitSurfaces.ih
+//
+// Creation : 2005/01/19
+//
+// Version : 2005/01/19
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in ImplicitSurfaces.h 
+//
+// History :
+//	2005/01/19 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class ImplicitSurfaces declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_ImplicitSurfaces(x)
+#define DEBUGCMD_ImplicitSurfaces(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_ImplicitSurfaces(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_ImplicitSurfaces(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * @return the dimension of mapping domain (0 is any).
+ */
+uint
+ImaGene::ImplicitSphere::dimIn() const
+{
+  return m_n;
+}
+
+/**
+ * @return the dimension of mapping domain (0 is any).
+ */
+uint
+ImaGene::ImplicitTorus3D::dimIn() const
+{
+  return 3;
+}
+
+/**
+ * @return the dimension of mapping domain (0 is any).
+ */
+uint
+ImaGene::ImplicitSurfaceUnion::dimIn() const
+{
+  return m_is1->dimIn();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

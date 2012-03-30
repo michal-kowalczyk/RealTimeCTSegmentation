@@ -36,10 +36,11 @@
 
 #include <jni.h>
 
+extern int JavaClassesLoader (JNIEnv* env);
+
 JavaVM *m_javaVM = NULL;
 JNIEnv *m_env = NULL;
-jobject objptr;
-jobject cameraSupportClassPointer;
+static jobject objptr;
 static QSemaphore m_quitAppSemaphore;
 static QList<QByteArray> m_applicationParams;
 static const char * const QtNativeClassPathName = "org/kde/necessitas/industrius/QtNative";
@@ -143,32 +144,6 @@ static int registerNatives(JNIEnv* env)
     return JNI_TRUE;
 }
 
-static int registerCameraSupportNativeMethods(JNIEnv* env, const char* className)
-{
-    jclass clazz=env->FindClass(className);
-    if (clazz == NULL)
-    {
-        __android_log_print(ANDROID_LOG_FATAL,"Qt", "Camera Support Native registration unable to find class '%s'", className);
-        return JNI_FALSE;
-    }
-    jmethodID constr = env->GetMethodID(clazz, "<init>", "()V");
-    if(!constr) {
-        __android_log_print(ANDROID_LOG_FATAL,"Qt", "Camera Support Native registration unable to find constructor for class '%s'", className);
-        return JNI_FALSE;;
-    }
-    jobject obj = env->NewObject(clazz, constr);
-    cameraSupportClassPointer = env->NewGlobalRef(obj);
-    return JNI_TRUE;
-}
-
-static int registerCameraSupportNatives(JNIEnv* env)
-{
-    if (!registerCameraSupportNativeMethods(env, "pl/ekk/mkk/necessitas/CameraSupport"))
-        return JNI_FALSE;
-    
-    return JNI_TRUE;
-}
-
 typedef union {
     JNIEnv* nativeEnvironment;
     void* venv;
@@ -179,7 +154,9 @@ Q_DECL_EXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* /*reserved*/)
     __android_log_print(ANDROID_LOG_INFO,"Qt", "qt start");
     UnionJNIEnvToVoid uenv;
     uenv.venv = NULL;
-    m_javaVM = 0;    if (vm->GetEnv(&uenv.venv, JNI_VERSION_1_4) != JNI_OK)
+    m_javaVM = 0;
+    
+    if (vm->GetEnv(&uenv.venv, JNI_VERSION_1_4) != JNI_OK)
     {
         __android_log_print(ANDROID_LOG_FATAL,"Qt","GetEnv failed");
         return -1;
@@ -190,9 +167,8 @@ Q_DECL_EXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* /*reserved*/)
         __android_log_print(ANDROID_LOG_FATAL, "Qt", "registerNatives failed");
         return -1;
     }
-    if (!registerCameraSupportNatives(m_env))
-    {
-        __android_log_print(ANDROID_LOG_FATAL, "Qt", "Camera Support registerNatives failed");
+    if (!JavaClassesLoader (m_env)){
+        __android_log_print (ANDROID_LOG_FATAL, "Qt", "Couldn't register user defined classes!");
         return -1;
     }
     m_javaVM = vm;

@@ -1,0 +1,230 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : GlobalC4CGeometry.ih
+//
+// Creation : 2004/11/25
+//
+// Version : 2004/11/25
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in GlobalC4CGeometry.h 
+//
+// History :
+//	2004/11/25 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class GlobalC4CGeometry declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_GlobalC4CGeometry(x)
+#define DEBUGCMD_GlobalC4CGeometry(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_GlobalC4CGeometry(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_GlobalC4CGeometry(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+
+/**
+ * less than for CommonPartGeometry based on curvilinear abscissa.
+ * @param v1 the first value.
+ * @param v1 the second value.
+ * @return 'v1.curv_abscissa < v2.curv_abscissa'
+ */
+bool 
+ImaGene::GlobalC4CGeometry::CPGCurvAbsCmp::operator()
+  ( const CommonPartGeometry & v1, 
+    const CommonPartGeometry & v2 )
+{
+  return v1.curv_abscissa < v2.curv_abscissa;
+}
+
+
+/**
+ * Constructor.  Needs the discrete length of the contour to
+ * perform comparisons modulo this value.
+ * @param dl the discrete length.
+ */
+ImaGene::GlobalC4CGeometry::CPGDiscAbsCmp::CPGDiscAbsCmp( uint dl )
+  : mc( dl )
+{
+}
+
+
+/**
+ * less than for CommonPartGeometry based on discrete abscissa.
+ * @param v1 the first value.
+ * @param v1 the second value.
+ * @return 'v1.disc_abscissa < v2.disc_abscissa'
+ */
+bool
+ImaGene::GlobalC4CGeometry::CPGDiscAbsCmp::operator()
+  ( const CommonPartGeometry & v1,
+    const CommonPartGeometry & v2 )
+{
+  return mc.less( v1.disc_abscissa, v2.disc_abscissa );
+}
+  
+
+/**
+ * @param cabs a curvilinear abscissa inside the common part.
+ * @return the angle wrt x-axis for this abscissa.
+ */
+double
+ImaGene::GlobalC4CGeometry::CommonPartGeometry
+::angleFromCurvilinearAbscissa( double cabs ) const
+{
+  Mathutils::AngleComputer ac;
+  return 
+    ac.cast( ( cabs - curv_abscissa ) * ( ac.deviation( angle2, angle1 ) )
+	     / length 
+	     + angle1 );
+}
+
+
+/**
+ * @param cabs a curvilinear abscissa inside the common part.
+ * @return the curvature for this abscissa.
+ */
+double 
+ImaGene::GlobalC4CGeometry::CommonPartGeometry
+::curvatureFromCurvilinearAbscissa( double cabs ) const
+{
+  Mathutils::AngleComputer ac;
+  return ac.deviation( angle2, angle1 ) / length;
+}
+
+
+/**
+ * @param dabs a discrete abscissa inside the common part.
+ * @return the angle wrt x-axis for this abscissa.
+ */
+double
+ImaGene::GlobalC4CGeometry::CommonPartGeometry
+::angleFromDiscreteAbscissa( double dabs ) const
+{
+  Mathutils::AngleComputer ac;
+//   std::cerr << "dabs=" << dabs << " disc_abscissa=" << disc_abscissa
+// 	    << " disc_length=" << disc_length 
+// 	    << " angle1=" << angle1 
+// 	    << " angle2=" << angle2
+// 	    << " length=" << length 
+// 	    << std::endl;
+  return 
+    ac.cast( ( dabs - (double) disc_abscissa ) * ac.deviation( angle2, angle1 )
+	     / (double) disc_length
+	     + angle1 );
+}
+
+ 
+/**
+ * @param dabs a discrete abscissa inside the common part.
+ * @return the curvature for this abscissa.
+ */
+double
+ImaGene::GlobalC4CGeometry::CommonPartGeometry
+::curvatureFromDiscreteAbscissa( double dabs ) const
+{
+  Mathutils::AngleComputer ac;
+  return ac.deviation( angle2, angle1 ) / length;
+}
+
+/**
+ * @param dabs a discrete abscissa inside the common part.
+ * @return the curvilinear abscissa for this abscissa.
+ */
+double
+ImaGene::GlobalC4CGeometry::CommonPartGeometry
+::curvilinearFromDiscreteAbscissa( double dabs ) const
+{
+  double ratio;
+
+  ASSERT_GlobalC4CGeometry( ( dabs >= disc_abscissa ) 
+			    && ( "Invalid range for dabs=" ) );
+  
+  ASSERT_GlobalC4CGeometry( ( ( dabs - (double) disc_abscissa ) < disc_length )
+			    && "Invalid range for dabs" );
+  ratio = ( dabs - (double) disc_abscissa ) / disc_length;
+  return curv_abscissa + ratio * length;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Common part services ---------------------------
+
+
+/**
+ * @return the number of common parts.
+ */
+uint
+ImaGene::GlobalC4CGeometry::nbCommonParts() const
+{
+  return m_nb_cp;
+}
+
+
+/**
+ * @param i the index of a common part.
+ * @return the common part with index [i].
+ */
+const ImaGene::C4CTangentialCover::CommonPart & 
+ImaGene::GlobalC4CGeometry::getCommonPart( uint i ) const
+{
+  ASSERT_GlobalC4CGeometry( i < nbCommonParts() );
+  return m_cps[ i ];
+}
+
+
+/**
+ * @param i the index of a common part.
+ * @return the geometry of the common part with index [i].
+ */
+const ImaGene::GlobalC4CGeometry::CommonPartGeometry & 
+ImaGene::GlobalC4CGeometry::getCommonPartGeometry( uint i ) const
+{
+  ASSERT_GlobalC4CGeometry( i < nbCommonParts() );
+  return m_cp_geoms[ i ];
+}
+
+  
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'GlobalC4CGeometry'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'GlobalC4CGeometry' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, const GlobalC4CGeometry & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

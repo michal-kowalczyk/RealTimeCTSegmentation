@@ -1,0 +1,132 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : ChangeQuadrant.ih
+//
+// Creation : 2009/06/30
+//
+// Version : 2009/06/30
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in ChangeQuadrant.h 
+//
+// History :
+//	2009/06/30 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class ChangeQuadrant declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_ChangeQuadrant(x)
+#define DEBUGCMD_ChangeQuadrant(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_ChangeQuadrant(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_ChangeQuadrant(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/**
+ * @return the segmentMLP of the polygon 
+ */
+const std::vector<ImaGene::ChangeQuadrant::segmentMLP> &  
+ImaGene::ChangeQuadrant::getSegmentMLP() const
+{
+  return m_segmentMLP;
+}
+
+/**
+ * Copy constructor.
+ * @param other the iterator to clone.
+ */
+//ImaGene::ChangeQuadrant::segmentMLP::segmentMLP
+//( const segmentMLP & other )
+//  : fc( other.fc ), first_point( other.first_point ), last_point( other.last_point ), a( other.a ), 
+//    b( other.b ), mu( other.mu ), mu_sup( other.mu_sup ), first_code( other.first_code ), 
+//    Quadrant( other.Quadrant ), Quad2( other.Quad2 ), convex_back( other.convex_back ), 
+//    convex_front( other.convex_front )
+//{
+//}
+    
+/**
+ * Assignment.
+ * @param other the iterator to copy.
+ * @return a reference on 'this'.
+ */
+//ImaGene::ChangeQuadrant::segmentMLP& 
+//ImaGene::ChangeQuadrant::segmentMLP::operator=
+//( const segmentMLP & other )
+//{
+//  if ( this != &other )
+//    {
+//      fc = other.fc;
+//      first_point = other.first_point;
+//      last_point = other.last_point;
+//      a = other.a;
+//      b = other.b;
+//      mu = other.mu;
+//      mu_sup = other.mu_sup;
+//      first_code = other.first_code;
+//      Quadrant = other.Quadrant;
+//      convex_back = other.convex_back;
+//      convex_front = other.convex_front;
+//    }
+//  return *this;
+//}
+    
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'ChangeQuadrant::segmentMLP'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'ChangeQuadrant::segmentMLP' to write.
+ * @return the output stream after the writing.
+ */
+//std::ostream&
+//ImaGene::operator<<( std::ostream & that_stream, 
+//		       const ChangeQuadrant::segmentMLP & that_object_to_display )
+//{
+//  that_object_to_display.selfDisplay( that_stream );
+//  return that_stream;
+//}
+
+/**
+ * Overloads 'operator<<' for displaying objects of class
+ * 'ChangeQuadrant::segmentMLP'.
+ *
+ * @param that_stream the output stream where the object is written.
+ * @param obj the object of class 'ChangeQuadrant' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		       const ChangeQuadrant::segmentMLP & obj )
+{
+  that_stream << "[ First_point:( " << obj.first_point.x() << ";" << obj.first_point.y()  
+	      << " )   Last_point:(" << obj.last_point.x() << "," << obj.last_point.y() 
+              << " )   (a,b,mu,mu_sup): ( " << obj.a << ";" << obj.b << ";" << obj.mu << ";" << obj.mu_sup
+              << " )   FreemanChain: " << obj.fc.chain 
+	      << " ]";
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

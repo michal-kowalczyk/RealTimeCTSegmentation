@@ -1,0 +1,162 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : ContourHelper.ih
+//
+// Creation : 2008/05/19
+//
+// Version : 2008/05/19
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in ContourHelper.h 
+//
+// History :
+//	2008/05/19 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class ContourHelper declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+#include <ImaGene/base/VectorUtils.h> 
+
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_ContourHelper(x)
+#define DEBUGCMD_ContourHelper(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_ContourHelper(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_ContourHelper(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'ContourHelper'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'ContourHelper' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const ContourHelper & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+
+
+
+
+/**
+ * Compute the projection of a Point ptC on the real line defined by the two points (ptA,ptB), and
+ * return true if the projected point is inside the segment closed interval [A,B].
+ * 
+ * @param ptA, ptB : the two points defining the straight line.
+ * @param ptC: the point to be projected.
+ * @param ptProjected (return) the projected point.
+ * @return: true if ptProjected is inside the segment [A,B].
+ **/
+
+INLINE bool 
+ImaGene::ContourHelper::projetOnStraightLine(const ImaGene::Vector2D & ptA, const ImaGene::Vector2D & ptB, 
+		     const ImaGene::Vector2D & ptC, ImaGene::Vector2D &ptProjected){
+  ImaGene::Vector2D vAB (ptB.x()- ptA.x(), ptB.y()- ptA.y());
+  ImaGene::Vector2D vAC (ptC.x()-ptA.x(), ptC.y()-ptA.y());
+  
+  double normeAB = VectorUtils::norm(vAB);
+  double normevAC = VectorUtils::norm(vAC);
+  
+  double scalABAC = VectorUtils::dotProduct(vAB, vAC);
+  double distPtA_Proj = scalABAC/normeAB;
+
+  ptProjected.x()= ptA.x()+vAB.x()*(distPtA_Proj/normeAB);
+  ptProjected.y() = ptA.y()+vAB.y()*(distPtA_Proj/normeAB);
+
+  return  (scalABAC>=0 && distPtA_Proj<=normeAB); 
+}
+
+
+
+
+
+/**
+ * Compute if exists the intersection between two segments [ptA, ptB] and [ptC, ptD].
+ *
+ * @param ptA, ptB, ptC, ptD : the two segments [ptA, ptB] and [ptC, ptD].
+ * @param (return) ptProjected  
+ *
+ **/    
+
+INLINE  bool
+ImaGene::ContourHelper::computeSegmentIntersection(const ImaGene::Vector2D & ptA, const ImaGene::Vector2D & ptB, 
+						   const ImaGene::Vector2D & ptC, const ImaGene::Vector2D & ptD,
+						   ImaGene::Vector2D & ptIntersection){
+  Vector2D vectAB(ptB.x() - ptA.x(), ptB.y() - ptA.y());
+  Vector2D vectCD(ptD.x() - ptC.x(), ptD.y() - ptC.y()); 
+  Vector2D vectAC(ptC.x() - ptA.x(), ptC.y() - ptA.y());
+  Vector2D vectAD(ptD.x() - ptA.x(), ptD.y() - ptA.y());
+  Vector2D vectCB(ptB.x() - ptC.x(), ptB.y() - ptC.y()); 
+  Vector2D vectCA(ptA.x() - ptC.x(), ptA.y() - ptC.y()); 
+  bool exist = (VectorUtils::det(vectAB, vectAC) * VectorUtils::det(vectAB, vectAD)<0) &&
+    (VectorUtils::det(vectCD, vectCB) * VectorUtils::det(vectCD, vectCA)<0);  
+  if(exist){
+    // Reference of the intersection on AB (projection on AB)
+    Vector2D projC, projD;
+    projetOnStraightLine(ptA, ptB, ptC, projC);
+    projetOnStraightLine(ptA, ptB, ptD, projD);
+    double distProjC_C = VectorUtils::norm(Vector2D(ptC.x()-projC.x(), ptC.y()-projC.y() ));
+    double distProjD_D = VectorUtils::norm(Vector2D(ptD.x()-projD.x(), ptD.y()-projD.y() ));
+    
+    double distProjC_ProjD = VectorUtils::norm(Vector2D(projD.x()-projC.x() ,projD.y()-projC.y() ));
+    double distProjC_O = (distProjC_C*distProjC_ProjD)/(distProjC_C+distProjD_D);
+    Vector2D vectAProjC(projC.x()-ptA.x(),projC.y()-ptA.y());
+    
+    vectAProjC/= VectorUtils::norm(vectAProjC);
+    vectAProjC*=distProjC_O;
+    Vector2D sol1(projC.x()+vectAProjC.x(),projC.y()+vectAProjC.y());
+    Vector2D sol2(projC.x()-vectAProjC.x(),projC.y()-vectAProjC.y());
+    if(abs(VectorUtils::det(Vector2D(ptD.x()-sol1.x(), ptD.y()-sol1.y()), Vector2D(sol1.x()-ptC.x(), sol1.y()-ptC.y())))<
+       abs(VectorUtils::det(Vector2D(ptD.x()-sol2.x(), ptD.y()-sol2.y()), Vector2D(sol2.x()-ptC.x(), sol2.y()-ptC.y())))){
+      ptIntersection.x() = sol1.x();
+      ptIntersection.y() = sol1.y();
+    }else{
+      ptIntersection.x() = sol2.x();
+      ptIntersection.y() = sol2.y();      
+    }
+  }
+  return exist;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

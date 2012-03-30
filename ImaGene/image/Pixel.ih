@@ -1,0 +1,187 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Pixel.ih
+//
+// Creation : 2010/05/19
+//
+// Version : 2010/05/19
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Pixel.h 
+//
+// History :
+//	2010/05/19 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Pixel declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Pixel(x)
+#define DEBUGCMD_Pixel(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Pixel(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_Pixel(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Destructor. 
+ */
+INLINE
+ImaGene::Pixel::~Pixel()
+{}
+
+/**
+ * Constructor. Default position is arbitrary.
+ */
+INLINE
+ImaGene::Pixel::Pixel()
+{}
+
+/**
+ * Constructor from position.
+ */
+INLINE
+ImaGene::Pixel::Pixel( integer_t nx, integer_t ny )
+  : x( nx ), y( ny )
+{}
+
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+INLINE
+ImaGene::Pixel::Pixel( const Pixel & other )
+  : x( other.x ), y( other.y )
+{}
+
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ */
+INLINE
+ImaGene::Pixel & 
+ImaGene::Pixel::operator=( const Pixel & other )
+{
+  x = other.x;
+  y = other.y;
+  return *this;
+}
+
+/**
+ * Equality operator.
+ * @param other the other pixel.
+ * @return 'true' if this and [other] have the same coordinates.
+ */
+INLINE
+bool 
+ImaGene::Pixel::operator==( const Pixel & other ) const
+{
+  return ( x == other.x ) && ( y == other.y );
+}
+
+/**
+ * Less than operator (lexicographic ordering .
+ * @param other the other pixel.
+ * @return 'true' if this.y < other.y or if equal, this.x < other.x.
+ */
+INLINE
+bool
+ImaGene::Pixel::operator<( const Pixel & other ) const
+{
+  return ( y < other.y ) ||
+    ( ( y == other.y ) && ( x < other.x ) );
+}
+
+/**
+ * Read only accessor.
+ * @param i the coordinate index (0 or 1 ).
+ * @return the coordinate.
+ */
+INLINE
+ImaGene::Pixel::integer_t 
+ImaGene::Pixel::operator[]( size_t i ) const
+{
+  ASSERT_Pixel( ( i >= 0 ) && ( i < 2 ) );
+  if ( i == 0 ) return x;
+  else return y;
+}
+
+/**
+ * Read-write only accessor.
+ * @param i the coordinate index (0 or 1 ).
+ * @return the coordinate.
+ */
+INLINE
+ImaGene::Pixel::integer_t & 
+ImaGene::Pixel::operator[]( size_t i )
+{
+  ASSERT_Pixel( ( i >= 0 ) && ( i < 2 ) );
+  if ( i == 0 ) return x;
+  else return y;
+}
+
+ 
+/**
+ * Writes/Displays the object on an output stream.
+ * @param that_stream the output stream where the object is written.
+ */
+INLINE
+void
+ImaGene::Pixel::selfDisplay( std::ostream & that_stream ) const
+{
+  that_stream << '(' << x << ',' << y << ')';
+}
+
+/**
+ * Checks the validity/consistency of the object.
+ * @return 'true' if the object is valid, 'false' otherwise.
+ */
+INLINE
+bool
+ImaGene::Pixel::OK() const
+{
+  return true;
+}
+
+  
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'Pixel'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'Pixel' to write.
+ * @return the output stream after the writing.
+ */
+INLINE
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const Pixel & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

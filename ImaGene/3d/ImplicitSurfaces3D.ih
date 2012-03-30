@@ -1,0 +1,589 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : ImplicitSurfaces3D.ih
+//
+// Creation : 2008/03/20
+//
+// Version : 2008/03/20
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in ImplicitSurfaces3D.h 
+//
+// History :
+//	2008/03/20 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class ImplicitSurfaces3D declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <cmath>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_ImplicitSurfaces3D(x)
+#define DEBUGCMD_ImplicitSurfaces3D(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_ImplicitSurfaces3D(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_ImplicitSurfaces3D(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * @return the dimension of mapping domain (0 is any).
+ */
+uint
+ImaGene::ImplicitSurface3D::dimIn() const
+{
+  return 3;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// class WhitneyUmbrella
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Constructor.
+ */
+ImaGene::WhitneyUmbrella::WhitneyUmbrella()
+{
+}
+ 
+/**
+ * Destructor.
+ */
+ImaGene::WhitneyUmbrella::~WhitneyUmbrella()
+{
+}
+
+/**
+ * Clone services.
+ *
+ * @return a dynamically allocated pointer on a clone of 'this'.
+ */
+ImaGene::ImplicitSurface3D* 
+ImaGene::WhitneyUmbrella::clone() const
+{
+  return new WhitneyUmbrella;
+}
+
+/**
+ * Evaluates the implicit function at point [xyz].
+ * 
+ * @param xyz a 3d point.
+ *
+ * @return the value f(x,y,z).
+ */
+float
+ImaGene::WhitneyUmbrella::operator()( const float xyz[] ) const
+{
+  float val =  
+    ( xyz[ 0 ] * xyz[ 0 ] - xyz[ 1 ] * xyz[ 2 ] * xyz[ 2 ] );
+  return val; 
+}
+
+/**
+ * Evaluates the gradient at point [xyz].
+ * 
+ * @param xyz a 3d point.
+ *
+ * @param grad (returns) a 3d vector containing the gradient of
+ * f(x,y,z).
+ */
+void
+ImaGene::WhitneyUmbrella::gradient( const float xyz[], float grad[] ) const
+{
+  grad[ 0 ] = 2.0f * xyz[ 0 ];
+  grad[ 1 ] = - 1.0f * xyz[ 2 ] * xyz[ 2 ];
+  grad[ 2 ] = - 2.0f * xyz[ 1 ] * xyz[ 2 ];
+}
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+// class FourLinesSurface
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Constructor.
+ */
+ImaGene::FourLinesSurface::FourLinesSurface()
+{
+}
+ 
+/**
+ * Destructor.
+ */
+ImaGene::FourLinesSurface::~FourLinesSurface()
+{
+}
+
+/**
+ * Clone services.
+ *
+ * @return a dynamically allocated pointer on a clone of 'this'.
+ */
+ImaGene::ImplicitSurface3D* 
+ImaGene::FourLinesSurface::clone() const
+{
+  return new FourLinesSurface;
+}
+
+/**
+ * Evaluates the implicit function at point [xyz].
+ * 
+ * @param xyz a 3d point.
+ *
+ * @return the value f(x,y,z).
+ */
+float
+ImaGene::FourLinesSurface::operator()( const float xyz[] ) const
+{
+  float val = xyz[ 0 ] 
+    * xyz[ 1 ] 
+    * ( xyz[ 1 ] - xyz[ 0 ] ) 
+    * ( xyz[ 1 ] - xyz[ 2 ] * xyz[ 0 ] );
+  return val;
+}
+
+/**
+ * Evaluates the gradient at point [xyz].
+ * 
+ * @param xyz a 3d point.
+ *
+ * @param grad (returns) a 3d vector containing the gradient of
+ * f(x,y,z).
+ */
+void
+ImaGene::FourLinesSurface::gradient( const float xyz[], float grad[] ) const
+{
+  grad[ 0 ] = 
+    xyz[ 1 ] * ( xyz[ 1 ] - xyz[ 0 ] ) * ( xyz[ 1 ] - xyz[ 2 ] * xyz[ 0 ] ) 
+    - xyz[ 0 ] * xyz[ 1 ] * ( xyz[ 1 ] - xyz[ 2 ] * xyz[ 0 ] ) 
+    - xyz[ 2 ] *  xyz[ 0 ] * xyz[ 1 ] * ( xyz[ 1 ] - xyz[ 0 ] );
+  grad[ 1 ] = 
+    xyz[ 0 ] * ( xyz[ 1 ] - xyz[ 0 ] ) * ( xyz[ 1 ] - xyz[ 2 ] * xyz[ 0 ] )
+    + xyz[ 0 ] * xyz[ 1 ] * ( xyz[ 1 ] - xyz[ 2 ] * xyz[ 0 ] )
+    + xyz[ 0 ] * xyz[ 1 ] * ( xyz[ 1 ] - xyz[ 0 ] );
+  grad[ 2 ] = 
+    - xyz[ 0 ] * xyz[ 0 ] * xyz[ 1 ] * ( xyz[ 1 ] - xyz[ 0 ] );
+}
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+// class ConeSurface
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Constructor.
+ */
+ImaGene::ConeSurface::ConeSurface()
+{
+}
+ 
+/**
+ * Destructor.
+ */
+ImaGene::ConeSurface::~ConeSurface()
+{
+}
+
+/**
+ * Clone services.
+ *
+ * @return a dynamically allocated pointer on a clone of 'this'.
+ */
+ImaGene::ImplicitSurface3D* 
+ImaGene::ConeSurface::clone() const
+{
+  return new ConeSurface;
+}
+
+/**
+ * Evaluates the implicit function at point [xyz].
+ * 
+ * @param xyz a 3d point.
+ *
+ * @return the value f(x,y,z).
+ */
+float
+ImaGene::ConeSurface::operator()( const float xyz[] ) const
+{
+  float val =  ( xyz[ 2 ] * xyz[ 2 ] - xyz[ 0 ] * xyz[ 0 ] - xyz[ 1 ] * xyz[ 1 ] );
+  return val;
+}
+
+/**
+ * Evaluates the gradient at point [xyz].
+ * 
+ * @param xyz a 3d point.
+ *
+ * @param grad (returns) a 3d vector containing the gradient of
+ * f(x,y,z).
+ */
+void
+ImaGene::ConeSurface::gradient( const float xyz[], float grad[] ) const
+{
+  grad[ 0 ] = -2.0f * xyz[ 0 ];
+  grad[ 1 ] = -2.0f * xyz[ 1 ];
+  grad[ 2 ] = 2.0f * xyz[ 2 ];
+}
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+// class SimonUmbrella
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Constructor.
+ */
+ImaGene::SimonUmbrella::SimonUmbrella()
+{
+}
+ 
+/**
+ * Destructor.
+ */
+ImaGene::SimonUmbrella::~SimonUmbrella()
+{
+}
+
+/**
+ * Clone services.
+ *
+ * @return a dynamically allocated pointer on a clone of 'this'.
+ */
+ImaGene::ImplicitSurface3D* 
+ImaGene::SimonUmbrella::clone() const
+{
+  return new SimonUmbrella;
+}
+
+/**
+ * Evaluates the implicit function at point [xyz].
+ * 
+ * @param xyz a 3d point.
+ *
+ * @return the value f(x,y,z).
+ */
+float
+ImaGene::SimonUmbrella::operator()( const float xyz[] ) const
+{
+  float val =  
+    xyz[ 0 ] * xyz[ 0 ] - xyz[ 2 ] * xyz[ 1 ] * xyz[ 1 ]
+    + xyz[ 0 ] * xyz[ 0 ] * xyz[ 0 ] * xyz[ 0 ]
+    + xyz[ 1 ] * xyz[ 1 ] * xyz[ 1 ] * xyz[ 1 ];
+  return val; // - xyz[ 3 ];
+}
+
+/**
+ * Evaluates the gradient at point [xyz].
+ * 
+ * @param xyz a 3d point.
+ *
+ * @param grad (returns) a 3d vector containing the gradient of
+ * f(x,y,z).
+ */
+void
+ImaGene::SimonUmbrella::gradient( const float xyz[], float grad[] ) const
+{
+  grad[ 0 ] = 2.0f * xyz[ 0 ] + 4 * xyz[ 0 ] * xyz[ 0 ] * xyz[ 0 ];
+  grad[ 1 ] = -2.0f * xyz[ 1 ] * xyz[ 2 ] + 4 * xyz[ 1 ] * xyz[ 1 ] * xyz[ 1 ];
+  grad[ 2 ] = - xyz[ 1 ] * xyz[ 1 ];
+}
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+// class FunnySurface
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Constructor.
+ */
+ImaGene::FunnySurface::FunnySurface()
+{
+}
+ 
+/**
+ * Destructor.
+ */
+ImaGene::FunnySurface::~FunnySurface()
+{
+}
+
+/**
+ * Clone services.
+ *
+ * @return a dynamically allocated pointer on a clone of 'this'.
+ */
+ImaGene::ImplicitSurface3D* 
+ImaGene::FunnySurface::clone() const
+{
+  return new FunnySurface;
+}
+
+/**
+ * Evaluates the implicit function at point [xyz].
+ * 
+ * @param xyz a 3d point.
+ *
+ * @return the value f(x,y,z).
+ */
+float
+ImaGene::FunnySurface::operator()( const float xyz[] ) const
+{
+  float val =  
+    ( xyz[ 0 ] * xyz[ 1 ] - cos( xyz[ 2 ] ) ) * ( xyz[ 0 ] * xyz[ 0 ] + xyz[ 1 ] * xyz[ 1 ] - 1.0f - xyz[ 2 ] );
+  return val;
+}
+
+/**
+ * Evaluates the gradient at point [xyz].
+ * 
+ * @param xyz a 3d point.
+ *
+ * @param grad (returns) a 3d vector containing the gradient of
+ * f(x,y,z).
+ */
+void
+ImaGene::FunnySurface::gradient( const float xyz[], float grad[] ) const
+{
+  grad[ 0 ] = ( xyz[ 0 ] * xyz[ 1 ] - cos( xyz[ 2 ] ) ) * 2.0f * xyz[ 0 ]
+    + xyz[ 1 ] * ( xyz[ 0 ] * xyz[ 0 ] + xyz[ 1 ] * xyz[ 1 ] - 1.0f - xyz[ 2 ] );
+  grad[ 1 ] = ( xyz[ 0 ] * xyz[ 1 ] - cos( xyz[ 2 ] ) ) * 2.0f * xyz[ 1 ]
+    + xyz[ 0 ] * ( xyz[ 0 ] * xyz[ 0 ] + xyz[ 1 ] * xyz[ 1 ] - 1.0f - xyz[ 2 ] );
+  grad[ 2 ] = -( xyz[ 0 ] * xyz[ 1 ] - cos( xyz[ 2 ] ) )
+    + sin( xyz[ 2 ] ) * ( xyz[ 0 ] * xyz[ 0 ] + xyz[ 1 ] * xyz[ 1 ] - 1.0f - xyz[ 2 ] );
+}
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+// class PaunescuSurface
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Constructor.
+ */
+ImaGene::PaunescuSurface::PaunescuSurface()
+{
+}
+ 
+/**
+ * Destructor.
+ */
+ImaGene::PaunescuSurface::~PaunescuSurface()
+{
+}
+
+/**
+ * Clone services.
+ *
+ * @return a dynamically allocated pointer on a clone of 'this'.
+ */
+ImaGene::ImplicitSurface3D* 
+ImaGene::PaunescuSurface::clone() const
+{
+  return new PaunescuSurface;
+}
+
+/**
+ * Evaluates the implicit function at point [xyz].
+ * 
+ * @param xyz a 3d point.
+ *
+ * @return the value f(x,y,z).
+ */
+float
+ImaGene::PaunescuSurface::operator()( const float xyz[] ) const
+{
+  float val =  
+    ( xyz[ 0 ] * xyz[ 1 ] - cos( xyz[ 2 ] ) ) 
+    * ( xyz[ 0 ] * xyz[ 0 ] + xyz[ 1 ] * xyz[ 1 ] - 1.0 - xyz[ 2 ] );
+  return val;
+}
+
+/**
+ * Evaluates the gradient at point [xyz].
+ * 
+ * @param xyz a 3d point.
+ *
+ * @param grad (returns) a 3d vector containing the gradient of
+ * f(x,y,z).
+ */
+void
+ImaGene::PaunescuSurface::gradient( const float xyz[], float grad[] ) const
+{
+  grad[ 0 ] = xyz[ 1 ] 
+    * ( xyz[ 0 ] * xyz[ 0 ] + xyz[ 1 ] * xyz[ 1 ] - 1.0 - xyz[ 2 ] )
+    + ( xyz[ 0 ] * xyz[ 1 ] - cos( xyz[ 2 ] ) ) 
+    * ( 2.0 * xyz[ 0 ] );
+  grad[ 1 ] = xyz[ 0 ]
+    * ( xyz[ 0 ] * xyz[ 0 ] + xyz[ 1 ] * xyz[ 1 ] - 1.0 - xyz[ 2 ] )
+    + ( xyz[ 0 ] * xyz[ 1 ] - cos( xyz[ 2 ] ) ) 
+    * ( 2.0 * xyz[ 1 ] );
+  grad[ 2 ] = sin( xyz[ 2 ] )
+    * ( xyz[ 0 ] * xyz[ 0 ] + xyz[ 1 ] * xyz[ 1 ] - 1.0 - xyz[ 2 ] )
+    - ( xyz[ 0 ] * xyz[ 1 ] - cos( xyz[ 2 ] ) );
+}
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+// class CayleyCubicSurface
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Constructor.
+ */
+ImaGene::CayleyCubicSurface::CayleyCubicSurface()
+{
+}
+ 
+/**
+ * Destructor.
+ */
+ImaGene::CayleyCubicSurface::~CayleyCubicSurface()
+{
+}
+
+/**
+ * Clone services.
+ *
+ * @return a dynamically allocated pointer on a clone of 'this'.
+ */
+ImaGene::ImplicitSurface3D* 
+ImaGene::CayleyCubicSurface::clone() const
+{
+  return new CayleyCubicSurface;
+}
+
+/**
+ * Evaluates the implicit function at point [xyz].
+ * 
+ * @param xyz a 3d point.
+ *
+ * @return the value f(x,y,z).
+ */
+float
+ImaGene::CayleyCubicSurface::operator()( const float xyz[] ) const
+{
+  // 4(x^2 + y^2 + z^2) + 16 xyz - 1
+  float val = 4.0f 
+    * ( xyz[ 0 ] * xyz[ 0 ] + xyz[ 1 ] * xyz[ 1 ] + xyz[ 2 ] * xyz[ 2 ] )
+    + 16 *  xyz[ 0 ] * xyz[ 1 ] * xyz[ 2 ] - 1.0f;
+  return val;
+}
+
+/**
+ * Evaluates the gradient at point [xyz].
+ * 
+ * @param xyz a 3d point.
+ *
+ * @param grad (returns) a 3d vector containing the gradient of
+ * f(x,y,z).
+ */
+void
+ImaGene::CayleyCubicSurface::gradient( const float xyz[], float grad[] ) const
+{
+  grad[ 0 ] = 8.0f * xyz[ 0 ] + 16.0f * xyz[ 1 ] * xyz[ 2 ];
+  grad[ 1 ] = 8.0f * xyz[ 1 ] + 16.0f * xyz[ 2 ] * xyz[ 0 ];
+  grad[ 2 ] = 8.0f * xyz[ 2 ] + 16.0f * xyz[ 0 ] * xyz[ 1 ];
+}
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+// class PolynomialSurface
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Constructor.
+ *
+ * @param p any three-variable polynomial.
+ */
+ImaGene::PolynomialSurface::PolynomialSurface
+( const Polynomial3<float> & p )
+  : m_p( p ), m_px( p ), m_py( p ), m_pz( p )
+{
+  m_px.diff( 0 );
+  m_py.diff( 1 );
+  m_pz.diff( 2 );
+}
+ 
+/**
+ * Destructor.
+ */
+ImaGene::PolynomialSurface::~PolynomialSurface()
+{
+}
+
+/**
+ * Clone services.
+ *
+ * @return a dynamically allocated pointer on a clone of 'this'.
+ */
+ImaGene::ImplicitSurface3D* 
+ImaGene::PolynomialSurface::clone() const
+{
+  return new PolynomialSurface( m_p );
+}
+
+/**
+ * Evaluates the implicit function at point [xyz].
+ * 
+ * @param xyz a 3d point.
+ *
+ * @return the value f(x,y,z).
+ */
+float
+ImaGene::PolynomialSurface::operator()( const float xyz[] ) const
+{
+  float val = m_p( xyz );
+  return val;
+}
+
+/**
+ * Evaluates the gradient at point [xyz].
+ * 
+ * @param xyz a 3d point.
+ *
+ * @param grad (returns) a 3d vector containing the gradient of
+ * f(x,y,z).
+ */
+void
+ImaGene::PolynomialSurface::gradient( const float xyz[], float grad[] ) const
+{
+  grad[ 0 ] = m_px( xyz );
+  grad[ 1 ] = m_py( xyz );
+  grad[ 2 ] = m_pz( xyz );
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

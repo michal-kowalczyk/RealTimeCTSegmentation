@@ -1,0 +1,139 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Functions.ih
+//
+// Creation : 2004/09/10
+//
+// Version : 2004/09/10
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Functions.h 
+//
+// History :
+//	2004/09/10 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Functions declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Functions(x)
+#define DEBUGCMD_Functions(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Functions(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_Functions(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+// ------------------------- Standard services ------------------------------
+
+/**
+ * Destructor. 
+ */
+ImaGene::R2RFunction::~R2RFunction()
+{}
+
+
+/**
+ * Operator for evaluating the function at [x]. Calls the abstract
+ * service 'value'.
+ *
+ * @param x any value.
+ * @return the value of the function at [x].
+ * @see value
+ */
+float
+ImaGene::R2RFunction::operator()( float x ) const
+{
+  return value( x );
+}
+
+
+/**
+ * Destructor. 
+ */
+ImaGene::TriangleFunction::~TriangleFunction()
+{
+}
+
+
+/**
+ * Constructor. 
+ */
+ImaGene::TriangleFunction::TriangleFunction()
+{
+}
+
+    
+/**
+ * Evaluates the function at [x].
+ * @param x any value in the range.
+ * @return the value of the function at [x].
+ */
+float
+ImaGene::TriangleFunction::value( float x ) const
+{
+  if ( x <= 0.0f ) return 0.0f;
+  else if ( x <= 0.5f ) return 2.0f*x;
+  else if ( x < 1.0f ) return 2.0f-2.0f*x;
+  else return 0.0f;
+}
+
+  
+/**
+ * Destructor. 
+ */
+ImaGene::DTriangleFunction::~DTriangleFunction()
+{
+}
+
+
+/**
+ * Constructor. 
+ */
+ImaGene::DTriangleFunction::DTriangleFunction()
+{
+}
+
+    
+/**
+ * Evaluates the function at [x].
+ * @param x any value in the range.
+ * @return the value of the function at [x].
+ */
+float
+ImaGene::DTriangleFunction::value( float x ) const
+{
+  if ( x <= 0.0f ) return 0.0f;
+  else if ( x < 0.5f ) return 2.0f;
+  else if ( x == 0.5f ) return 0.0f;
+  else if ( x < 1.0f ) return -2.0f;
+  else return 0.0f;
+}
+
+  
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

@@ -1,0 +1,120 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : C4CTangentialCoverGeometry.ih
+//
+// Creation : 2004/11/29
+//
+// Version : 2004/11/29
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in C4CTangentialCoverGeometry.h 
+//
+// History :
+//	2004/11/29 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class C4CTangentialCoverGeometry declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_C4CTangentialCoverGeometry(x)
+#define DEBUGCMD_C4CTangentialCoverGeometry(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_C4CTangentialCoverGeometry(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_C4CTangentialCoverGeometry(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+///////////////////////////////////////////////////////////////////////////////
+// class MSGeometryComputer
+
+/** 
+ * Destructor. 
+ */
+ImaGene::C4CTangentialCoverGeometry::MSGeometryComputer::MSGeometryComputer()
+{}
+
+/** 
+ * Destructor. 
+ */
+ImaGene::C4CTangentialCoverGeometry::MSGeometryComputer::~MSGeometryComputer()
+{}
+
+
+/**
+ * @return the number of maximal segments of the tangential cover.
+ */
+uint
+ImaGene::C4CTangentialCoverGeometry::nbMaximalSegments() const
+{
+  return m_nb_maximal_segments;
+}
+
+/**
+ * @return the number of surfels of the tangential cover.
+ */
+uint
+ImaGene::C4CTangentialCoverGeometry::nbSurfels() const
+{
+  return m_nb_surfels;
+}
+
+/**
+ * @param i the index of the maximal segment.
+ * @return the maximal segment of index [i].
+ */
+const ImaGene::C4CTangentialCoverGeometry::MaximalSegmentGeometry & 
+ImaGene::C4CTangentialCoverGeometry::geometry( uint i ) const
+{
+  ASSERT_C4CTangentialCoverGeometry( i < nbMaximalSegments() );
+  return m_ms_geometry[ i ];
+}
+
+/**
+ * @param i the index of the surfel.
+ * @return the geometry of the surfel [i].
+ */
+const ImaGene::C4CTangentialCoverGeometry::SurfelGeometry & 
+ImaGene::C4CTangentialCoverGeometry::sgeometry( uint idx ) const
+{
+  ASSERT_C4CTangentialCoverGeometry( idx < nbSurfels() );
+  return m_surfel_geometry[ idx ];
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'C4CTangentialCoverGeometry'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'C4CTangentialCoverGeometry' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, const C4CTangentialCoverGeometry & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

@@ -1,0 +1,124 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : DigitalElevationMapStats.ih
+//
+// Creation : 2010/05/21
+//
+// Version : 2010/05/21
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in DigitalElevationMapStats.h 
+//
+// History :
+//	2010/05/21 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class DigitalElevationMapStats declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_DigitalElevationMapStats(x)
+#define DEBUGCMD_DigitalElevationMapStats(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_DigitalElevationMapStats(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_DigitalElevationMapStats(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Destructor. 
+ */
+INLINE
+ImaGene::DigitalElevationMapStats::~DigitalElevationMapStats()
+{
+  clearStats();
+}
+
+/**
+ * Constructor. The object is not valid.
+ */
+INLINE
+ImaGene::DigitalElevationMapStats::DigitalElevationMapStats()
+  : m_stats( 0 )
+//  : m_sums( 0 ), m_nbs( 0 )
+{
+}
+
+/**
+ * @return the statistic of all samples (lengths) at the given linel.
+ */
+INLINE
+const ImaGene::Statistic<float> &
+ImaGene::DigitalElevationMapStats::stat( Kn_uid linel ) const
+{
+  ASSERT_DigitalElevationMapStats( m_stats != 0 );
+  return (*m_stats)[ linel ];
+}
+
+
+// /**
+//  * @return the sum of all samples (lengths) at the given linel.
+//  */
+// INLINE
+// int 
+// ImaGene::DigitalElevationMapStats::sum( Kn_uid linel ) const
+// {
+//   //  ASSERT_DigitalElevationMapStats( m_sums != 0 );
+//   //  return (*m_sums)[ linel ];
+//   ASSERT_DigitalElevationMapStats( m_stats != 0 );
+//   const Statistic<float> & s = (*m_stats)[ linel ];
+//   return (int) ( s.mean() * s.samples() );
+// }
+
+// /**
+//  * @return the number of samples at the given linel.
+//  */
+// INLINE
+// int 
+// ImaGene::DigitalElevationMapStats::nb( Kn_uid linel ) const
+// {
+//   // ASSERT_DigitalElevationMapStats( m_nbs != 0 );
+//   // return (*m_nbs)[ linel ];
+//   ASSERT_DigitalElevationMapStats( m_stats != 0 );
+//   const Statistic<float> & s = (*m_stats)[ linel ];
+//   return (int) ( s.samples() );
+// }
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'DigitalElevationMapStats'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'DigitalElevationMapStats' to write.
+ * @return the output stream after the writing.
+ */
+INLINE
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const DigitalElevationMapStats & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

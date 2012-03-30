@@ -1,0 +1,319 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : CharacteristicPolygon.ih
+//
+// Creation : 2008/06/20
+//
+// Version : 2008/06/20
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in CharacteristicPolygon.h 
+//
+// History :
+//	2008/06/20 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class CharacteristicPolygon declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_CharacteristicPolygon(x)
+#define DEBUGCMD_CharacteristicPolygon(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_CharacteristicPolygon(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_CharacteristicPolygon(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/**
+ * @return the point of the characteristic polygon corresponding
+ * to the first pointel of the edge.
+ *
+ * NB: should be equal to 'getP2()' of the previous edge.
+ */
+ImaGene::Vector2D 
+ImaGene::CharacteristicPolygon::Edge::getP1() const
+{
+  if ( convex_back )
+    return frame_back.transformPoint( Vector2D ( dss.c_n().x() + 0.5, 
+						 dss.c_n().y() - 0.5 ) );
+  else
+    return frame_back.transformPoint( Vector2D ( dss.c_n().x() + 0.5, 
+						 dss.c_n().y() + 0.5 ) );
+
+//   if ( convex_back )
+//     return frame_back.transformPoint( Vector2D ( dss.u().x() + 0.5, 
+// 						 dss.u().y() - 0.5 ) );
+//   else
+//     return frame_back.transformPoint( Vector2D ( dss.l().x() + 0.5, 
+// 						 dss.l().y() + 0.5 ) );
+}
+
+/**
+ * @return the point of the characteristic polygon corresponding
+ * to the last pointel of the edge.
+ *
+ * NB: should be equal to 'getP1()' of the next edge.
+ */
+ImaGene::Vector2D 
+ImaGene::CharacteristicPolygon::Edge::getP2() const
+{
+  // MS : 2010/01/08
+  if ( dss.a() != 0 )
+    if ( convex_back && convex_front )
+      return frame_back.transformPoint( Vector2D ( dss.cp_n().x() + 0.5, 
+         					   dss.cp_n().y() - 0.5 ) );
+    else
+     if ( convex_back && !convex_front )
+      return frame_back.transformPoint( Vector2D ( dss.cp_n().x() - 0.5, 
+         					   dss.cp_n().y() + 0.5 ) );
+     else
+      if ( !convex_back && convex_front )
+       return frame_back.transformPoint( Vector2D ( dss.cp_n().x() - 0.5, 
+         					    dss.cp_n().y() - 0.5 ) );
+      else
+       return frame_back.transformPoint( Vector2D ( dss.cp_n().x() + 0.5, 
+						   dss.cp_n().y() + 0.5 ) );
+  else
+    if ( convex_front )
+      return frame_back.transformPoint( Vector2D ( dss.cp_n().x() - 0.5, 
+						   dss.cp_n().y() - 0.5 ) );
+    else
+      return frame_back.transformPoint( Vector2D ( dss.cp_n().x() - 0.5, 
+						   dss.cp_n().y() + 0.5 ) );
+
+//   if ( dss.a() != 0 )
+//     if ( convex_front )
+//       return frame_back.transformPoint( Vector2D ( dss.cp_n().x() + 0.5, 
+// 						   dss.cp_n().y() - 0.5 ) );
+//     else
+//       return frame_back.transformPoint( Vector2D ( dss.cp_n().x() + 0.5, 
+// 						   dss.cp_n().y() + 0.5 ) );
+//   else
+//     if ( convex_front )
+//       return frame_back.transformPoint( Vector2D ( dss.cp_n().x() - 0.5, 
+// 						   dss.cp_n().y() - 0.5 ) );
+//     else
+//       return frame_back.transformPoint( Vector2D ( dss.cp_n().x() - 0.5, 
+// 						   dss.cp_n().y() + 0.5 ) );
+
+//   if ( dss.a() != 0 )
+//     if ( convex_front )
+//       return frame_back.transformPoint( Vector2D ( dss.up().x() + 0.5, 
+// 						   dss.up().y() - 0.5 ) );
+//     else
+//       return frame_back.transformPoint( Vector2D ( dss.lp().x() + 0.5, 
+// 						   dss.lp().y() + 0.5 ) );
+//   else
+//     if ( convex_front )
+//       return frame_back.transformPoint( Vector2D ( dss.up().x() - 0.5, 
+// 						   dss.up().y() - 0.5 ) );
+//     else
+//       return frame_back.transformPoint( Vector2D ( dss.lp().x() - 0.5, 
+// 						   dss.lp().y() + 0.5 ) );
+}
+
+/**
+ * @return the median line between interior and exterior.
+ */
+ImaGene::Line2D 
+ImaGene::CharacteristicPolygon::Edge::medianLine() const
+{
+  float dh = 1.0f / (2.0f * ( ( dss.a() >= 0 ? dss.a() : -dss.a() )
+			      + dss.b() ) );
+  Vector2D p1;
+  p1 = convex_back
+    ? frame_back.transformPoint( Vector2D ( dss.c_n().x() + 0.5 - dh, 
+					    dss.c_n().y() - 0.5 + dh ) )
+    // JOL 2008/11/17
+    : frame_back.transformPoint( Vector2D ( dss.c_n().x() - 0.5 + dh , 
+					    dss.c_n().y() + 0.5 - dh ) );
+//     : frame_back.transformPoint( Vector2D ( dss.c_n().x() + 0.5 + dh , 
+// 					    dss.c_n().y() + 0.5 - dh ) );
+  Vector2D p2;
+  if ( dss.a() != 0 )
+    p2 = convex_front
+      ? frame_back.transformPoint( Vector2D ( dss.cp_n().x() + 0.5 - dh, 
+					      dss.cp_n().y() - 0.5 + dh ) )
+    // JOL 2008/11/17
+      : frame_back.transformPoint( Vector2D ( dss.cp_n().x() - 0.5 + dh, 
+ 					      dss.cp_n().y() + 0.5 - dh ) );
+//       : frame_back.transformPoint( Vector2D ( dss.cp_n().x() + 0.5 + dh, 
+// 					      dss.cp_n().y() + 0.5 - dh ) );
+  else
+    p2 = convex_front 
+      ? frame_back.transformPoint( Vector2D ( dss.cp_n().x() - 0.5 + dh, 
+					      dss.cp_n().y() - 0.5 + dh ) )
+      : frame_back.transformPoint( Vector2D ( dss.cp_n().x() - 0.5 + dh, 
+					      dss.cp_n().y() + 0.5 - dh ) );
+  
+  return Line2D( p1, p2 );
+
+}
+
+/**
+ * @param alpha the coefficient determining the distance to the MLP. 0
+ * is the MLP, 0.5 is the median polygon. 1 is furthest polygon away
+ * from the MLP while satisfying interior/exterior separation.
+ *
+ * @return some intermediate line between interior and exterior.
+ */
+ImaGene::Line2D 
+ImaGene::CharacteristicPolygon::Edge::intermediateLine( float alpha ) const
+{
+  // dh = alpha/(|a|+|b|).
+  float dh = alpha / ( ( dss.a() >= 0 ? dss.a() : -dss.a() )
+		       + dss.b() );
+  float off = 0.5 - dh;
+  Vector2D p1;
+  Vector2D p2;
+  if ( dss.a() > 0 )
+    {
+      p1 = convex_back 
+	? Vector2D ( dss.c_n().x() + off,
+		     dss.c_n().y() - off )
+	: Vector2D ( dss.c_n().x() - off,
+		     dss.c_n().y() + off );
+      p2 = convex_front
+	? Vector2D ( dss.cp_n().x() + off,
+		     dss.cp_n().y() - off )
+	: Vector2D ( dss.cp_n().x() - off,
+		     dss.cp_n().y() + off );
+    }
+  else if ( dss.a() < 0 )
+    {
+      p1 = convex_back 
+	? Vector2D ( dss.c_n().x() - off,
+		     dss.c_n().y() - off )
+	: Vector2D ( dss.c_n().x() + off,
+		     dss.c_n().y() + off );
+      p2 = convex_front
+	? Vector2D ( dss.cp_n().x() - off,
+		     dss.cp_n().y() - off )
+	: Vector2D ( dss.cp_n().x() + off,
+		     dss.cp_n().y() + off );
+    }
+  else
+    {
+      p1 = convex_back 
+	? Vector2D ( dss.c_n().x() + off,
+		     dss.c_n().y() - off )
+	: Vector2D ( dss.c_n().x() + off,
+		     dss.c_n().y() + off );
+      p2 = convex_front
+	? Vector2D ( dss.cp_n().x() - off,
+		     dss.cp_n().y() - off )
+	: Vector2D ( dss.cp_n().x() - off,
+		     dss.cp_n().y() + off );
+    }
+  
+  return Line2D( frame_back.transformPoint( p1 ),
+		 frame_back.transformPoint( p2 ) );
+
+}
+
+/**
+ * Constructor. The object is not valid.
+ */
+ImaGene::CharacteristicPolygon::CharacteristicPolygon()
+  : m_it_ll( 0 )
+{}
+
+/**
+ * @return the shape of each surfel as characters '0', '1', '2'.
+ */ 
+const std::string & 
+ImaGene::CharacteristicPolygon::shape() const
+{
+  return m_shape;
+}
+
+/**
+ * @return the edges of the polygon.
+ */ 
+const std::vector<ImaGene::CharacteristicPolygon::Edge> & 
+ImaGene::CharacteristicPolygon::edges() const
+{
+  return m_edges;
+}
+
+/**
+ * @return an iterator on the first surfel of the characteristic
+ * polygon (lower-left corner).
+ */
+const ImaGene::C4CIterator* 
+ImaGene::CharacteristicPolygon::startSurfel() const
+{
+  return m_it_ll;
+}
+
+/**
+ * @return the index of the maximal segment containing the first
+ * surfel (lower-left corner) at its front.
+ */
+uint
+ImaGene::CharacteristicPolygon::startMS() const
+{
+  return m_idx_ms_ll;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'CharacteristicPolygon'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'CharacteristicPolygon' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const CharacteristicPolygon & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+/**
+ * Overloads 'operator<<' for displaying objects of class
+ * 'CharacteristicPolygon::Edge'.
+ *
+ * @param that_stream the output stream where the object is written.
+ * @param obj the object of class 'CharacteristicPolygon' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		     const CharacteristicPolygon::Edge & obj )
+{
+  that_stream << "[ Edge " << obj.idx1 << "->" << obj.idx2  
+	      << " cvx=" << obj.convex_back << obj.convex_front
+	      << " a=" << obj.dss.a()
+	      << " b=" << obj.dss.b()
+	      << " UC=" << obj.dss.isUpperChristoffel()
+	      << " LC=" << obj.dss.isLowerChristoffel()
+	      << " ]";
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

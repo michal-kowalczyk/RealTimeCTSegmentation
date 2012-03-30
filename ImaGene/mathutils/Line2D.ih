@@ -1,0 +1,230 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Line2D.ih
+//
+// Creation : 2008/10/30
+//
+// Version : 2008/10/30
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Line2D.h 
+//
+// History :
+//	2008/10/30 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Line2D declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <cmath>
+#include <iostream>
+#include "ImaGene/base/VectorUtils.h"
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Line2D(x)
+#define DEBUGCMD_Line2D(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Line2D(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_Line2D(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/**
+ * Constructor from two different points on the line.
+ * @param p1 the first point
+ * @param p2 the second point
+ */
+ImaGene::Line2D::Line2D( const Vector2D & p1, const Vector2D & p2 )
+  : m_p1( p1 ), m_p2( p2 ), m_u( p2 )
+{
+  m_u -= m_p1;
+  float n = VectorUtils::norm( m_u );
+  if ( n != 0.0f )
+    m_u /= n;
+}
+
+/**
+ * Constructor.
+ * The line is not valid.
+ */
+ImaGene::Line2D::Line2D()
+  : m_p1(), m_p2(), m_u( 0.0, 0.0 )
+{
+}
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+ImaGene::Line2D::Line2D( const Line2D & other )
+  : m_p1( other.m_p1 ), m_p2( other.m_p2 ), m_u( other.m_u )
+{
+}
+
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ */
+ImaGene::Line2D & 
+ImaGene::Line2D::operator=( const Line2D & other )
+{
+  if ( this != &other )
+    {
+      m_p1 = other.m_p1;
+      m_p2 = other.m_p2;
+      m_u = other.m_u;
+    }
+  return *this;
+}
+
+
+/**
+ * @return a point belonging to the line.
+ */
+const ImaGene::Vector2D & 
+ImaGene::Line2D::somePoint() const
+{
+  return m_p1;
+}
+
+/**
+ * @return the direction of the line as a unit vector.
+ */
+const ImaGene::Vector2D & 
+ImaGene::Line2D::direction() const
+{
+  return m_u;
+}
+
+/**
+ * @return the direction that is orthogonal to the line as a unit
+ * vector (if considered oriented, it is turning counterclockwise).
+ */
+ImaGene::Vector2D
+ImaGene::Line2D::normal() const
+{
+  return Vector2D( -m_u.y(), m_u.x() );
+}
+
+/**
+ * @param p any point.
+ * @return the line parallel to 'this' and going through [p].
+ */
+ImaGene::Line2D
+ImaGene::Line2D::parallelLine( const Vector2D & p ) const
+{
+  Line2D pl( *this );
+  pl.m_p1 = p;
+  pl.m_p2 = p;
+  pl.m_p2 += pl.m_u;
+  return pl;
+}
+
+/**
+ * @param d an algebraic distance.
+ *
+ * @return the line parallel to 'this' and going through points
+ * that are at distance [d] of 'this'.
+ */
+ImaGene::Line2D
+ImaGene::Line2D::parallelLine( float d ) const
+{
+   Vector2D p( normal() );
+   p *= d;
+   p += m_p1;
+   return parallelLine( p ); 
+}
+
+/**
+ * @param p any point.
+ * @return the line orthogonal to 'this' and going through [p].
+ */
+ImaGene::Line2D
+ImaGene::Line2D::orthogonalLine( const Vector2D & p ) const
+{
+  Vector2D p2( p );
+  p2 += normal();
+  return Line2D( p, p2 );
+}
+
+
+/**
+ * @param p any point.
+ *
+ * @return the positive distance from [p] to the line 'this'
+ * (orthogonal distance).
+ */
+float
+ImaGene::Line2D::distance( const Vector2D & p ) const
+{
+  Vector2D p1p( p );
+  p1p -= m_p1;
+  return fabs( VectorUtils::dotProduct( p1p, normal() ) );
+}
+
+/**
+ * The distance is positive when the point is to the left of the
+ * oriented line.
+ * 
+ * @param p any point.
+ *
+ * @return the algebraic distance from [p] to the line 'this'
+ * (orthogonal distance).
+ */
+float
+ImaGene::Line2D::algebraicDistance( const Vector2D & p ) const
+{
+  Vector2D p1p( p );
+  p1p -= m_p1;
+  return VectorUtils::dotProduct( p1p, normal() );
+}
+
+/**
+ * @param p any point.
+ * @return the relative position of the orthogonal projection of p on the line.
+ */
+float
+ImaGene::Line2D::position( const Vector2D & p ) const
+{
+  Vector2D p1p( p );
+  p1p -= m_p1;
+  return VectorUtils::dotProduct( p1p, m_u );
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'Line2D'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'Line2D' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const Line2D & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

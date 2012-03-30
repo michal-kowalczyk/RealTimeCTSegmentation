@@ -1,0 +1,425 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Image2D.ih
+//
+// Creation : 2010/05/19
+//
+// Version : 2010/05/19
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Image2D.h 
+//
+// History :
+//	2010/05/19 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Image2D declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+#include <limits>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Image2D(x)
+#define DEBUGCMD_Image2D(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Image2D(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_Image2D(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+// ----------------------- Standard services ------------------------------
+
+/**
+ * Destructor. 
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::~Image2D()
+{
+  if ( m_data != 0 ) delete[] m_data;
+}
+
+/**
+ * Constructor.
+ * The image has size 0x0.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::Image2D()
+  : m_data( 0 ), m_lowest( 0, 0 ), m_highest( 0, 0 )
+{}
+
+/**
+ * Constructor from sizes. The image is filled with [fill_value].
+ *
+ * @param width the width of the image (in pixels).
+ * @param height the height of the image (in pixels).
+ * @param fill_value The image is filled with [fill_value].
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::Image2D
+( uint width, uint height, value_type fill_value )
+  : m_data( 0 ), m_lowest( 0, 0 ), m_highest( 0, 0 )
+{
+  realloc( width, height );
+  fill( fill_value );
+}
+
+/**
+ * @param clone (returned) a copy of 'this' after processing.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+void 
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::copy
+( Image2D<ELEMENT,PIXELTYPE> & clone ) const
+{
+  clone.init( width(), height() );
+  pointer cur = clone.m_data; 
+  pointer start = m_data;
+  pointer stop = m_data + size(); 
+  for ( ; start != stop; ++start, ++cur )
+    *cur = *start;
+}
+
+/**
+ * Reinitializer from sizes.
+ *
+ * @param width the width of the image (in pixels).
+ * @param height the height of the image (in pixels).
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+void 
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::init( uint width, uint height )
+{
+  m_lowest = PIXELTYPE( 0, 0 );
+  realloc( width, height );
+}
+
+
+/**
+ * Minimum possible value for ELEMENT.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+typename ImaGene::Image2D<ELEMENT,PIXELTYPE>::returned_type 
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::minElementValue()
+{
+  return std::numeric_limits<ELEMENT>::min();
+}
+
+/**
+ * Maximum possible value for ELEMENT.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+typename ImaGene::Image2D<ELEMENT,PIXELTYPE>::returned_type 
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::maxElementValue()
+{
+  return std::numeric_limits<ELEMENT>::max();
+}
+
+
+/**
+ * @return the pixel (0,0) of the image.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+PIXELTYPE 
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::lowest() const
+{
+  return m_lowest;
+}
+
+/**
+ * @return the pixel (width,height) of the image.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+PIXELTYPE
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::highest() const
+{
+  return m_highest;
+}
+
+/**
+ * @return the maximal value minus the minimal value.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+inline
+typename ImaGene::Image2D<ELEMENT,PIXELTYPE>::returned_type 
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::valueRange() const
+{
+  Pixel p = lowest();
+  Pixel q = highest();
+  returned_type min = at( p );
+  returned_type max = at( p );
+  returned_type v;
+  for ( Pixel z = p; z.y < q.y; z.y++ )
+    for ( z.x = p.x; z.x < q.x; z.x++ )
+      {
+	v = at( z );
+	if ( v < min ) min = v;
+	else if ( v > max ) max = v;
+      }
+  return max - min;
+}
+
+/**
+ * @return the width of the image.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+uint
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::width() const
+{
+  return m_highest.x;
+}
+
+/**
+ * @return the height of the image.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+uint 
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::height() const
+{
+  return m_highest.y;
+}
+
+/**
+ * @return the number of pixels of the image.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+uint 
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::size() const
+{
+  return m_highest.x * m_highest.y;
+}
+
+
+/**
+ * @param x the x-coordinate of the pixel.
+ * @param y the y-coordinate of the pixel.
+ * @param def_val the default value.
+ *
+ * @return the value of the image at (x,y) if it is a valid
+ * position otherwise the given default value.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+typename ImaGene::Image2D<ELEMENT,PIXELTYPE>::returned_type
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::at
+( int x, int y, const_reference def_val ) const
+{
+  if ( ( x >= m_lowest.x ) && ( y >= m_lowest.y )
+       && ( x < m_highest.x ) && ( y < m_highest.y ) )
+    return m_data[ offset( x, y ) ];
+  else 
+    return def_val;
+}
+
+/**
+ * @param x the x-coordinate of the pixel.
+ * @param y the y-coordinate of the pixel.
+ *
+ * @param the new value of the image at (x,y).
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+void
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::set
+( int x, int y, const_reference value )
+{
+  if ( ( x >= m_lowest.x ) && ( y >= m_lowest.y )
+       && ( x < m_highest.x ) && ( y < m_highest.y ) )
+    m_data[ offset( x, y ) ] = value;
+}
+
+
+/**
+ * @param p the pixel.
+ * @param def_val the default value.
+ *
+ * @return the value of the image at (x,y) if it is a valid
+ * position otherwise the given default value.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+typename ImaGene::Image2D<ELEMENT,PIXELTYPE>::returned_type
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::at
+( const PIXELTYPE & p, const_reference def_val ) const
+{
+  return at( p.x, p.y, def_val );
+}
+
+/**
+ * @param p the pixel.
+ *
+ * @param the new value of the image at (x,y).
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+void
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::set
+( const PIXELTYPE & p, const_reference value )
+{
+  set( p.x, p.y, value );
+}
+
+
+/**
+ * Fills the image with [fill_value].
+ * @param any value.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+void
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::fill( value_type fill_value )
+{
+  pointer cur = m_data; 
+  pointer stop = m_data + size(); 
+  for ( ; cur != stop; ++cur )
+    *cur = fill_value;
+}
+
+
+/**
+ * @return the most centered pixel of the image, and if several
+ * are possible, the smallest one.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+PIXELTYPE
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::center() const
+{
+  return PIXELTYPE( m_highest.x / 2, m_highest.y / 2 );
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- Hidden services ------------------------------
+
+
+/**
+ * @param x the x-coordinate of the pixel.
+ * @param y the y-coordinate of the pixel.
+ *
+ * @return the offset of (x,y) in the linear array m_data.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+uint
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::offset
+( uint x, uint y ) const
+{
+  return m_highest.x * y + x;
+}
+
+
+/**
+ * Free the image buffer. The image has now size (0, 0).
+ * Sets m_highest accordingly.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+void 
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::free()
+{
+  if ( m_data != 0 ) 
+    {
+      delete[] m_data;
+      m_data = 0;
+      m_highest = m_lowest;
+    }
+}
+
+/**
+ * Reallocate a big enough buffer for the given width and height.
+ * Sets m_highest accordingly.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+void 
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::realloc( uint width, uint height )
+{
+  if ( ( width * height ) > size() )
+    {
+      free();
+      m_data = new ELEMENT[ width * height ];
+    }
+  m_highest = PIXELTYPE( width, height );
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- Interface --------------------------------------
+
+
+/**
+ * Writes/Displays the object on an output stream.
+ * @param that_stream the output stream where the object is written.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+void 
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::selfDisplay
+( std::ostream & that_stream ) const
+{
+  that_stream << "[Image2D low=" << m_lowest << " high=" << m_highest 
+	      << std::endl;
+}
+
+/**
+ * Checks the validity/consistency of the object.
+ * @return 'true' if the object is valid, 'false' otherwise.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+bool
+ImaGene::Image2D<ELEMENT,PIXELTYPE>::OK() const
+{
+  return ! ( m_lowest == m_highest );
+}
+ 
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'Image2D'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'Image2D' to write.
+ * @return the output stream after the writing.
+ */
+template <typename ELEMENT, typename PIXELTYPE>
+INLINE
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		     const Image2D<ELEMENT,PIXELTYPE> & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

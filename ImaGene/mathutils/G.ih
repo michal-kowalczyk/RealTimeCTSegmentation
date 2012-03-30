@@ -1,0 +1,115 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : G.ih
+//
+// Creation : 2005/01/05
+//
+// Version : 2005/01/05
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in G.h 
+//
+// History :
+//	2005/01/05 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class G declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <cmath>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_G(x)
+#define DEBUGCMD_G(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_G(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_G(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ * Forbidden by default.
+ */
+ImaGene::G::G( const G & other )
+  : m_s( other.m_s ), m_c1( other.m_c1 ), m_c2( other.m_c2 )
+{
+}
+
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ * Forbidden by default.
+ */
+ImaGene::G & 
+ImaGene::G::operator=( const G & other )
+{
+  if ( this != &other )
+    {
+      m_s = other.m_s;
+      m_c1 = other.m_c1;
+      m_c2 = other.m_c2;
+    }
+  return *this;
+}
+
+/**
+ * Accessor.
+ * @return the standard deviation.
+ */
+double
+ImaGene::G::sigma() const
+{
+  return m_s;
+}
+
+
+
+/**
+ * @param x any real value.
+ * @return the value of the Gauss function at [x].
+ */
+double
+ImaGene::G::operator() (double x) const
+{
+  return m_c1 * exp( -x * x * m_c2);
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'G'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'G' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const G & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

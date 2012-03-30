@@ -7,13 +7,13 @@
 #include "include/Image.h"
 #include "include/ComponentTree.h"
 
-#include "CameraSupport.h"
+class CameraSupport;
 
 using namespace LibTIM;
 
 #define MILISECONDS_FOR_REFRESH 1
-#define WIDTH 400
-#define HEIGHT 300
+#define WIDTH 320
+#define HEIGHT 240
 
 namespace Ui {
     class MainWindow;
@@ -59,6 +59,7 @@ private:
     QImage *marker;
     QImage *segmentationResult;
     QImage *contour;
+    QImage *boxes;
 
     double alpha;
 
@@ -78,7 +79,7 @@ private:
     bool repaint;
 
     unsigned long long frameCounter;
-    clock_t time1, time2, time3, time4, time5, time6, time7, time8;
+    clock_t time1, time2, time3, time4, time5, time6, time7, time8, time9;
 
 private slots:
     void updateFrame();

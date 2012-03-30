@@ -1,0 +1,165 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : ScaleProfile.ih
+//
+// Creation : 2010/05/24
+//
+// Version : 2010/05/24
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in ScaleProfile.h 
+//
+// History :
+//	2010/05/24 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class ScaleProfile declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_ScaleProfile(x)
+#define DEBUGCMD_ScaleProfile(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_ScaleProfile(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_ScaleProfile(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+INLINE 
+ImaGene::ScaleProfile::ScaleProfile( const ScaleProfile & other ){
+  if(other.m_stats!=0 && other.m_scales!=0){
+    m_scales = new std::vector<float>( other.m_scales->size() );
+    m_stats = new std::vector< Statistic<float> > ( other.m_scales->size());
+    m_profileDef = other.m_profileDef;
+    m_storeValInStats= other.m_storeValInStats;
+    for ( uint i = 0; i < other.m_scales->size(); ++i ){
+      (*m_scales)[ i ] = (*other.m_scales)[i];
+      (*m_stats)[ i ] = (*other.m_stats)[i];
+    }
+  }else{
+    m_stats=0;
+    m_scales=0;
+    m_profileDef = other.m_profileDef;
+    m_storeValInStats = false;
+  }
+}
+
+
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ */
+INLINE
+ImaGene::ScaleProfile & 
+ImaGene::ScaleProfile::operator=
+( const ImaGene::ScaleProfile & other )
+{
+  if ( this != &other ) {
+  if(other.m_stats!=0 && other.m_scales!=0){
+    m_scales = new std::vector<float>( other.m_scales->size() );
+    m_stats = new std::vector< Statistic<float> > ( other.m_scales->size());
+    m_profileDef = other.m_profileDef;
+    m_storeValInStats= other.m_storeValInStats;
+    for ( uint i = 0; i < other.m_scales->size(); ++i ){
+      (*m_scales)[ i ] = (*other.m_scales)[i];
+      (*m_stats)[ i ] = (*other.m_stats)[i];
+    }
+  }else{
+    m_stats=0;
+    m_scales=0;
+    m_profileDef = other.m_profileDef;
+    m_storeValInStats=false;
+  }
+  }
+   
+
+  return *this;
+}
+ 
+    
+
+
+/**
+ * Initializer. Must be called before adding datas. Specifies the
+ * scales of the profile (generally an iterator on a sequence
+ * (1,2,3,4,...N).
+ *
+ * @param an iterator pointing on the first scale.
+ * @param an iterator pointing after the last scale.
+ */
+template <typename Iterator>
+INLINE
+void 
+ImaGene::ScaleProfile::init( Iterator begin_scale, Iterator end_scale, bool storeValsInStats )
+{
+  clear();
+  m_storeValInStats= storeValsInStats;
+  m_scales = new std::vector<float>;
+  m_stats = new std::vector< Statistic<float> >;
+  
+  uint nb = 0;
+  for ( ; begin_scale != end_scale; ++begin_scale, ++nb ){
+    m_scales->push_back( *begin_scale );
+    m_stats->push_back(Statistic<float>( m_storeValInStats));
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'ScaleProfile'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'ScaleProfile' to write.
+ * @return the output stream after the writing.
+ */
+INLINE
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const ScaleProfile & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+
+
+/**
+ * Used to define the method to determine the profile values from
+ * the samples of scale statistics.
+ *
+ * @param type the method applied to the statistics samples: MEAN, MAX, MIN and MEDIAN.
+ **/
+INLINE
+void 
+ImaGene::ScaleProfile::setProfileDef(ProfileComputingType type){
+  ASSERT_ScaleProfile(m_profileDef==MEAN || m_profileDef==MAX || m_profileDef==MIN || m_profileDef==MEDIAN);
+  m_profileDef = type; 
+}
+    
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

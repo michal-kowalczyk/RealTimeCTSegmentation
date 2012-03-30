@@ -1,0 +1,150 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : SimpleLinearRegression.ih
+//
+// Creation : 2009/09/01
+//
+// Version : 2009/09/01
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in SimpleLinearRegression.h 
+//
+// History :
+//	2009/09/01 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class SimpleLinearRegression declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_SimpleLinearRegression(x)
+#define DEBUGCMD_SimpleLinearRegression(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_SimpleLinearRegression(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_SimpleLinearRegression(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Adds the samples (y,x). Does not compute immediately the
+ * regression. See 'computeRegression' for computing the
+ * regression with the current samples.
+ *
+ * @param begin_x an iterator on the first x-data
+ * @param end_x an iterator after the last x-data
+ * @param begin_y an iterator on the first y-data
+ *
+ * @see computeRegression
+ */
+template <class XIterator, class YIterator>
+void
+ImaGene::SimpleLinearRegression::addSamples
+( XIterator begin_x, XIterator end_x, YIterator begin_y )
+{
+  for ( ; begin_x != end_x; ++begin_x, ++begin_y )
+    {
+      addSample( *begin_x, *begin_y );
+    }
+}
+
+/**
+ * Adds the sample (y,x). Does not compute immediately the
+ * regression. See 'computeRegression' for computing the
+ * regression with the current samples.
+ *
+ * @param the x data.
+ * @param the y data.
+ *
+ * @see computeRegression
+ */
+void
+ImaGene::SimpleLinearRegression::addSample( double x, double y )
+{
+  m_X.push_back( x );
+  m_Y.push_back( y );
+  m_sum_x += x;
+  m_sum_x2 += x*x;
+  m_sum_y += y;
+  m_sum_xy += x*y;
+  ++m_n;
+ }
+
+/**
+ * @return the slope of the linear regression (B1 in Y=B0+B1*X).
+ */
+double
+ImaGene::SimpleLinearRegression::slope() const
+{
+  return m_B[ 1 ];
+}
+
+/**
+ * @return the intercept of the linear regression (B0 in Y=B0+B1*X).
+ */
+double
+ImaGene::SimpleLinearRegression::intercept() const
+{
+  return m_B[ 0 ];
+}
+
+/**
+ * Given a new x, predicts its y (hat{y}) according to the linear
+ * regression model.
+ * 
+ * @param x any value.
+ * @return the estimated y value, ie hat{y} = B0 + B1*x.
+ */
+double
+ImaGene::SimpleLinearRegression::estimateY( double x ) const
+{
+  return x * m_B[ 1 ] + m_B[ 0 ];
+}
+
+/**
+ * @return the current estimation of the variance of the Gaussian
+ * perturbation (i.e. variance of U).
+ */
+double
+ImaGene::SimpleLinearRegression::estimateVariance() const
+{
+  ASSERT_SimpleLinearRegression( ( m_n >= 3 ) 
+				 && "[ImaGene::SimpleLinearRegression::estimateVariance] need at least 3 datas to estimate variance.");
+  return m_norm_U2 / ( m_n - 2 );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'SimpleLinearRegression'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'SimpleLinearRegression' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const SimpleLinearRegression & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

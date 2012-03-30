@@ -1,0 +1,285 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Polynomial3.ih
+//
+// Creation : 2008/04/04
+//
+// Version : 2008/04/04
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Polynomial3.h 
+//
+// History :
+//	2008/04/04 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Polynomial3 declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+#include "ImaGene/mathutils/Mathutils.h"
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Polynomial3(x)
+#define DEBUGCMD_Polynomial3(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Polynomial3(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_Polynomial3(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/**
+ * constructor.
+ */
+ImaGene::Monomial3::Monomial3()
+{
+  deg[ 0 ] = 0;
+  deg[ 1 ] = 0;
+  deg[ 2 ] = 0;
+}
+
+/**
+ * Constructor.
+ * Example: for "x*y^2*z^4", construct with (1,2,4).
+ * 
+ * @param dx the degree of x.
+ * @param dy the degree of y.
+ * @param dz the degree of z.
+ */
+ImaGene::Monomial3::Monomial3( uint dx, uint dy, uint dz )
+{
+  deg[ 0 ] = dx;
+  deg[ 1 ] = dy;
+  deg[ 2 ] = dz;
+}
+
+/**
+ * destructor.
+ */
+ImaGene::Monomial3::~Monomial3()
+{}
+    
+/**
+ * copy constructor.
+ * @param other the object to clone.
+ */
+ImaGene::Monomial3::Monomial3( const Monomial3 & other )
+{
+  deg[ 0 ] = other.deg[ 0 ];
+  deg[ 1 ] = other.deg[ 1 ];
+  deg[ 2 ] = other.deg[ 2 ];
+}
+
+/**
+ * assignment.
+ * @param other the object to clone.
+ */
+ImaGene::Monomial3& 
+ImaGene::Monomial3::operator=( const Monomial3 & other )
+{
+  if ( this != &other )
+    {
+      deg[ 0 ] = other.deg[ 0 ];
+      deg[ 1 ] = other.deg[ 1 ];
+      deg[ 2 ] = other.deg[ 2 ];
+    }
+  return *this;
+}
+
+/**
+ * Evaluates the monomial at point xyz.
+ * 
+ * @param xyz the point at which the monomial is evaluate
+ */
+template <typename Number>
+Number 
+ImaGene::Monomial3::operator()( const Number* xyz ) const
+{
+  return Mathutils::power( xyz[ 0 ], deg[ 0 ] )
+    * Mathutils::power( xyz[ 1 ], deg[ 1 ] )
+    * Mathutils::power( xyz[ 2 ], deg[ 2 ] );
+}
+
+/**
+ * Differentiate the monomial along x(0), y(1) or z(2).
+ * 
+ * @param variable the differentiation variable.
+ * @return the integer coefficient in front of the obtained monomial.
+ */
+uint
+ImaGene::Monomial3::diff( uint variable )
+{
+  ASSERT_Polynomial3( variable < 3 );
+  uint d = deg[ variable ];
+  if ( d > 0 ) 
+    {
+      --deg[ variable ];
+      return d;
+    }
+  deg[ 0 ] = 0;
+  deg[ 1 ] = 0;
+  deg[ 2 ] = 0;
+  return 0;
+}
+
+
+/**
+ * lexicographic order on monomials.
+ * @param other the other monomial to compare.
+ * @return 'true' if 'this' precedes [other] in the lexicographic sense.
+ */
+bool
+ImaGene::Monomial3::operator<( const Monomial3 & other ) const
+{
+  return 
+    ( deg[ 0 ] < other.deg[ 0 ] )
+    || ( ( deg[ 0 ] == other.deg[ 0 ] ) 
+	 && ( ( deg[ 1 ] < other.deg[ 1 ] ) 
+	      || ( ( deg[ 1 ] == other.deg[ 1 ] ) 
+		   && ( deg[ 2 ] < other.deg[ 2 ] ) ) ) );
+}
+
+
+
+/**
+ * Destructor. 
+ */
+template <typename Number>
+ImaGene::Polynomial3<Number>::~Polynomial3()
+{
+}
+
+/**
+ * Constructor.
+ */
+template <typename Number>
+ImaGene::Polynomial3<Number>::Polynomial3()
+  : m_terms()
+{
+}
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+template <typename Number>
+ImaGene::Polynomial3<Number>::Polynomial3( const Polynomial3<Number> & other )
+  : m_terms( other.m_terms )
+{
+}
+
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ */
+template <typename Number>
+ImaGene::Polynomial3<Number> & 
+ImaGene::Polynomial3<Number>::operator=( const Polynomial3<Number> & other )
+{
+  if ( this != &other )
+    m_terms = other.m_terms;
+  return *this;
+}
+
+
+/**
+ * Adds the given monomial to 'this'.
+ * @param m the monomial.
+ * @param c the coefficient is front of the monomial.
+ */
+template <typename Number>
+void 
+ImaGene::Polynomial3<Number>::add( const Monomial3 & m, Number c )
+{
+  m_terms.push_back( std::make_pair( m, c ) );
+}
+
+
+/**
+ * Lexicographic ordering on terms.
+ * @param t1 the first term
+ * @param t2 the second term
+ * @return 'true' if [t1] precedes [t2] in the lexicographic sense.
+ */
+
+template <typename Number>
+bool
+ImaGene::Polynomial3<Number>::operator()
+  ( const term & t1, const term & t2 ) const
+{
+  return t1.first < t2.first;
+}
+
+
+/**
+ * Evaluates the polynomial at point xyz.
+ * 
+ * @param xyz the point at which the monomial is evaluate
+ */
+template <typename Number>
+Number 
+ImaGene::Polynomial3<Number>::operator()( const Number* xyz ) const
+{
+  Number r = (Number) 0;
+  for ( typename std::list<term>::const_iterator it = m_terms.begin();
+	it != m_terms.end();
+	++it )
+    {
+      r += it->second * it->first( xyz );
+    }
+  return r;
+}
+
+
+/**
+ * Differentiate the polynomial along x(0), y(1) or z(2).
+ * 
+ * @param variable the differentiation variable.
+ */
+template <typename Number>
+void
+ImaGene::Polynomial3<Number>::diff( uint variable )
+{
+  for ( typename std::list<term>::iterator it = m_terms.begin();
+	it != m_terms.end();
+	)
+    {
+      uint v = it->first.diff( variable );
+      if ( v != 0 )
+	{
+	  it->second *= (Number) v;
+	  ++it;
+	}
+      else
+	{
+	  it = m_terms.erase( it );
+	}
+    }
+  
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

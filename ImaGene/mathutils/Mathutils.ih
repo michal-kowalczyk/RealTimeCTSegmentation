@@ -1,0 +1,395 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Mathutils.ih
+//
+// Creation : 2004/11/30
+//
+// Version : 2004/11/30
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Mathutils.h 
+//
+// History :
+//	2004/11/30 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Mathutils declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cmath>
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Mathutils(x)
+#define DEBUGCMD_Mathutils(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Mathutils(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_Mathutils(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/**
+ * Initializes the modulo computer with the value [m].
+ * @param m any non-zero integer.
+ */
+ImaGene::Mathutils::ModuloComputer::ModuloComputer( uint m )
+  : k( m )
+{
+}
+
+    
+/**
+ * Increment the value [i] modulo.
+ * @param i any value between 0 and [k] (excluded).
+ * @see k
+ */
+void 
+ImaGene::Mathutils::ModuloComputer::increment( uint & i ) const
+{
+  if ( ++i == k ) i = 0;
+}
+
+
+/**
+ * Decrement the value [i] modulo.
+ * @param i any value between 0 and [k] (excluded).
+ * @see k
+ */
+void 
+ImaGene::Mathutils::ModuloComputer::decrement( uint & i ) const
+{
+  if ( i == 0 ) i = k;
+  --i;
+}
+
+
+/**
+ * @param i any value between 0 and [k] (excluded).
+ * @return the incremented value of [i] modulo [k].
+ * @see k
+ */
+uint 
+ImaGene::Mathutils::ModuloComputer::next( uint i ) const
+{
+  ++i;
+  return ( i == k ) ? 0 : i;
+}
+
+
+/**
+ * @param i any value between 0 and [k] (excluded).
+ * @return the decremented value of [i] modulo [k].
+ * @see k
+ */
+uint 
+ImaGene::Mathutils::ModuloComputer::previous( uint i ) const
+{
+  return ( i == 0 ) ? k - 1 : i - 1;
+}
+
+
+/**
+ * @param i any integer value.
+ * @return the value of [i] modulo [k].
+ * @see k
+ */
+uint 
+ImaGene::Mathutils::ModuloComputer::cast( int i ) const
+{
+  while ( i < 0 ) i += k;
+  uint ip = (uint) i;
+  while ( ip >= k ) ip -= k;
+  return ip;
+}
+
+    
+/**
+ * Less comparator modulo. Be careful, modulo comparisons have no
+ * sense when the absolute difference of the values are around k / 2.
+ *
+ * @param i any value between 0 and [k] (excluded).  @param j any
+ * value between 0 and [k] (excluded).  @return 'true' if [i] strictly
+ * precedes [j] in a window 'floor([k]/2)'.  @see k
+ */
+bool 
+ImaGene::Mathutils::ModuloComputer::less( uint i, uint j ) const
+{
+  int d = ( (int) j ) - ( (int) i );
+  if ( d > 0 )
+    return d < (int) ( k / 2 );
+  else
+    return (-d) >= (int) ( k / 2 );
+}
+
+
+/**
+ * Performs j - i modulo, assuming less(i,j) is true.
+ *
+ * @param j any value between 0 and [k] (excluded).
+ * @param i any value between 0 and [k] (excluded).
+ * @return the value j - i, always positive. 
+ * @see k
+ */
+uint
+ImaGene::Mathutils::ModuloComputer::posDiff( uint j, uint i ) const
+{
+  return ( i <= j ) ? j - i : j + k - i;
+}
+
+
+/**
+ * @param i any angle.
+ * @return the corresponding angle in [0:2pi[
+ */
+float 
+ImaGene::Mathutils::AngleComputer::cast( float i )
+{
+  while ( i < 0.0f ) i += two_pi_f;
+  while ( i > two_pi_f ) i -= two_pi_f;
+  return i;
+}
+
+    
+/**
+ * Less comparator modulo. Be careful, modulo comparisons have no
+ * sense when the absolute difference of the values are around pi.
+ *
+ * @param i any angle in [0:2pi[
+ * @param j any angle in [0:2pi[
+ * @return 'true' if [i] strictly precedes [j] in a window 'pi'.
+ */
+bool
+ImaGene::Mathutils::AngleComputer::less( float i, float j )
+{
+  float d = j - i;
+  if ( d > 0.0f )
+    return d < M_PI;
+  else
+    return (-d) >= M_PI;
+}
+
+
+/**
+ * Performs j - i modulo 2pi, assuming less(i,j) is true.
+ *
+ * @param j any angle in [0:2pi[
+ * @param i any angle in [0:2pi[
+ * @return the value j - i, always positive. 
+ */
+float 
+ImaGene::Mathutils::AngleComputer::posDiff( float j, float i )
+{
+  return ( i <= j ) ? j - i : j + two_pi_f - i;
+}
+
+/**
+ * Performs j - i, assuming th result is in [-pi:pi[
+ *
+ * @param j any angle in [0:2pi[
+ * @param i any angle in [0:2pi[
+ * @return the value j - i, always positive. 
+ */
+float 
+ImaGene::Mathutils::AngleComputer::deviation( float j, float i )
+{
+  return less( i, j ) ? posDiff( j, i ) : -posDiff( i, j );
+}
+
+
+/**
+ * Equivalent to 'less( i, j ) ? i : j'.
+ *
+ * @param i any angle in [0:2pi[
+ * @param j any angle in [0:2pi[
+ * @return the smallest angle of [i] and [j] in a window 'pi'.
+ */
+float 
+ImaGene::Mathutils::AngleComputer::min( float i, float j )
+{
+  return less( i, j ) ? i : j;
+}
+
+/**
+ * Equivalent to 'less( i, j ) ? j : i'.
+ *
+ * @param i any angle in [0:2pi[
+ * @param j any angle in [0:2pi[
+ * @return the greatest angle of [i] and [j] in a window 'pi'.
+ */
+float 
+ImaGene::Mathutils::AngleComputer::max( float i, float j )
+{
+  return less( i, j ) ? j : i;
+}
+
+
+
+/**
+ * @param i any angle.
+ * @return the corresponding angle in [0:2pi[
+ */
+double 
+ImaGene::Mathutils::AngleComputer::cast( double i )
+{
+  while ( i < 0.0 ) i += two_pi_d;
+  while ( i > two_pi_d ) i -= two_pi_d;
+  return i;
+}
+
+    
+/**
+ * Less comparator modulo. Be careful, modulo comparisons have no
+ * sense when the absolute difference of the values are around pi.
+ *
+ * @param i any angle in [0:2pi[
+ * @param j any angle in [0:2pi[
+ * @return 'true' if [i] strictly precedes [j] in a window 'pi'.
+ */
+bool
+ImaGene::Mathutils::AngleComputer::less( double i, double j )
+{
+  double d = j - i;
+  if ( d > 0.0 )
+    return d < M_PI;
+  else
+    return (-d) >= M_PI;
+}
+
+
+/**
+ * Performs j - i modulo 2pi, assuming less(i,j) is true.
+ *
+ * @param j any angle in [0:2pi[
+ * @param i any angle in [0:2pi[
+ * @return the value j - i, always positive. 
+ */
+double 
+ImaGene::Mathutils::AngleComputer::posDiff( double j, double i )
+{
+  return ( i <= j ) ? j - i : j + two_pi_d - i;
+}
+
+/**
+ * Performs j - i, assuming th result is in [-pi:pi[
+ *
+ * @param j any angle in [0:2pi[
+ * @param i any angle in [0:2pi[
+ * @return the value j - i, always positive. 
+ */
+double 
+ImaGene::Mathutils::AngleComputer::deviation( double j, double i )
+{
+  return less( i, j ) ? posDiff( j, i ) : -posDiff( i, j );
+}
+
+
+/**
+ * Equivalent to 'less( i, j ) ? i : j'.
+ *
+ * @param i any angle in [0:2pi[
+ * @param j any angle in [0:2pi[
+ * @return the smallest angle of [i] and [j] in a window 'pi'.
+ */
+double 
+ImaGene::Mathutils::AngleComputer::min( double i, double j )
+{
+  return less( i, j ) ? i : j;
+}
+
+/**
+ * Equivalent to 'less( i, j ) ? j : i'.
+ *
+ * @param i any angle in [0:2pi[
+ * @param j any angle in [0:2pi[
+ * @return the greatest angle of [i] and [j] in a window 'pi'.
+ */
+double 
+ImaGene::Mathutils::AngleComputer::max( double i, double j )
+{
+  return less( i, j ) ? j : i;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- elementary services ----------------------------
+
+
+/**
+ * @param x any value.
+ * @return the square of [x].
+ */
+float
+ImaGene::Mathutils::sqr( float x )
+{
+  return x*x;
+}
+
+/**
+ * @param x any value.
+ * @return the square of [x].
+ */
+double
+ImaGene::Mathutils::sqr( double x )
+{
+  return x*x;
+}
+
+/**
+ * Compute x^n with fast exponentiation.
+ *
+ * @param x the number
+ * @param n the exponent
+ * @return the value x^n.
+ */
+template <typename Number>
+Number 
+ImaGene::Mathutils::power( Number x, uint n )
+{
+  Number r = (Number) 1;
+  while ( n != 0 )
+    {
+      if ( n & 1 ) r *= x;
+      x *= x;
+      n >>= 1;
+    }
+  return r;
+}
+    
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'Mathutils'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'Mathutils' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, const Mathutils & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

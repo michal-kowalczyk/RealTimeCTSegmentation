@@ -1,0 +1,79 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : VisualCurvature.ih
+//
+// Creation : 2009/02/16
+//
+// Version : 2009/02/16
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in VisualCurvature.h 
+//
+// History :
+//	2009/02/16 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class VisualCurvature declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <cmath>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_VisualCurvature(x)
+#define DEBUGCMD_VisualCurvature(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_VisualCurvature(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_VisualCurvature(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+// ----------------------- Simple services --------------------------------
+    
+/**
+ * @param k an integer between 0 (included) and 'm_fcts.size()'
+ * (excluded).  
+ * 
+ * @return the corresponding direction.
+ */
+double
+ImaGene::VisualCurvature::direction( uint k ) const
+{
+  return ( ( (double) k ) + 0.5 ) * M_PI / (double) m_fcts.size();
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'VisualCurvature'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'VisualCurvature' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const VisualCurvature & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

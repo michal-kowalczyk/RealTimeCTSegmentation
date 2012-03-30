@@ -1,0 +1,330 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Image2DUtils.ih
+//
+// Creation : 2010/05/20
+//
+// Version : 2010/05/20
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Image2DUtils.h 
+//
+// History :
+//	2010/05/20 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Image2DUtils declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <cmath>
+#include <iostream>
+#include "ImaGene/mathutils/G.h"
+#include "ImaGene/image/Pixel.h"
+#include "ImaGene/digitalnD/KnSpaceScanner.h"
+#include "ImaGene/digitalnD/KnRCellVector.h"
+#include "ImaGene/digitalnD/KnSpace.h"
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Image2DUtils(x)
+#define DEBUGCMD_Image2DUtils(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Image2DUtils(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_Image2DUtils(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+using namespace std;
+/**
+ * Destructor. 
+ */
+template <typename IMAGE>
+INLINE
+ImaGene::Image2DUtils<IMAGE>::~Image2DUtils()
+{
+}
+
+
+/**
+ * Constructor. 
+ */
+template <typename IMAGE>
+INLINE
+ImaGene::Image2DUtils<IMAGE>::Image2DUtils()
+{
+}
+
+
+/**
+ * Computes the subsampled image [output] from image [input] at
+ * points x0 + k*h + l*v. z gives the quantification of the
+ * image values.
+ *
+ * @param output (returns) the subsampled image.
+ * @param input the input image.
+ * @param h the subsampling step along x.
+ * @param v the subsampling step along y.
+ * @param x0 the origin for the sampling.
+ *
+ * @param z the quantification (1 is no quantification, 2 divides
+ * by two, etc)
+ */
+template <typename IMAGE>
+INLINE
+void 
+ImaGene::Image2DUtils<IMAGE>::subsample
+( IMAGE & output, const IMAGE & input,
+  const uint h, const uint v, 
+  const typename IMAGE::pixel_type x0, const uint z )
+{
+  output.init( input.width() / h, input.height() / v );
+  Pixel p = x0;
+  const Pixel q = input.highest();
+  Pixel cur = output.lowest();
+  for ( Pixel a = p; a.y < q.y; a.y += v, ++cur.y )
+    for ( a.x = p.x, cur.x = output.lowest().x; 
+	  a.x < q.x; 
+	  a.x += h, ++cur.x )
+      {
+	output.set( cur, input.at( a ) / z );
+      }
+}
+
+/**
+ * Convolves the input image with the gaussian kernel of variance sigma.
+ *
+ * @param output (returns) the convolved image.
+ * @param input the input image.
+ * @param sigma the variance for the Gaussian kernel.
+ *
+ * @param window_scale the factor for computing the size of the
+ * convolution window (3.0 approximates 99.7% of the signal), the
+ * greater the more precise but also the slower.
+ */
+template <typename IMAGE>
+INLINE
+void 
+ImaGene::Image2DUtils<IMAGE>::gaussianSmoothing
+( IMAGE & output, const IMAGE & input,
+  const double sigma, 
+  const double window_scale )
+{
+  const G g( sigma );
+  IMAGE smoothed_x_image;
+  const double window_size = window_scale * sigma;
+  const uint k = round( window_size );
+  convolveX( smoothed_x_image, input, g,
+	     -window_size, window_size, k, true );
+  convolveY( output, smoothed_x_image, g,
+	     -window_size, window_size, k, true );
+}
+
+
+/**
+ * Convolved the centered signal along x-coordinate with
+ * the given input image and update the output image.
+ *
+ * @param output this image is modified to hold the result of the
+ * convolution  (output takes the size of input).
+ *
+ * @param input the input image.
+ *
+ * @param signal a functor object with f( double x ) : double.
+ *
+ * @param window_low the lower bound of the convolution window.
+ * @param window_high the upper bound of the convolution window.
+ * @param k the sampling of the window (2*k+1 points).
+ *
+ * @param normalize when 'true' normalizes the integral of the
+ * signal to 1, 'false' takes the signal sampling as is.
+ */
+template <typename IMAGE>
+template <typename SIGNAL>
+INLINE
+void
+ImaGene::Image2DUtils<IMAGE>::convolveX
+( IMAGE & output, 
+  const IMAGE & input, const SIGNAL & signal,
+  double window_low, double window_high, uint k,
+  bool normalize )
+{
+  output.init( input.width(), input.height() );
+  Pixel p = input.lowest();
+  Pixel q = input.highest();
+  const double min = (double) output.minElementValue();
+  const double max = (double) output.maxElementValue();
+  const uint nb = 2 * k + 1;
+  const int ik = (int) k;
+  const double step = ( window_high - window_low ) / nb;
+  for ( Pixel z = p; z.y < q.y; z.y++ )
+    for ( z.x = p.x; z.x < q.x; z.x++ )
+      {
+	double acc = 0.0;
+	double sum = 0.0;
+	double x = window_high;
+	for ( int i = z.x - ik; i <= ( z.x + ik ); ++i )
+	  {
+	    double fx = signal( x );
+	    acc += ( (double) input.at( i, z.y, 0 ) ) * fx;
+	    x -= step;
+	    if ( normalize ) sum += fx;
+	  }
+	//std::cerr << "(" << acc;
+	acc = normalize 
+	  ? ( sum != 0.0 ? round( acc / sum ) : round( acc ) )
+	  : round( acc );
+	// std::cerr << " " << acc<< ")";
+	if ( acc < min ) output.set( z, output.minElementValue() );
+	else if ( acc > max ) output.set( z, output.maxElementValue() );
+	else output.set( z, (typename IMAGE::value_type) acc );
+      }
+}
+
+/**
+ * Convolved the centered signal along y-coordinate with
+ * the given input image and update the output image.
+ *
+ * @param output this image is modified to hold the result of the
+ * convolution  (output takes the size of input).
+ *
+ * @param input the input image.
+ *
+ * @param signal a functor object with f( double x ) : double.
+ *
+ * @param window_low the lower bound of the convolution window.
+ * @param window_high the upper bound of the convolution window.
+ * @param k the sampling of the window (2*k+1 points).
+ *
+ * @param normalize when 'true' normalizes the integral of the
+ * signal to 1, 'false' takes the signal sampling as is.
+ */
+template <typename IMAGE>
+template <typename SIGNAL>
+INLINE
+void
+ImaGene::Image2DUtils<IMAGE>::convolveY
+( IMAGE & output, 
+  const IMAGE & input, const SIGNAL & signal,
+  double window_low, double window_high, uint k,
+  bool normalize )
+{
+  output.init( input.width(), input.height() );
+  Pixel p = input.lowest();
+  Pixel q = input.highest();
+  const double min = (double) output.minElementValue();
+  const double max = (double) output.maxElementValue();
+  const uint nb = 2 * k + 1;
+  const int ik = (int) k;
+  const double step = ( window_high - window_low ) / nb;
+  for ( Pixel z = p; z.y < q.y; z.y++ )
+    for ( z.x = p.x; z.x < q.x; z.x++ )
+      {
+	double acc = 0.0;
+	double sum = 0.0;
+	double x = window_high;
+	for ( int j = z.y - ik; j <= ( z.y + ik ); ++j )
+	  {
+	    double fx = signal( x );
+	    acc += ( (double) input.at( z.x, j, 0 ) ) * fx;
+	    x -= step;
+	    if ( normalize ) sum += fx;
+	  }
+	//std::cerr << "(" << acc;
+	acc = normalize 
+	  ? ( sum != 0.0 ? round( acc / sum ) : round( acc ) )
+	  : round( acc );
+	// std::cerr << " " << acc<< ")";
+	if ( acc < min ) output.set( z, output.minElementValue() );
+	else if ( acc > max ) output.set( z, output.maxElementValue() );
+	else output.set( z, (typename IMAGE::value_type) acc );
+      }
+}
+
+
+template <typename IMAGE>
+INLINE
+void
+ImaGene::Image2DUtils<IMAGE>::convertToKnRUCellVector(const IMAGE & input,  KnSpace* & ks,
+						      KnRUCellVector<typename IMAGE::value_type>* & vectorVal ){
+  Pixel p = input.lowest();
+  Pixel q = input.highest();
+  Kn_size sizes[ 2 ];
+  sizes[0]= input.width();
+  sizes[1]= input.height();
+  ks = new KnSpace( 2, sizes );  
+  KnSpaceScanner scan( *ks, 
+			ks->ufirstCell( ks->dim() ),
+			ks->ulastCell( ks->dim() ) );
+  Kn_uid cell  = scan.begin();
+  vectorVal = new KnRUCellVector<typename IMAGE::value_type>(*ks, 2 );
+  for ( Pixel z = p; z.y < q.y; z.y++ ,cell+= scan.gotonext( 1 ) )
+    for ( z.x = p.x; z.x < q.x; z.x++, cell++ ){
+      (*vectorVal)[cell]= input.at(z);	
+    }
+  
+}
+
+
+
+// Interface - public :
+
+/**
+ * Writes/Displays the object on an output stream.
+ * @param that_stream the output stream where the object is written.
+ */
+template <typename IMAGE>
+INLINE
+void
+ImaGene::Image2DUtils<IMAGE>::selfDisplay( std::ostream& that_stream ) const
+{
+  that_stream << "[Image2DUtils]";
+}
+
+/**
+ * Checks the validity/consistency of the object.
+ * @return 'true' if the object is valid, 'false' otherwise.
+ */
+template <typename IMAGE>
+INLINE
+bool
+ImaGene::Image2DUtils<IMAGE>::OK() const
+{
+  return true;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'Image2DUtils'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'Image2DUtils' to write.
+ * @return the output stream after the writing.
+ */
+template <typename IMAGE>
+INLINE
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		     const Image2DUtils<IMAGE> & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

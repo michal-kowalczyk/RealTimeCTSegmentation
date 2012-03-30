@@ -1,0 +1,116 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : ImplicitDigitalSurface.ih
+//
+// Creation : 2005/01/17
+//
+// Version : 2005/01/17
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in ImplicitDigitalSurface.h 
+//
+// History :
+//	2005/01/17 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class ImplicitDigitalSurface declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_ImplicitDigitalSurface(x)
+#define DEBUGCMD_ImplicitDigitalSurface(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_ImplicitDigitalSurface(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_ImplicitDigitalSurface(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- accessor services ----------------------------
+
+
+/**
+ * @return the bel adjaceny.
+ */
+const ImaGene::BelAdjacency & 
+ImaGene::ImplicitDigitalSurface::belAdjacency() const
+{
+  return m_bel_adj;
+}
+
+
+/**
+ * @return the associated implicit surface.
+ */
+const ImaGene::ImplicitSurface &
+ImaGene::ImplicitDigitalSurface::implicitSurface() const
+{
+  return *m_is;
+}
+
+
+/**
+ * @return the associated embedder.
+ */
+const ImaGene::Embedder & 
+ImaGene::ImplicitDigitalSurface::embedder() const
+{
+  return *m_embedder;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ------------------------- space services -------------------------------
+
+    
+/**
+ * @return a pointer on the digital space in which the implicit
+ * digital surface is embedded.
+ */
+const ImaGene::KnSpace* 
+ImaGene::ImplicitDigitalSurface::space() const
+{
+  return m_space;
+}
+
+ 
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'ImplicitDigitalSurface'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'ImplicitDigitalSurface' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const ImplicitDigitalSurface & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

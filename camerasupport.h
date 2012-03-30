@@ -1,8 +1,8 @@
 #ifndef CAMERASUPPORT_H
 #define CAMERASUPPORT_H
-//THREADING BEGIN
 #include <QThread>
-//THREADING END
+#include <QMutex>
+
 
 class CameraSupport{
 public:
@@ -11,34 +11,60 @@ public:
     unsigned int GetWidth ();
     unsigned int GetHeight ();
     bool UpdateFrame ();
-    const unsigned char *GetRGB ();
-    //THREADING BEGIN
-    void convertYUVToRGB (unsigned int start, unsigned int stop);
-    //THREADING END
+    const unsigned int *GetRGBA ();
 
 protected:
-    void convertYUVToRGB ();
-    unsigned char clamp(int value);
+    void convertYUVToRGBA ();
 
-    //THREADING BEGIN
-    class ThreadsRGBCalculatuion : public QThread{
+    class YUVToRGBAConverter{
     public:
-        ThreadsRGBCalculatuion(CameraSupport* cameraSupport, unsigned int startValue, unsigned int stopValue);
+        struct Coordinates{
+            unsigned int start;
+            unsigned int stop;
+        };
+
+        YUVToRGBAConverter(unsigned int *rgb, unsigned char *yuv, unsigned int width, unsigned int pointsNumber);
+        void ConvertYUVToRGBA (Coordinates coordinates);
+        void SetIterationsPerConversion (unsigned int iterationsPerConversion);
+        Coordinates GetNextCoorinates ();
+        void ResetCurrentIteration ();
+
     private:
-        CameraSupport* cameraSupport;
-        unsigned int startValue;
-        unsigned int stopValue;
-        void run ();
+        unsigned int clamp(int value);
+
+        unsigned int *rgba;
+        unsigned char *yuv;
+        unsigned int width;
+        unsigned int pointsNumber;
+        unsigned int iterationsPerConversion;
+        unsigned int currentIteration;
+        unsigned int iterationsNumber;
     };
 
-    ThreadsRGBCalculatuion *rgbCalculation;
-    //THREADING END
+    YUVToRGBAConverter *converter;
+
     unsigned int width;
     unsigned int height;
     unsigned int pointsNumber;
     unsigned int yuvUVPoints;
     unsigned char *yuv;
-    unsigned char *rgb;
+    unsigned int *rgba;
+
+    class ThreadsRGBCalculatuion : public QThread{
+    public:
+        ThreadsRGBCalculatuion(YUVToRGBAConverter* converter, QMutex *mutex);
+
+    private:
+        YUVToRGBAConverter* converter;
+        QMutex *mutex;
+        void run ();
+    };
+
+    typedef CameraSupport::ThreadsRGBCalculatuion THREAD;
+
+    unsigned int threadsNumber;
+    ThreadsRGBCalculatuion **threads;
+    QMutex *mutex;
 };
 
 #endif // CAMERASUPPORT_H

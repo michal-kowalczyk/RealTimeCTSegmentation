@@ -1,0 +1,240 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Polynomial.ih
+//
+// Creation : 2004/08/10
+//
+// Version : 2004/08/10
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Polynomial.h 
+//
+// History :
+//	2004/08/10 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Polynomial declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Polynomial(x)
+#define DEBUGCMD_Polynomial(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Polynomial(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_Polynomial(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/**
+ * Destructor.
+ */
+ImaGene::PolynomialData::~PolynomialData()
+{
+  if ( coefs != 0 ) delete[] coefs;
+}
+
+/**
+ * Empty polynomial data.
+ */
+ImaGene::PolynomialData::PolynomialData()
+  : size( 0 ), coefs( 0 )
+{
+}
+
+
+/**
+ * Constructor. Creates an array of [n] coefficients.
+ * @param n the order + 1  of the polynomial.
+ */
+ImaGene::PolynomialData::PolynomialData( uint n )
+  : size( n )
+{
+  coefs = new float[ n ];
+}
+
+
+/**
+ * Initialization with an array of [n] coefficients.
+ * @param n the order + 1  of the polynomial.
+ */
+void
+ImaGene::PolynomialData::init( uint n )
+{
+  if ( size != n )
+    {
+      if ( coefs != 0 ) delete[] coefs;
+      coefs = new float[ n ];
+      size = n;
+    }
+}
+
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+ImaGene::PolynomialData::PolynomialData( const PolynomialData & other )
+  : size( other.size )
+{
+  coefs = new float[ size ];
+  for ( uint i = 0; i < size; ++i )
+    coefs[ i ] = other.coefs[ i ];
+}
+
+
+
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ */
+ImaGene::PolynomialData & 
+ImaGene::PolynomialData::operator=( const PolynomialData & other )
+{
+  if ( this != &other )
+    {
+      init( other.size );
+      for ( uint i = 0; i < size; ++i )
+	coefs[ i ] = other.coefs[ i ];
+    }
+  return *this;
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// class Polynomial
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Constructor.
+ * Creates the polynomial P(x)=0.
+ */
+ImaGene::Polynomial::Polynomial()
+  : m_data( PolynomialData() )
+{
+}
+
+
+
+/**
+ * Constructor.
+ * @param n the order of the polynomial.
+ */
+ImaGene::Polynomial::Polynomial( int n )
+  : m_data( PolynomialData( n + 1 ) )
+{
+}
+
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+ImaGene::Polynomial::Polynomial( const Polynomial & other )
+  : m_data( other.m_data )
+{
+}
+
+
+/**
+ * Constructor from data.
+ * @param other the object to clone.
+ */
+ImaGene::Polynomial::Polynomial( const PolynomialData & data )
+  : m_data( data )
+{
+}
+
+
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ */
+ImaGene::Polynomial & 
+ImaGene::Polynomial::operator=( const Polynomial & other )
+{
+  if ( this != &other )
+    m_data = other.m_data;
+  return *this;
+}
+
+
+/**
+ * @return the order of the polynomial.
+ */
+int
+ImaGene::Polynomial::order() const
+{
+  return m_data.ro().size - 1;
+}
+
+
+/**
+ * Sets the [k]th coefficient to the value [a].
+ * @param k the monomial order.
+ * @param a any value.
+ */
+void
+ImaGene::Polynomial::setCoef( uint k, float a )
+{
+  ASSERT_Polynomial( (int) k <= order() );
+  
+  m_data.rw().coefs[ k ] = a;
+}
+
+
+/**
+ * @param k the monomial order.
+ * @return the [k]th coefficient value.
+ */
+float 
+ImaGene::Polynomial::getCoef( uint k ) const
+{
+  ASSERT_Polynomial( (int) k <= order() );
+
+  return m_data.ro().coefs[ k ];
+}
+
+  
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'Polynomial'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'Polynomial' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, const Polynomial & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

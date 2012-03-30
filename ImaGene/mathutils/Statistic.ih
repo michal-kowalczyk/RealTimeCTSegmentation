@@ -1,0 +1,437 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Statistic.ih
+//
+// Creation : 2010/05/24
+//
+// Version : 2010/05/24
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Statistic.h 
+//
+// History :
+//	2010/05/24 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Statistic declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+#include <algorithm>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Statistic(x)
+#define DEBUGCMD_Statistic(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Statistic(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_Statistic(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/**
+ * Destructor. 
+ */
+template <typename RealNumberType>
+INLINE
+ImaGene::Statistic<RealNumberType>::~Statistic()
+{}
+
+/**
+ * Constructor.
+ */
+template <typename RealNumberType>
+INLINE
+ImaGene::Statistic<RealNumberType>::Statistic(bool storeSample)
+  : m_samples( 0 ), m_exp( 0 ), m_exp2( 0 ), m_min( 0 ), m_max( 0 ), m_median(0),  m_store_samples (storeSample),
+    m_isTerminated(false)
+{
+  m_values=  std::vector<RealNumberType> ();
+}
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+template <typename RealNumberType>
+INLINE
+ImaGene::Statistic<RealNumberType>::Statistic
+( const Statistic<RealNumberType> & other )
+  : m_samples( other.m_samples ), 
+    m_exp( other.m_exp ), 
+    m_exp2( other.m_exp2 ), 
+    m_min( other.m_min ), 
+    m_max( other.m_max ),
+    m_median( other.m_median), 
+    m_store_samples (other.m_store_samples),
+    m_isTerminated(other.m_isTerminated)
+{
+  if(m_store_samples){
+    m_values=  std::vector<RealNumberType> ();
+    for(uint i=0; i<other.m_values.size(); i++){
+      m_values.push_back(other.m_values.at(i));
+    }
+  }
+  
+}
+
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ */
+template <typename RealNumberType>
+INLINE
+ImaGene::Statistic<RealNumberType> & 
+ImaGene::Statistic<RealNumberType>::operator=
+( const Statistic<RealNumberType> & other )
+{
+  if ( this != &other )
+    {
+      m_samples = other.m_samples;
+      m_exp = other.m_exp;
+      m_exp2 = other.m_exp2;
+      m_min = other.m_min;
+      m_max = other.m_max;
+      m_median = other.m_median;
+      m_store_samples = other.m_store_samples;
+      m_isTerminated=other.m_isTerminated;
+      if(m_store_samples){
+	m_values=  std::vector<RealNumberType> ();
+	for(uint i=0; i<other.m_values.size(); i++){
+	  m_values.push_back(other.m_values.at(i));
+	}
+      }
+      
+    }
+  return *this;
+}
+ 
+
+/**
+ * Adds to self another set of statistics (should be of the same
+ * variable).
+ *
+ * @param other the object to add.
+ * @return a reference on 'this'.
+ */
+template <typename RealNumberType>
+INLINE
+ImaGene::Statistic<RealNumberType> & 
+ImaGene::Statistic<RealNumberType>::operator+=
+( const Statistic<RealNumberType> & other )
+{
+  if ( other.m_samples != 0 )
+    {
+      if ( ( m_samples == 0 ) || ( other.m_min < m_min ) )
+	m_min = other.m_min;
+      if ( ( m_samples == 0 ) || ( other.m_max > m_max ) )
+	m_max = other.m_max;
+    }
+  m_samples += other.m_samples;
+  m_exp += other.m_exp;
+  m_exp2 += other.m_exp2;
+  m_isTerminated=false;
+  
+  if(m_store_samples && other.m_store_samples){
+    for(uint i=0; i<other.m_values.size(); i++){
+      m_values.push_back(other.m_values.at(i));
+    }
+  }else{
+    m_store_samples=false;
+  }
+  
+}
+
+
+
+
+
+/**
+ * Adds two set of statistics (should be of the same variable).
+ *
+ * @param other the object to add.
+ * @return a new object that is the union of these statistics.
+ */
+template <typename RealNumberType>
+INLINE
+ImaGene::Statistic<RealNumberType> 
+ImaGene::Statistic<RealNumberType>::operator+
+( const Statistic<RealNumberType> & other ) const
+{
+  Statistic<RealNumberType> stat( *this );
+  stat += other;
+  return stat;
+}
+
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------- Accessors ------------------------------
+
+/** 
+ * @return the number of samples.
+ */
+template <typename RealNumberType>
+INLINE
+uint 
+ImaGene::Statistic<RealNumberType>::samples() const
+{
+  return m_samples;
+}
+
+/** 
+ * @return the sample mean.
+ */
+template <typename RealNumberType>
+INLINE
+RealNumberType
+ImaGene::Statistic<RealNumberType>::mean() const
+{
+  return m_exp / (RealNumberType) m_samples;
+}
+
+/** 
+ * @return the sample variance.
+ */
+template <typename RealNumberType>
+INLINE
+RealNumberType
+ImaGene::Statistic<RealNumberType>::variance() const
+{
+  return ( m_exp2 / (RealNumberType) m_samples ) - mean() * mean();
+}
+
+/** 
+ * @return the unbiased sample variance.
+ */
+template <typename RealNumberType>
+INLINE
+RealNumberType
+ImaGene::Statistic<RealNumberType>::unbiasedVariance() const
+{
+  ASSERT_Statistic( m_samples != 0 );
+  return ( (RealNumberType) m_samples ) * variance() 
+    / ( (RealNumberType) m_samples );
+}
+
+/** 
+ * @return the maximal value.
+ */
+template <typename RealNumberType>
+INLINE
+RealNumberType
+ImaGene::Statistic<RealNumberType>::max() const
+{
+  return m_max;
+}
+
+/** 
+ * @return the minimal value.
+ */
+template <typename RealNumberType>
+INLINE
+RealNumberType
+ImaGene::Statistic<RealNumberType>::min() const
+{
+  return m_min;
+}
+
+
+
+/**
+ * Return the median value of the Statistic values. It can be given in two possible cases:
+ * - if the the values are stored in the 'Statistic' objects (not always a good solution). (complexity: linear on average)
+ * - if the values were first stored and computed by the function @see terminate. 
+ *  @return the median value.
+ * 
+ * @see terminate,  Statistic 
+ */
+template <typename RealNumberType>
+INLINE
+RealNumberType
+ImaGene::Statistic<RealNumberType>::median() 
+{
+  ASSERT_Statistic( m_store_samples || m_isTerminated );
+  if(m_isTerminated){
+    return m_median;
+  }
+  else{
+    nth_element( m_values.begin(), m_values.begin()+(m_values.size()/2), 
+		 m_values.end());
+    return *(m_values.begin()+(m_values.size()/2));
+  }
+}
+
+
+/** 
+ * Adds a new sample value [v].
+ * 
+ * @param v the new sample value.
+ */
+
+template <typename RealNumberType>
+INLINE
+void 
+ImaGene::Statistic<RealNumberType>::addValue( RealNumberType v )
+{
+  if ( m_samples == 0 )
+    {
+      m_min = v;
+      m_max = v;
+    }
+  else if ( v < m_min ) m_min = v;
+  else if ( v > m_max ) m_max = v;
+  m_exp += v;
+  m_exp2 += v * v;
+  ++m_samples;
+  if(m_store_samples){
+    m_values.push_back(v);
+  }
+}
+  
+/**
+ * Adds a sequence of sample values, scanning a container from
+ * iterators [b] to [e].
+ * 
+ * Exemple: 
+ <code>
+ vector<RealNumberType> x;
+ Statistic stats;
+ stats.addValue( x + 4, x + 10 );
+ <endcode>
+ *
+ * @param b an iterator on the starting point.
+ * @param e an iterator after the last point.
+ */
+template <typename RealNumberType>
+template <class Iter>
+INLINE
+void 
+ImaGene::Statistic<RealNumberType>::addValues( Iter b, Iter e )
+{
+  for ( ; b != e; ++b )
+    addValue( *b );
+}
+
+/** 
+ * Clears the object. As if it has just been created.
+ */
+template <typename RealNumberType>
+INLINE
+void
+ImaGene::Statistic<RealNumberType>::clear()
+{
+  m_samples = 0;
+  m_exp = 0;
+  m_exp2 = 0;
+  m_min = 0;
+  m_max = 0;
+  m_median=0;
+  m_isTerminated=false;
+  if(m_store_samples){
+    m_values.clear();
+  }
+}
+
+
+
+
+/**
+ * Computes the median value of the statistics and switch to mode
+ * which does not save the statistics samples (@ref
+ * m_store_samples = false). Usefull only if the values are stored
+ * (specified in the the constructor) else it doest nothing.
+ *
+ * @see median, Statistic, m_store_samples
+ */
+
+template< typename RealNumberType> 
+INLINE
+void 
+ImaGene::Statistic<RealNumberType>::terminate()
+{
+  if(m_store_samples){
+    m_median=median();
+    m_values.clear();
+    m_store_samples=false;
+    m_isTerminated=true;
+  } 
+}
+ 
+
+///////////////////////////////////////////////////////////////////////////////
+// Interface - public :
+
+/**
+ * Writes/Displays the object on an output stream.
+ * @param that_stream the output stream where the object is written.
+ */
+template <typename RealNumberType>
+INLINE
+void 
+ImaGene::Statistic<RealNumberType>::selfDisplay
+( std::ostream& that_stream ) const
+{
+  that_stream << "[Statistic "
+	      << " nb=" << samples()
+	      << " exp=" << mean()
+	      << " var=" << variance()
+	      << " uvar=" << unbiasedVariance()
+	      << " min=" << min()
+	      << " max=" << max()
+	      << "]";
+}
+
+/**
+ * Checks the validity/consistency of the object.
+ * @return 'true' if the object is valid, 'false' otherwise.
+ */
+template <typename RealNumberType>
+INLINE
+bool 
+ImaGene::Statistic<RealNumberType>::OK() const
+{
+  return true;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'Statistic'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'Statistic' to write.
+ * @return the output stream after the writing.
+ */
+template <typename RealNumberType>
+INLINE
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		     const Statistic<RealNumberType> & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

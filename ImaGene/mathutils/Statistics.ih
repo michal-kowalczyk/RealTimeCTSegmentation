@@ -1,0 +1,232 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : Statistics.ih
+//
+// Creation : 2007/02/19
+//
+// Version : 2007/02/19
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in Statistics.h 
+//
+// History :
+//	2007/02/19 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class Statistics declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_Statistics(x)
+#define DEBUGCMD_Statistics(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_Statistics(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_Statistics(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+
+/** 
+ * @return the number of statistical variables.
+ */
+uint
+ImaGene::Statistics::nb() const
+{
+  return m_nb;
+}
+
+/** 
+ * @param k the statistical variable.
+ * 
+ * @return the number of samples for this variable.
+ */
+uint
+ImaGene::Statistics::samples( uint k ) const
+{
+  return m_samples[ k ];
+}
+
+/** 
+ * @param k the statistical variable.
+ * 
+ * @return the sample mean for this variable.
+ * @pre method 'terminate' must have been called.
+ * @see terminate
+ */
+double 
+ImaGene::Statistics::mean( uint k ) const
+{
+  return m_exp[ k ];
+}
+
+/** 
+ * @param k the statistical variable.
+ * 
+ * @return the sample variance for this variable.
+ * @pre method 'terminate' must have been called.
+ * @see terminate
+ */
+double 
+ImaGene::Statistics::variance( uint k ) const
+{
+  return m_var[ k ];
+}
+
+/** 
+ * @param k the statistical variable.
+ * 
+ * @return the unbiased sample variance for this variable.
+ * @pre method 'terminate' must have been called.
+ * @see terminate
+ */
+double 
+ImaGene::Statistics::unbiasedVariance( uint k ) const
+{
+  return m_unbiased_var[ k ];
+}
+
+/** 
+ * @param k the statistical variable.
+ * 
+ * @return the maximal value for this variable.
+ * @pre method 'terminate' must have been called.
+ * @see terminate
+ */
+double 
+ImaGene::Statistics::max( uint k ) const
+{
+  return m_max[ k ];
+}
+
+/** 
+ * @param k the statistical variable.
+ * 
+ * @return the minimal value for this variable.
+ * @pre method 'terminate' must have been called.
+ * @see terminate
+ */
+double 
+ImaGene::Statistics::min( uint k ) const
+{
+  return m_min[ k ];
+}
+
+
+
+
+/** 
+ * @param k the statistical variable.
+ * 
+ * @return the indice of the  minimal value for this variable (indice begin from 0).
+ * @pre method 'terminate' must have been called.
+ * @see terminate
+ */
+uint 
+ImaGene::Statistics::minIndice( uint k ) const
+{
+  return m_indice_min[ k ];
+}
+
+
+/** 
+ * @param k the statistical variable.
+ * 
+ * @return the indice of the  maximal value for this variable (indice begin from 0).
+ * @pre method 'terminate' must have been called.
+ * @see terminate
+ */
+uint
+ImaGene::Statistics::maxIndice( uint k ) const
+{
+  return m_indice_max[ k ];
+}
+
+
+
+  
+
+/** 
+ * Returns a stored sample value that was added before. The object
+ * should have been initialized with 'store_samples = true'.
+ *
+ * @param k the statistical variable.
+ *
+ * @param i the index of the sample value, '0<=i<samples(k)'.
+ * 
+ * @return the [i]-th value for this variable.
+ *
+ * @see Statistics, init
+ */
+double
+ImaGene::Statistics::value( uint k, uint i ) const
+{
+  if ( m_store_samples ) {
+    ASSERT_Statistics( ( k < m_nb )
+		       && ( m_values != 0 ) 
+		       && ( i < m_samples[ k ] ) );
+    return m_values[ k ][ i ];
+  }
+  return 0.0;
+}
+  
+
+/**
+ * Adds a sequence of sample values for the variable [k], scanning
+ * a container from iterators [b] to [e].
+ * 
+ * Exemple: 
+ <code>
+ vector<double> x;
+ Statistics stats( 1, true );
+ stats.addValue( x + 4, x + 10 );
+ <endcode>
+ *
+ * @param k the statistical variable.
+ * @param b an iterator on the starting point.
+ * @param e an iterator after the last point.
+ */
+template <class Iter>
+void
+ImaGene::Statistics::addValues( uint k, Iter b, Iter e )
+{
+  for ( ; b != e; ++b )
+    addValue( k, *b );
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'Statistics'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'Statistics' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const Statistics & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+

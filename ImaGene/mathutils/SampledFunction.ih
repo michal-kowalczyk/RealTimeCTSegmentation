@@ -1,0 +1,92 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// File name : SampledFunction.ih
+//
+// Creation : 2009/02/13
+//
+// Version : 2009/02/13
+//
+// Author : JOL
+//
+// Summary : Implementation of inline methods defined in SampledFunction.h 
+//
+// History :
+//	2009/02/13 : ?Name? : ?What?
+//
+// Rcs Id : "@(#)class SampledFunction declaration."
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION of inline methods.
+///////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+#include <cstdlib>
+#include <iostream>
+//////////////////////////////////////////////////////////////////////////////
+
+#if defined(NO_DEBUG)
+#define ASSERT_SampledFunction(x)
+#define DEBUGCMD_SampledFunction(x)
+#else //defined(NO_DEBUG)
+#define ASSERT_SampledFunction(x) if(!(x)) \
+    { std::cerr << "Assertion failed : (" << #x << ')' << std::endl \
+    << "In file : " << __FILE__ << " at line #" << __LINE__ << std::endl \
+    << "Compiled the " << __DATE__ << " at " << __TIME__ << std::endl; abort();}
+#define DEBUGCMD_SampledFunction(x) x
+#endif // else defined(NO_DEBUG)
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline methods                                          //
+
+/**
+ * Copy constructor.
+ * @param other the object to clone.
+ */
+ImaGene::SampledFunction::SampledFunction( const SampledFunction & other )
+  : x( other.x ), fx( other.fx ), periodicity( other.periodicity ),
+    m_height( other.m_height )
+{
+}
+
+/**
+ * Assignment.
+ * @param other the object to copy.
+ * @return a reference on 'this'.
+ */
+ImaGene::SampledFunction & 
+ImaGene::SampledFunction::operator=( const SampledFunction & other )
+{
+  if ( this != &other )
+    {
+      x = other.x;
+      fx = other.fx;
+      periodicity = other.periodicity;
+      m_height = other.m_height;
+    }
+  return *this;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Implementation of inline functions and external operators                 //
+
+/**
+ * Overloads 'operator<<' for displaying objects of class 'SampledFunction'.
+ * @param that_stream the output stream where the object is written.
+ * @param that_object_to_display the object of class 'SampledFunction' to write.
+ * @return the output stream after the writing.
+ */
+std::ostream&
+ImaGene::operator<<( std::ostream & that_stream, 
+		 const SampledFunction & that_object_to_display )
+{
+  that_object_to_display.selfDisplay( that_stream );
+  return that_stream;
+}
+
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+
