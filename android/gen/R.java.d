@@ -1,4 +1,4 @@
-/Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/gen/org/kde/necessitas/example/RealTimeImageComponentTreeSegmentation/R.java \
+/Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/gen/org/kde/necessitas/example/RealTimeComponentTreeSegmentation/R.java \
  : /Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/res/drawable/icon.png \
 /Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/res/drawable/logo.png \
 /Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/res/drawable-hdpi/icon.png \

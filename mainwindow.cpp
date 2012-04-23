@@ -8,27 +8,129 @@
 #include <QPen>
 #include <QMouseEvent>
 #include <QDebug>
+#include <QFile>
 
 #include "camerasupport.h"
 #include "meaningfulscales.h"
 
+#include "grayscaleimagehistogram.h"
 
-MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow), frame (0), contour (0), tree (0){
+#include "imagemarkerfile.h"
+
+
+/**
+  * IMPORTANT: with complex objects using lighting by average makes segmenation worse!
+  */
+
+//TEST FOR EACH FRAME (SIZE: 400 x 300)
+//200 :  3945 ,  12038 ,  124553 ,  1330 ,  4156 ,  14740
+//200 :  3459 ,  12158 ,  125187 ,  1438 ,  4266 ,  14495 //optimizing getLibTIMFromFrame function
+//200 :  3495 ,  4211 ,  135086 ,  2054 ,  4956 ,  14784 //optimizing convertQImageToLibTIM function
+//200 :  3677 ,  4268 ,  137953 ,  2564 ,  5684 ,  1523 //optimizing convertLibTIMToQImage function
+//200 :  3976 ,  4644 ,  140883 ,  1807 ,  4823 ,  1502 ,  13841 ,  7185 // extended research version
+//200 :  3916 ,  4655 ,  133632 ,  1609 ,  4645 ,  1562 ,  8590 ,  7054 // using Premultiplied image format
+//200 :  3905 ,  4167 ,  128858 ,  1478 ,  4046 ,  1414 ,  4490 ,  6371 // using RGBA frame instead of RGB
+//200 :  4607 ,  4665 ,  131061 ,  1030 ,  3950 ,  1434 ,  4875 ,  5203 // using optimized YUV to RGB converter
+//200 :  2848 ,  3266 ,  132376 ,  1730 ,  2562 ,  1855 ,  6510 ,  4940 ,  0 ,  14505 . // using references to images in place of new objects
+
+
+
+/**
+  IDEAS:
+    1. we cannot change values for pixels which are on a border of marker, because we making segmentation harder
+    2. solution for value of shifting marked pixels higher then 255
+       (loosing information about colours but making uniform surface for marker)
+       we could calculate average value of all neighbours of pixels which are not at border of marker.
+       In this way after few iterations there will be no marked pixels with value higher then 255
+    3. reflexes makes segmentation harder; we need find a way to remove them or to not take them into consideration
+    4. consider neighbourhood of border-marker pixels; what kind of information they giving us
+    5. find a way to deal with shadows
+    7. consider if shifting should make area the most light (255) or should leave some place for ligher elements
+       (connect this consideration with neightbours of pixels at a border)
+    **/
+
+
+MainWindow::MainWindow (QWidget *parent) :
+    QMainWindow(parent),
+    ui(new Ui::MainWindow),
+    cameraSupport (WIDTH, HEIGHT),
+    markedPixels (WIDTH * HEIGHT),
+    segmentationAlgorithm (WIDTH, HEIGHT),
+    inputGenerator (WIDTH * HEIGHT)
+{
+
     ui->setupUi(this);
 
     connect (ui -> alphaDial, SIGNAL (valueChanged (int)), this, SLOT (alphaChanged (int)));
     connect (ui -> penSizeDial, SIGNAL (valueChanged (int)), this, SLOT (penSizeChanged (int)));
     connect (ui -> transparencyDial, SIGNAL (valueChanged (int)), this, SLOT (transparencyChanged (int)));
+    connect (ui -> cameraStartStopPushButton, SIGNAL (clicked ()), this, SLOT (startStopCamera ()));
+    connect (ui -> savePushButton, SIGNAL (clicked ()), this, SLOT (save ()));
+    connect (ui -> loadPushButton, SIGNAL (clicked ()), this, SLOT (load ()));
 
-    ui -> alphaDial -> setValue (10);
+    connect (ui -> redCheckBox, SIGNAL (toggled (bool)), this, SLOT (addRemoveColourCanal (bool)));
+    connect (ui -> greenCheckBox, SIGNAL (toggled (bool)), this, SLOT (addRemoveColourCanal (bool)));
+    connect (ui -> blueCheckBox, SIGNAL (toggled (bool)), this, SLOT (addRemoveColourCanal (bool)));
+    connect (ui -> hueCheckBox, SIGNAL (toggled (bool)), this, SLOT (addRemoveColourCanal (bool)));
+    connect (ui -> saturationCheckBox, SIGNAL (toggled (bool)), this, SLOT (addRemoveColourCanal (bool)));
+    connect (ui -> valueCheckBox, SIGNAL (toggled (bool)), this, SLOT (addRemoveColourCanal (bool)));
+    connect (ui -> lightnessCheckBox, SIGNAL (toggled (bool)), this, SLOT (addRemoveColourCanal (bool)));
+    connect (ui -> cyanCheckBox, SIGNAL (toggled (bool)), this, SLOT (addRemoveColourCanal (bool)));
+    connect (ui -> magentaCheckBox, SIGNAL (toggled (bool)), this, SLOT (addRemoveColourCanal (bool)));
+    connect (ui -> yellowCheckBox, SIGNAL (toggled (bool)), this, SLOT (addRemoveColourCanal (bool)));
+    connect (ui -> keyCheckBox, SIGNAL (toggled (bool)), this, SLOT (addRemoveColourCanal (bool)));
+
+    connect (ui -> noOOPProcessing, SIGNAL (toggled (bool)), this, SLOT (changeOutOfRangeSolution (bool)));
+    connect (ui -> oorARadioButton, SIGNAL (toggled (bool)), this, SLOT (changeOutOfRangeSolution (bool)));
+    connect (ui -> oorBRadioButton, SIGNAL (toggled (bool)), this, SLOT (changeOutOfRangeSolution (bool)));
+    connect (ui -> oorFRadioButton, SIGNAL (toggled (bool)), this, SLOT (changeOutOfRangeSolution (bool)));
+
+    connect (ui -> noNegationRadioButton, SIGNAL (toggled (bool)), this, SLOT (changeNegationMode (bool)));
+    connect (ui -> negationRadioButton, SIGNAL (toggled (bool)), this, SLOT (changeNegationMode (bool)));
+    connect (ui -> autoNegationRadioButton, SIGNAL (toggled (bool)), this, SLOT (changeNegationMode (bool)));
+
+    connect (ui -> averageLightnessRadioButton, SIGNAL (toggled (bool)), this, SLOT (changeCanalsMixingMode (bool)));
+    connect (ui -> weightedAverageDifferenceRradioButton, SIGNAL (toggled (bool)), this, SLOT (changeCanalsMixingMode (bool)));
+    connect (ui -> weightedBinaryHistogramRadioButton, SIGNAL (toggled (bool)), this, SLOT (changeCanalsMixingMode (bool)));
+    connect (ui -> weightedAverageDifferenceRradioButton, SIGNAL (toggled (bool)), this, SLOT (changeCanalsMixingMode (bool)));
+
+    connect (ui -> noChangeLightnessRadioButton, SIGNAL (toggled (bool)), this, SLOT (changeImageTransformationMode (bool)));
+    connect (ui -> bubbleBrightingRadioButton, SIGNAL (toggled (bool)), this, SLOT (changeImageTransformationMode (bool)));
+    connect (ui -> maximalLightnessRadioButton, SIGNAL (toggled (bool)), this, SLOT (changeImageTransformationMode (bool)));
+    connect (ui -> averageLightnessRadioButton, SIGNAL (toggled (bool)), this, SLOT (changeImageTransformationMode (bool)));
+    connect (ui -> maximalAverageLightnessRadioButton, SIGNAL (toggled (bool)), this, SLOT (changeImageTransformationMode (bool)));
+
+    ui -> alphaDial -> setValue (1000);
     ui -> penSizeDial -> setValue (10);
     ui -> transparencyDial -> setValue (100);
 
-    cameraSupport = new CameraSupport (WIDTH, HEIGHT);
+    frame = QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
+    frame.fill (qRgba (0, 0, 0, 0));
 
-    timer = new QTimer (this);
-    connect (timer, SIGNAL(timeout()), this, SLOT(updateFrame()));
-    timer -> start (MILISECONDS_FOR_REFRESH);
+    input = QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
+    input.fill (qRgba (0, 0, 0, 0));
+
+    marker = QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
+    marker.fill (qRgba (0, 0, 0, 0));
+
+    segmentationResult = QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
+    segmentationResult.fill (qRgba (0, 0, 0, 0));
+
+    contour = QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
+    contour.fill (qRgba (0, 0, 0, 0));
+
+    boxes = QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
+    boxes.fill (qRgba (0, 0, 0, 0));
+
+    groundTruth = QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
+    groundTruth.fill (qRgba (0, 0, 0, 0));
+    groundTruthAvaible = false;
+
+    changeInput = false;
+    changeResult = false;
+    changeMeaningulScales = false;
+
+    repaint = false;
 
     totalFrames = 1000 / MILISECONDS_FOR_REFRESH;
     frameTime = new unsigned long long[totalFrames];
@@ -37,34 +139,28 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainW
     currentFrame = 0;
     fps = 0;
 
-    marker = new QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
-    marker -> fill (qRgba (0, 0, 0, 0));
-
-    segmentationResult = new QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
-    segmentationResult -> fill (qRgba (0, 0, 0, 0));
-
-    boxes = 0;
-
-    repaint = true;
-
     frameCounter = 0;
-    time1 = time2 = time3 = time4 = time5 = time6 = time7 = time8 = 0;
+
+    timer = new QTimer (this);
+    connect (timer, SIGNAL (timeout ()), this, SLOT (updateFrame ()));
+    timer -> start (MILISECONDS_FOR_REFRESH);
+
+    connect (ui -> fastSwitch1RadioButton, SIGNAL (toggled (bool)), this, SLOT (fastSwitch1 (bool)));
+    connect (ui -> fastSwitch2RadioButton, SIGNAL (toggled (bool)), this, SLOT (fastSwitch2 (bool)));
+
+    ui -> plotWidget -> hide ();
+
+    ui -> oorCRadioButton -> hide ();
+    ui -> oorDRadioButton -> hide ();
+    ui -> oorERadioButton -> hide ();
 }
 
 
 MainWindow::~MainWindow (){
-    delete cameraSupport;
+    delete []frameTime;
 
-    if (tree)
-        delete tree;
-
-    if (frame != 0)
-        delete frame;
-    frame = 0;
-
-    if (marker != 0)
-        delete marker;
-    marker = 0;
+    timer -> stop ();
+    delete timer;
 
     delete ui;
 }
@@ -125,56 +221,10 @@ void MainWindow::showExpanded()
 }
 
 
-void MainWindow::updateFrame (){
-    clock_t start = clock ();
-    bool result = cameraSupport -> UpdateFrame ();// = false
-    clock_t stop = clock ();
-    if (result){
-        time8 += stop - start;
-
-        if (frame != 0){
-            delete frame;
-            frame = 0;
-        }
-        frame = new QImage((unsigned char *)cameraSupport -> GetRGBA (), WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);//Format_RGB888
-
-        computeCT ();
-
-        if (ui -> meaningulScalesCheckBox -> isChecked ()){
-            time9 = -clock ();
-            MeaningfulScales ms(*segmentationResult);
-            time9 += clock ();
-            time9 *= currentFrame;
-            if (boxes)
-                delete boxes;
-            boxes = new QImage (ms.GetResult());
-        }
-
-        repaint = true;
-        update (0, 0, WIDTH, HEIGHT);
-
-        frameTime[currentFrame] = clock();
-
-        /*fps = 1;
-        while (frameTime[currentFrame] - frameTime[(currentFrame - fps) % totalFrames] < CLOCKS_PER_SEC)
-            fps++;*/
-
-        fps++;
-        while (frameTime[currentFrame] - frameTime[(currentFrame - fps) % totalFrames] > CLOCKS_PER_SEC)
-            fps--;
-
-        if (currentFrame < totalFrames - 1)
-            currentFrame++;
-        else
-            currentFrame = 0;
-
-        ui ->  fpsLabel -> setText (QString ("FPS: %1").arg (fps));
-    }
-}
-
-
 void MainWindow::alphaChanged (int value){
-    alpha = (double)value / 1000.0;
+    changeResult = true;
+
+    alpha = (double)value / 100000.0;
     ui ->  alphaLabel -> setText (QString ("Alpha: %1").arg (alpha));
 }
 
@@ -185,251 +235,183 @@ void MainWindow::penSizeChanged (int value){
 
 
 void MainWindow::transparencyChanged (int value){
+    segmentationAlgorithm.SetTransparency (value);
     ui ->  transparencyLabel -> setText (QString ("Transparency: %1").arg (value));
 }
 
 
-Image<U8> MainWindow::getLibTIMFromFrame (){
-    const unsigned char *rgb = (unsigned char *)cameraSupport -> GetRGBA ();
-    Image<U8> result (WIDTH, HEIGHT);
-    unsigned int i;
-    if (ui -> redRadioButton -> isChecked())
-        i = 0;
-    else if (ui -> greenRadioButton -> isChecked())
-        i = 1;
-    else if (ui -> blueRadioButton -> isChecked())
-        i = 2;
-    else
-        i = 0;
-    unsigned int size = WIDTH * HEIGHT;
-    for (unsigned int j = 0; j < size; j++){
-        result (j) = rgb[i];
-        i += 4;
+void MainWindow::fastSwitch1 (bool value){
+    if (value){
+        ui -> noNegationRadioButton -> setChecked (true);
+        ui -> noChangeLightnessRadioButton -> setChecked (true);
+        ui -> noOOPProcessing -> setChecked (true);
+        ui -> redCheckBox -> setChecked (true);
+        ui -> greenCheckBox -> setChecked (false);
+        ui -> blueCheckBox -> setChecked (false);
+        ui -> hueCheckBox -> setChecked (false);
+        ui -> saturationCheckBox -> setChecked (false);
+        ui -> valueCheckBox -> setChecked (false);
+        ui -> lightnessCheckBox -> setChecked (false);
+        ui -> cyanCheckBox -> setChecked (false);
+        ui -> magentaCheckBox -> setChecked (false);
+        ui -> yellowCheckBox -> setChecked (false);
+        ui -> keyCheckBox -> setChecked (false);
+        ui -> arithmeticMeanRadioButton -> setChecked (true);
+        if (!ui -> fastSwitch1RadioButton -> isChecked ())
+            ui -> fastSwitch1RadioButton -> setChecked (true);
+    }
+}
+
+
+void MainWindow::fastSwitch2 (bool value){
+    if (value){
+        ui -> autoNegationRadioButton -> setChecked (true);
+        ui -> averageLightnessRadioButton -> setChecked (true);
+        ui -> oorFRadioButton -> setChecked (true);
+        ui -> redCheckBox -> setChecked (true);
+        ui -> greenCheckBox -> setChecked (true);
+        ui -> blueCheckBox -> setChecked (true);
+        ui -> hueCheckBox -> setChecked (true);
+        ui -> saturationCheckBox -> setChecked (true);
+        ui -> valueCheckBox -> setChecked (true);
+        ui -> lightnessCheckBox -> setChecked (true);
+        ui -> weightedMeanRadioButton -> setChecked (true);
+        if (!ui -> fastSwitch2RadioButton -> isChecked ())
+            ui -> fastSwitch2RadioButton -> setChecked (true);
+    }
+}
+
+
+void MainWindow::updateFrame (){
+    bool result = false;
+    if (cameraSupport.IsRunning ()){
+        timers[7].StartCycle ();
+        result = cameraSupport.UpdateFrame ();
+        timers[7].StopCycle ();
     }
 
-    /*Image<U8> result2 (WIDTH, HEIGHT);
-    i = 0;
-    for (unsigned int y = 0; y < HEIGHT; y++)
-        for (unsigned int x = 0; x < WIDTH; x++){
-            result2 (x, y) = rgb[i];
-            i += 3;
-        }*/
+    if (result){
+        changeInput = true;
+        frame = QImage ((unsigned char *)cameraSupport.GetRGBA (), WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
+    }
 
-    /*for (unsigned int x = 0; x < WIDTH; x++)
-        for (unsigned int y = 0; y < HEIGHT; y++)
-            if (result (x, y) != result2 (x, y)){
-                qDebug () << x << ", " << y;
-                break;
-            }*/
+    if (changeInput){
+        timers[10].StartCycle ();
+        createComponentTreeInput ();
+        timers[10].StopCycle ();
 
-    return result;
-}
-
-
-Image<U8> MainWindow::convertQImageToLibTIM (QImage *image){
-    Image<U8> result (WIDTH, HEIGHT);
-    unsigned int size = WIDTH * HEIGHT;
-    const unsigned int *bits = (unsigned int *)image -> constBits ();
-    for (unsigned int i = 0; i < size; i++)
-        result (i) = qRed(bits[i]);
-
-    /*Image<U8> result2 (WIDTH, HEIGHT);
-    for (unsigned int x = 0; x < WIDTH; x++)
-        for (unsigned int y = 0; y < HEIGHT; y++)
-            result2 (x, y) = qRed (image -> pixel (x, y));*/
-
-    /*for (unsigned int x = 0; x < WIDTH; x++)
-        for (unsigned int y = 0; y < HEIGHT; y++)
-            if (result (x, y) != result2 (x, y)){
-                qDebug () << x << ", " << y;
-                break;
-            }*/
-    return result;
-}
-
-
-QImage *MainWindow::convertLibTIMToQImage (Image<U8> &image, int alpha){
-    QImage *result = new QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
-    unsigned int size = WIDTH * HEIGHT;
-    unsigned int *bits = (unsigned int *)result -> bits ();
-    U8 value;
-    for (unsigned int i = 0; i < size; i++){
-        value = image (i);
-        if (value > 0)
-            bits[i] = qRgba (0, 0, 255, alpha);
+        if (ui -> contourCheckbox -> isChecked ())
+            segmentationAlgorithm.Compute (alpha, input, marker, segmentationResult, contour, timers);
         else
-            bits[i] = qRgba (0, 0, 0, 0);
+            segmentationAlgorithm.Compute (alpha, input, marker, segmentationResult, timers);
+
+        if (groundTruthAvaible)
+            qDebug () << "Jaccard Index:" << jaccardIndex (segmentationResult, groundTruth);
+
+        changeResult = false;
+        if (ui -> meaningulScalesCheckBox -> isChecked ())
+            changeMeaningulScales = true;
     }
 
-    /*QImage *result2 = new QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
-    for (unsigned int x = 0; x < WIDTH; x++)
-        for (unsigned int y = 0; y < HEIGHT; y++){
-            value = image (x, y);
-            if (value > 0)
-                result2 -> setPixel (x, y, qRgba (0, 0, 255, alpha));
-            else
-                result2 -> setPixel (x, y, qRgba (0, 0, 0, 0));
-        }
+    if (changeResult){
+        segmentationAlgorithm.DoSegmentationWithPreviousComponentTree (alpha, segmentationResult, timers);
 
-    for (unsigned int x = 0; x < WIDTH; x++)
-        for (unsigned int y = 0; y < HEIGHT; y++)
-            if (result -> pixel (x, y) != result2 -> pixel (x, y)){
-                qDebug () << x << ", " << y;
-                break;
-            }
-    delete result2;*/
-    return result;
-}
+        if (groundTruthAvaible)
+            qDebug () << "Jaccard Index:" << jaccardIndex (segmentationResult, groundTruth);
 
-
-void MainWindow::computeCT (){
-    if (tree != 0){
-        delete tree;
-        tree = 0;
+        if (ui -> meaningulScalesCheckBox -> isChecked ())
+            changeMeaningulScales = true;
     }
 
-    if (cameraSupport -> GetRGBA () != 0){
-        if (ui -> markerCheckbox -> isChecked () || ui -> resultCheckbox -> isChecked () || ui -> contourCheckbox -> isChecked ()){
-            //TEST FOR EACH FRAME (SIZE: 400 x 300)
-            //200 :  3945 ,  12038 ,  124553 ,  1330 ,  4156 ,  14740
-            //200 :  3459 ,  12158 ,  125187 ,  1438 ,  4266 ,  14495 //optimizing getLibTIMFromFrame function
-            //200 :  3495 ,  4211 ,  135086 ,  2054 ,  4956 ,  14784 //optimizing convertQImageToLibTIM function
-            //200 :  3677 ,  4268 ,  137953 ,  2564 ,  5684 ,  1523 //optimizing convertLibTIMToQImage function
-            //200 :  3976 ,  4644 ,  140883 ,  1807 ,  4823 ,  1502 ,  13841 ,  7185 // extended research version
-            //200 :  3916 ,  4655 ,  133632 ,  1609 ,  4645 ,  1562 ,  8590 ,  7054 // using Premultiplied image format
-            //200 :  3905 ,  4167 ,  128858 ,  1478 ,  4046 ,  1414 ,  4490 ,  6371 // using RGBA frame instead of RGB
-            /* it's possible to make it better:
-              1. time6 is ~2.5 times smaller then time1 and time2.
-                 time6 - convertLibTIMToQImage  WIDTH * HEIGHT iterations   read LibTIM::Image  write QImage
-                 time1 - getLibTIMFromFrame     WIDTH * HEIGHT iterations   write LibTIM::Image read QImage
-                 time2 - convertQImageToLibTIM  WIDTH * HEIGHT iterations   write LibTIM::Image read QImage
-                 Conclusion: writing LibTIM::Image is slowler then writing QImage
-              2. in convertion between YUV and RGB removing clamp function would decrease time of execution
-            */
-            time1 -= clock ();
-            inputImage = getLibTIMFromFrame ();
-            time1 += clock ();
-
-            time2 -= clock ();
-            markerImage = convertQImageToLibTIM (marker);
-            time2 += clock ();
-
-            time3 -= clock ();
-            tree = new ComponentTree<U8> (inputImage, markerImage);
-            time3 += clock ();
-
-            time4 -= clock ();
-            tree -> m_root -> calpha = computeCAlpha (tree -> m_root, alpha);
-            time4 += clock ();
-
-            time5 -= clock ();
-            computeResult ();
-            time5 += clock ();
-
-            if (segmentationResult)
-                delete segmentationResult;
-            time6 -= clock ();
-            segmentationResult = convertLibTIMToQImage (resultImage, ui -> transparencyDial -> value());
-            time6 += clock ();
-
-
-            if (ui -> contourCheckbox -> isChecked ()){
-                contourImage = drawContourN4 (resultImage, 255);
-                if(contour)
-                    delete contour;
-                contour = convertLibTIMToQImage (contourImage, 255);
-            }
-        }
+    if (changeMeaningulScales){
+        timers[8].StartCycle ();
+        MeaningfulScales ms(segmentationResult);
+        timers[8].StopCycle ();
+        boxes = QImage (ms.GetResult());
     }
-}
 
+    if (changeInput || changeResult || changeMeaningulScales){
+        repaint = true;
+        update (0, 0, WIDTH, HEIGHT);
 
-double MainWindow::computeCAlpha (Node *n, double alpha){
-    double res = 0.0;
-    double sum = 0.0;
+        changeInput = false;
+        changeResult = false;
+        changeMeaningulScales = false;
+    }
 
-    double exprl = alpha * n -> n;
+    frameTime[currentFrame] = clock ();
 
-    for (unsigned int i = 0; i < n -> childs.size (); i++)
-        sum += computeCAlpha (n -> childs[i], alpha);
+    /*fps = 1;
+    while (frameTime[currentFrame] - frameTime[(currentFrame - fps) % totalFrames] < CLOCKS_PER_SEC)
+        fps++;*/
 
-    double exprr = (1 - alpha) * n -> ps + sum;
+    fps++;
+    while (frameTime[currentFrame] - frameTime[(currentFrame - fps) % totalFrames] > CLOCKS_PER_SEC)
+        fps--;
 
-    if (exprl < exprr)
-        res = exprl;
+    if (currentFrame < totalFrames - 1)
+        currentFrame++;
     else
-        res = exprr;
+        currentFrame = 0;
 
-    n -> calpha = res;
-    return res;
+    ui ->  fpsLabel -> setText (QString ("FPS: %1").arg (fps));
 }
 
 
-void MainWindow::computeResult (){
-    double sum = 0.0;
-    double exprl, exprr;
+void MainWindow::createComponentTreeInput (){
+    InputGeneratingParameters parameters;
+    parameters.redCanalIncluded = ui -> redCheckBox -> isChecked ();
+    parameters.greenCanalIncluded = ui -> greenCheckBox -> isChecked ();
+    parameters.blueCanalIncluded = ui -> blueCheckBox -> isChecked ();
+    parameters.hueCanalIncluded = ui -> hueCheckBox -> isChecked ();
+    parameters.saturationCanalIncluded = ui -> saturationCheckBox -> isChecked ();
+    parameters.valueCanalIncluded = ui -> valueCheckBox -> isChecked ();
+    parameters.lightnessCanalIncluded = ui -> lightnessCheckBox -> isChecked ();
+    parameters.cyanCanalIncluded = ui -> cyanCheckBox -> isChecked ();
+    parameters.magentaCanalIncluded = ui -> magentaCheckBox -> isChecked ();
+    parameters.yellowCanalIncluded = ui -> yellowCheckBox -> isChecked ();
+    parameters.keyCanalIncluded = ui -> keyCheckBox -> isChecked ();
 
-    resultImage = Image<U8> (WIDTH, HEIGHT);
-    resultImage.fill (0);
+    parameters.negationMode = NO_NEGATION;
+    if (ui -> negationRadioButton -> isChecked ())
+        parameters.negationMode = NEGATION;
+    else if (ui -> autoNegationRadioButton -> isChecked ())
+        parameters.negationMode = AUTONEGATION;
 
-    vector<Node *> selectedNodes;
-    std::queue<Node *> fifo;
-    fifo.push (tree -> m_root);
+    if (ui -> oorARadioButton -> isChecked ())
+        parameters.outOfRangeSolution = 1;
+    else if (ui -> oorBRadioButton -> isChecked ())
+        parameters.outOfRangeSolution = 2;
+    else if (ui -> oorFRadioButton -> isChecked ())
+        parameters.outOfRangeSolution = 6;
 
-    while (!fifo.empty ()){
-        Node *tmp = fifo.front ();
-        fifo.pop ();
+    parameters.canalsMixingMode = AVERAGE_MEAN;
+    if (ui -> weightedMeanRadioButton -> isChecked ())
+        parameters.canalsMixingMode = WEIGHTED_MEAN_BY_COLOURS_DIFFERENCES;
+    else if (ui -> weightedBinaryHistogramRadioButton -> isChecked ())
+        parameters.canalsMixingMode = WEIGHTED_MEAN_BY_BINARY_HISTOGRAM_COMPARISON;
+    else if (ui -> weightedAverageDifferenceRradioButton -> isChecked ())
+        parameters.canalsMixingMode = WEIGHTED_MEAN_BY_PROPORTIONAL_HISTOGRAM_COMPARISON;
 
-        exprl = alpha * tmp -> n;
-        sum = 0.0;
+    parameters.imageTransformationMode = NO_TRANSFORMATION;
+    if (ui -> bubbleBrightingRadioButton -> isChecked ())
+        parameters.imageTransformationMode = MARKED_PIXELS_HISTOGRAM_BUBBLE_BRIGHTENING;
+    else if (ui -> maximalLightnessRadioButton -> isChecked ())
+        parameters.imageTransformationMode = MARKED_PIXELS_MAXIMAL_VALUE_BRIGHTENING;
+    else if (ui -> averageLightnessRadioButton -> isChecked ())
+        parameters.imageTransformationMode = MARKED_PIXELS_AVERAGE_PIXEL_VALUE_BRIGHTNENING;
+    else if (ui -> maximalAverageLightnessRadioButton -> isChecked ())
+        parameters.imageTransformationMode = MARKED_PIXELS_MAXIMAL_AVERAGE_PIXEL_VALUE_BRIGHTENING;
 
-        for (unsigned int i = 0; i < tmp -> childs.size (); i++)
-            sum += tmp -> childs[i] -> calpha;
-        exprr = (1 - alpha) * tmp -> ps + sum;
-
-        if (exprl < exprr)
-            selectedNodes.push_back (tmp);
-        else
-            for (unsigned int i = 0; i < tmp -> childs.size (); i++)
-                fifo.push (tmp -> childs[i]);
-    }
-
-    for (unsigned int i = 0; i < selectedNodes.size (); i++)
-        tree -> constructNode (resultImage, selectedNodes[i]);
-}
-
-
-Image<U8> MainWindow::drawContourN4 (const Image <U8> &mask, const U8 val){
-    int dx = mask.getSizeX ();
-    int dy = mask.getSizeY ();
-    int dz = mask.getSizeZ ();
-    Image<U8> res (dx, dy, dz);
-    res.fill (0);
-    FlatSE nghb;
-    nghb.make2DN4 ();
-
-    for (int z = 0; z < dz; z++)
-        for (int y = 0; y < dy; y++)
-            for (int x = 0; x < dx; x++){
-                if (mask (x, y, z) != 0)
-                    for (int i = 0; i < nghb.getNbPoints (); i++){
-                        Point <TCoord> p (x, y, z);
-                        Point <TCoord> q = p + nghb.getPoint (i);
-                        if (mask.isPosValid (q))
-                            if (mask (q) == 0)
-                                res (x, y, z) = val;
-                    }
-            }
-    return res;
+    inputGenerator.GenerateInput ((const unsigned char *)cameraSupport.GetRGBA (), input, parameters, markedPixels);
 }
 
 
 void MainWindow::mouseMoveEvent (QMouseEvent* event){
     if (ui -> markerCheckbox -> isChecked ()){
         int penWidth = ui -> penSizeDial -> value ();
-        int transparency = ui -> transparencyDial -> value ();
 
-        QPainter painter (marker);
+        QPainter painter (&marker);
         painter.setCompositionMode (QPainter::CompositionMode_Source);
         QPen pen;
         pen.setStyle (Qt::SolidLine);
@@ -439,13 +421,17 @@ void MainWindow::mouseMoveEvent (QMouseEvent* event){
         if (ui -> eraseCheckbox -> isChecked ())
             brush.setColor (QColor (0, 0, 0, 0));
         else
-            brush.setColor (QColor (255, 0, 0, transparency));
+            brush.setColor (QColor (255, 0, 0, ui -> transparencyDial -> value ()));
         painter.setPen (Qt::NoPen);
         painter.setBrush (brush);
 
         QRect rect (QPoint (event -> x () - penWidth, event -> y () - penWidth),
                     QSize (2 * penWidth, 2 * penWidth));
         painter.drawEllipse (rect);
+
+        markedPixels.Update (marker);
+
+        changeInput = true;
     }
 }
 
@@ -454,41 +440,272 @@ void MainWindow::paintEvent (QPaintEvent *event){
     if (!repaint)
         return;
 
-    if (frame){
-        time7 -= clock ();
-        /*canvas -> SetFrame(frame);
-        if (ui -> resultCheckbox -> isChecked () && segmentationResult != 0)
-            canvas -> SetSegmentation(segmentationResult);
-        if (ui -> contourCheckbox -> isChecked () && contour != 0)
-            canvas -> SetContour(contour);
-        if (ui -> markerCheckbox -> isChecked () && marker != 0)
-            canvas -> SetMarker(marker);
-        canvas -> Update();*/
+    timers[6].StartCycle ();
+    QPoint topLeft = event -> rect ().topLeft ();
+    QPainter displayPainter;
+    displayPainter.begin (this);
 
-        //THIS DISPLAYS FRAME ON SOME GUI ELEMENTS, BUT IT WORKS!
-        /*QPainter displayPainter (this);
-        displayPainter.beginNativePainting();
-        glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, cameraSupport -> GetRGB());
-        displayPainter.endNativePainting();*/
+    if (ui -> originalRadioButton -> isChecked())
+        displayPainter.drawImage (topLeft, frame);
+    else if (ui -> inputRadioButton -> isChecked())
+        displayPainter.drawImage (topLeft, input);
 
-        /*Display *display = QX11Info::display();
-        Drawable hd = handle();
-        GC gc = XCreateGC(display, hd, 0, 0);*/
+    if (ui -> resultCheckbox -> isChecked ())
+        displayPainter.drawImage (topLeft, segmentationResult);
+    if (ui -> contourCheckbox -> isChecked ())
+        displayPainter.drawImage (topLeft, contour);
+    if (ui -> meaningulScalesCheckBox -> isChecked ())
+        displayPainter.drawImage (topLeft, boxes);
+    if (ui -> markerCheckbox -> isChecked ())
+        displayPainter.drawImage (topLeft, marker);
+    if (ui -> groundTruthCheckBox -> isChecked () && groundTruthAvaible)
+        displayPainter.drawImage (topLeft, groundTruth);
 
-        QPoint topLeft = event -> rect ().topLeft ();
-        QPainter displayPainter (this);
-        displayPainter.drawImage (topLeft, *frame);
-        if (ui -> resultCheckbox -> isChecked () && segmentationResult != 0)
-            displayPainter.drawImage (topLeft, *segmentationResult);
-        if (ui -> contourCheckbox -> isChecked () && contour != 0)
-            displayPainter.drawImage (topLeft, *contour);
-        if (ui -> meaningulScalesCheckBox -> isChecked () && boxes != 0)
-            displayPainter.drawImage (topLeft, *boxes);
-        if (ui -> markerCheckbox -> isChecked () && marker != 0)
-            displayPainter.drawImage (topLeft, *marker);
-        time7 += clock ();
+    displayPainter.end ();
+    timers[6].StopCycle ();
 
-        frameCounter++;
-        qDebug () << frameCounter << ": " << time1 / frameCounter << ", " << time2 / frameCounter << ", " << time3 / frameCounter << ", " << time4 / frameCounter << ", " << time5 / frameCounter << ", " << time6 / frameCounter << ", " << time7 / frameCounter << ", " << time8 / frameCounter << ", " << time9 / frameCounter << ". FPS: " << fps ;
+    frameCounter++;
+    //qDebug () << frameCounter << ": " << timers[0].AverageTimePerCycle () << ", " << timers[1].AverageTimePerCycle () << ", " << timers[2].AverageTimePerCycle () << ", " << timers[3].AverageTimePerCycle () << ", " << timers[4].AverageTimePerCycle () << ", " << timers[5].AverageTimePerCycle () << ", " << timers[6].AverageTimePerCycle () << ", " << timers[7].AverageTimePerCycle () << ", " << timers[8].AverageTimePerCycle () << ", "  << timers[9].AverageTimePerCycle () << ", "  << timers[10].AverageTimePerCycle ()  << ". FPS: " << fps;
+}
+
+
+void MainWindow::startStopCamera (){
+    if (cameraSupport.IsRunning ()){
+        ui -> plotWidget -> show ();
+        ui -> cameraStartStopPushButton -> setText ("Camera START!");
+        cameraSupport.Stop ();
+    } else{
+        ui -> plotWidget -> hide ();
+        ui -> cameraStartStopPushButton -> setText ("Camera STOP!");
+        cameraSupport.Start ();
+        groundTruthAvaible = false;
+    }
+}
+
+
+void MainWindow::save (){
+    QFile file ("/sdcard/imageMarkerFile.imf");
+    QImage empty (0, 0, QImage::Format_ARGB32_Premultiplied);
+    ImageMarkerFile::Write (file, frame, marker, empty);
+}
+
+
+void MainWindow::load (){
+    QFile file ("/sdcard/imageMarkerFile.imf");
+    groundTruth.fill (QColor (0, 0, 0, 0));
+    ImageMarkerFile::Read (file, frame, marker, groundTruth);
+    groundTruthAvaible = true;
+
+    markedPixels.Update (marker);
+
+    changeInput = true;
+}
+
+
+void MainWindow::on_bisectionPushButton_clicked (){
+    double left = 0;
+    segmentationAlgorithm.DoSegmentationWithPreviousComponentTree (left, segmentationResult, timers);
+    unsigned int numberForLeft = calculateFoundedMarkedPointsNumber ();
+
+    double right = 1;
+    double alpha = left;
+
+    unsigned int i = 0;
+    while (i < 50){
+        alpha = left + (right - left) / 2;
+        segmentationAlgorithm.DoSegmentationWithPreviousComponentTree (alpha, segmentationResult, timers);
+        unsigned int numberOfMarkedPoints = calculateFoundedMarkedPointsNumber ();
+        if (numberOfMarkedPoints < numberForLeft)
+            right = alpha;
+        else
+            left = alpha;
+
+        i++;
+    }
+
+    ui -> alphaDial -> setValue (alpha * 100000);
+}
+
+
+unsigned int MainWindow::calculateFoundedMarkedPointsNumber (){
+    unsigned int result = 0;
+    const unsigned int *segmentationBits = (const unsigned int *)segmentationResult.constBits ();
+    for (Subimage::PixelsPositionsIterator i = markedPixels.begin (); i != markedPixels.end (); ++i)
+        if (qBlue (segmentationBits[*i]) > 0)
+            result++;
+    return result;
+}
+
+
+unsigned int MainWindow::calculateFoundedPointsNumber (){
+    unsigned int result = 0;
+    const unsigned int *segmentationResultPointer = (const unsigned int *)segmentationResult.constBits ();
+    const unsigned int *segmentationResultEndPointer = segmentationResultPointer + WIDTH * HEIGHT;
+    while (segmentationResultPointer != segmentationResultEndPointer){
+        if (*segmentationResultPointer > 0)
+            result++;
+        segmentationResultPointer++;
+    }
+    return result;
+}
+
+
+void MainWindow::on_bisectionWithGroundTruthPushButton_clicked (){
+    double alpha = 0.0;
+    bool leftToRight = true;
+
+    double step = 0.2;
+    segmentationAlgorithm.DoSegmentationWithPreviousComponentTree (alpha, segmentationResult, timers);
+
+    double theBestAlpha = alpha;
+    double theBestJaccard = jaccardIndex (segmentationResult, groundTruth);
+    bool theBestLeftToRight = leftToRight;
+
+    unsigned int i = 0;
+    while (i < 50){
+        if (leftToRight)
+            if (alpha + step <= 1.0)
+                alpha += step;
+            else{
+                leftToRight = false;
+                step /= 2.0;
+                continue;
+            }
+        else
+            if (alpha >= step)
+                alpha -= step;
+            else{
+                leftToRight = true;
+                step /= 2.0;
+                continue;
+            }
+        segmentationAlgorithm.DoSegmentationWithPreviousComponentTree (alpha, segmentationResult, timers);
+        double jaccard = jaccardIndex (segmentationResult, groundTruth);
+        if (jaccard < theBestJaccard){
+            alpha = theBestAlpha;
+            theBestLeftToRight = !theBestLeftToRight;
+            leftToRight = theBestLeftToRight;
+            step /= 2.0;
+        } else{
+            theBestAlpha = alpha;
+            theBestJaccard = jaccard;
+            theBestLeftToRight = leftToRight;
+        }
+
+        i++;
+    }
+
+    ui -> alphaDial -> setValue (theBestAlpha * 100000);
+}
+
+
+void MainWindow::on_plotAlphaButton_clicked (){
+    QImage previousSegmentationResult = segmentationResult;
+
+    QVector<double> x;
+    QVector<double> y;
+    unsigned short stepsNumber = 100;
+    double max = 0.0;
+    double alpha = 0.0, step = 1.0 / (double)stepsNumber;
+    for (unsigned short i = 0; i < stepsNumber; i++){
+        x.append(alpha);
+        segmentationAlgorithm.DoSegmentationWithPreviousComponentTree (alpha, segmentationResult, timers);
+        y.append((double)calculateFoundedPointsNumber ());
+        alpha += step;
+
+        if (max < y.last ())
+            max = y.last ();
+    }
+
+    for (unsigned short i = 0; i < x.size (); i++)
+        y[i] /= max;
+
+    ui -> plotWidget -> SetCurve (x, y);
+
+    segmentationResult = previousSegmentationResult;
+}
+
+
+void MainWindow::on_meaningulScalesCheckBox_toggled (bool checked){
+    if (checked)
+        changeMeaningulScales = true;
+}
+
+
+/**
+  @todo use Qwt logaritmic scale (without data scaling)
+  */
+void MainWindow::on_plotMarkerHistogramPushButton_clicked (){
+    GrayScaleImageHistogram imageHistogram (input);
+    GrayScaleImageHistogram markedPixelsHistogram (input, markedPixels);
+
+    double max = 0;
+    for (unsigned short i = 0; i < 256; i++)
+        if (max < log (imageHistogram[i] + 1))
+            max = log (imageHistogram[i] + 1);
+
+    QVector<QwtIntervalSample> markerQVector, imageQVector;
+    for (unsigned int i = 0; i < 256; i++){
+        imageQVector.append (QwtIntervalSample ((double)log (imageHistogram[i] + 1) / (double)max, i / 256.0, i / 256.0 + 1 / 256.0));
+        markerQVector.append (QwtIntervalSample ((double)log (markedPixelsHistogram[i] + 1) / (double)max, i / 256.0, i / 256.0 + 1 / 256.0));
+    }
+
+    ui -> plotWidget -> SetHistogram (imageQVector, markerQVector);
+}
+
+
+double MainWindow::jaccardIndex (QImage &image1, QImage &image2){
+    unsigned int setsUnion = 0, setsIntersection = 0;
+    unsigned int size = WIDTH * HEIGHT;
+    const unsigned int *image1Pointer = (const unsigned int *)image1.constBits (), *image2Pointer = (const unsigned int *)image2.constBits ();
+    for (unsigned int i = 0; i < size; i++){
+        if (*image1Pointer > 0 && *image2Pointer > 0){
+            setsIntersection++;
+            setsUnion++;
+        } else if (*image1Pointer > 0 || *image2Pointer > 0)
+            setsUnion++;
+        image1Pointer++;
+        image2Pointer++;
+    }
+    if (setsUnion > 0)
+        return (double)setsIntersection / (double)setsUnion;
+    return 0;
+}
+
+
+void MainWindow::addRemoveColourCanal (bool){
+    ui -> fastSwitchCustomRadioButton -> setChecked (true);
+    changeInput = true;
+}
+
+
+void MainWindow::changeOutOfRangeSolution (bool checked){
+    if (checked){
+        ui -> fastSwitchCustomRadioButton -> setChecked (true);
+        changeInput = true;
+    }
+}
+
+
+void MainWindow::changeNegationMode (bool checked){
+    if (checked){
+        ui -> fastSwitchCustomRadioButton -> setChecked (true);
+        changeInput = true;
+    }
+}
+
+
+void MainWindow::changeCanalsMixingMode (bool checked){
+    if (checked){
+        ui -> fastSwitchCustomRadioButton -> setChecked (true);
+        changeInput = true;
+    }
+}
+
+
+void MainWindow::changeImageTransformationMode (bool checked){
+    if (checked){
+        ui -> fastSwitchCustomRadioButton -> setChecked (true);
+        changeInput = true;
     }
 }

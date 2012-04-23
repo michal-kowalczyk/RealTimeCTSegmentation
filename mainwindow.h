@@ -1,19 +1,23 @@
+/**
+  This file is an effect of work of Michal Kowalczyk, student of University of Lodz (Poland), doing his master 2 as a erasmus student at Universite de Lorraine (France) - former Universite Henri Poincare during his intership in Loria (France).
+  */
+
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
 #include <QtGui/QMainWindow>
 #include <QTimer>
 
-#include "include/Image.h"
-#include "include/ComponentTree.h"
+#include "camerasupport.h"
+#include "segmentationbasedoncomponenttree.h"
+#include "timer.h"
+#include "subimage.h"
 
-class CameraSupport;
-
-using namespace LibTIM;
+#include "componenttreeinputgenerator.h"
 
 #define MILISECONDS_FOR_REFRESH 1
-#define WIDTH 320
-#define HEIGHT 240
+#define WIDTH 400
+#define HEIGHT 300
 
 namespace Ui {
     class MainWindow;
@@ -37,30 +41,32 @@ public:
 
     void showExpanded();
 
-    Image<U8> getLibTIMFromFrame ();
-    Image<U8> convertQImageToLibTIM (QImage *img);
-    QImage *convertLibTIMToQImage(Image<U8> &image, int alpha);
-
-    void computeCT ();
-    double computeCAlpha (Node *n, double alpha);
-    void computeResult();
-    Image<U8> drawContourN4 (const Image <U8> &mask, const U8 val);
-
 protected:
     void paintEvent (QPaintEvent *event);
     void mouseMoveEvent (QMouseEvent * event);
 
-private:
-    CameraSupport *cameraSupport;
+    void createComponentTreeInput ();
+    unsigned int calculateFoundedPointsNumber ();
+    unsigned int calculateFoundedMarkedPointsNumber ();
+    double jaccardIndex (QImage &image1, QImage &image2);
 
+private:
     Ui::MainWindow *ui;
     QTimer *timer;
-    QImage *frame;
-    QImage *marker;
-    QImage *segmentationResult;
-    QImage *contour;
-    QImage *boxes;
 
+    CameraSupport cameraSupport;
+
+    QImage input;
+    QImage frame;
+    QImage marker;
+    QImage segmentationResult;
+    QImage contour;
+    QImage boxes;
+    QImage groundTruth;
+
+    Subimage markedPixels;
+
+    SegmentationBasedOnComponentTree segmentationAlgorithm;
     double alpha;
 
     unsigned long long *frameTime;
@@ -68,24 +74,40 @@ private:
     unsigned int currentFrame;
     unsigned int fps;
 
-    Image<U8> inputImage;
-    Image<U8> markerImage;
-    Image<U8> resultImage;
-    Image<U8> contourImage;
-
-    ComponentTree<U8> *tree;
-    vector<Node *> leafs;
-
     bool repaint;
 
     unsigned long long frameCounter;
-    clock_t time1, time2, time3, time4, time5, time6, time7, time8, time9;
+    Timer timers[11];
+
+    bool changeInput;
+    bool changeResult;
+    bool changeMeaningulScales;
+
+    bool groundTruthAvaible;
+
+    ComponentTreeInputGenerator inputGenerator;
 
 private slots:
-    void updateFrame();
+    void updateFrame ();
     void alphaChanged (int);
     void penSizeChanged (int);
     void transparencyChanged (int);
+    void fastSwitch1 (bool);
+    void fastSwitch2 (bool);
+    void startStopCamera ();
+    void save ();
+    void load ();
+    void addRemoveColourCanal (bool);
+    void changeOutOfRangeSolution (bool checked);
+    void changeNegationMode (bool checked);
+    void changeCanalsMixingMode (bool checked);
+    void changeImageTransformationMode (bool checked);
+
+    void on_bisectionPushButton_clicked();
+    void on_plotAlphaButton_clicked();
+    void on_meaningulScalesCheckBox_toggled(bool checked);
+    void on_plotMarkerHistogramPushButton_clicked();
+    void on_bisectionWithGroundTruthPushButton_clicked();
 };
 
 #endif // MAINWINDOW_H

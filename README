@@ -1,0 +1,9 @@
+To use this project you need Necessitas (Qt + Android).
+
+To build project you need change files located in Necessitas main directory by files located in necessitasModifications
+
+Project use libraires:
+ImaGene
+Qwt
+
+To build project you need to copy directories with precompilated libraires (ImaGenePrecompilated, QwtPrecompilated) to your Necessitas build directory.

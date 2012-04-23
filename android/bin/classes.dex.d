@@ -1,10 +1,10 @@
 /Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/bin/classes.dex : \
-/Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/bin/classes/org/kde/necessitas/example/RealTimeImageComponentTreeSegmentation/R$array.class \
-/Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/bin/classes/org/kde/necessitas/example/RealTimeImageComponentTreeSegmentation/R$attr.class \
-/Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/bin/classes/org/kde/necessitas/example/RealTimeImageComponentTreeSegmentation/R$drawable.class \
-/Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/bin/classes/org/kde/necessitas/example/RealTimeImageComponentTreeSegmentation/R$layout.class \
-/Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/bin/classes/org/kde/necessitas/example/RealTimeImageComponentTreeSegmentation/R$string.class \
-/Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/bin/classes/org/kde/necessitas/example/RealTimeImageComponentTreeSegmentation/R.class \
+/Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/bin/classes/org/kde/necessitas/example/RealTimeComponentTreeSegmentation/R$array.class \
+/Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/bin/classes/org/kde/necessitas/example/RealTimeComponentTreeSegmentation/R$attr.class \
+/Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/bin/classes/org/kde/necessitas/example/RealTimeComponentTreeSegmentation/R$drawable.class \
+/Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/bin/classes/org/kde/necessitas/example/RealTimeComponentTreeSegmentation/R$layout.class \
+/Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/bin/classes/org/kde/necessitas/example/RealTimeComponentTreeSegmentation/R$string.class \
+/Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/bin/classes/org/kde/necessitas/example/RealTimeComponentTreeSegmentation/R.class \
 /Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/bin/classes/org/kde/necessitas/ministro/IMinistro$Stub$Proxy.class \
 /Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/bin/classes/org/kde/necessitas/ministro/IMinistro$Stub.class \
 /Users/michalkowalczyk/RealTimeComponentTreeSegmentation/android/bin/classes/org/kde/necessitas/ministro/IMinistro.class \

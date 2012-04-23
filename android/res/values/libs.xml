@@ -4,7 +4,6 @@
         <item>QtCore</item>
         <item>QtGui</item>
         <item>QtOpenGL</item>
-        <item>QtWebKit</item>
     </array>
     <array name="bundled_libs"/>
 </resources>

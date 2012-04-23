@@ -24,18 +24,17 @@
 #include "ImaGene/base/Vector2i.h"
 #include "ImaGene/mathutils/Mathutils.h"
 #include "ImaGene/mathutils/Statistics.h"
+#include "ImaGene/mathutils/SimpleLinearRegression.h"
+#include "ImaGene/dgeometry2d/C4CIteratorOnFreemanChain.h"
 #include "ImaGene/dgeometry2d/C4CTangentialCover.h"
-#include "ImaGene/helper/C4CTangentialCoverGeometry.h"
 #include "ImaGene/dgeometry2d/FreemanChain.h"
 #include "ImaGene/dgeometry2d/FreemanChainTransform.h"
-#include "ImaGene/dgeometry2d/C4CIteratorOnFreemanChain.h"
 #include "ImaGene/digitalnD/C4CIteratorOnFreemanChainSurface.h"
-#include "ImaGene/digitalnD/KnSpace.h"
 #include "ImaGene/digitalnD/C4CIteratorOnSurface.h"
-#include "ImaGene/helper/ShapeHelper.h"
+#include "ImaGene/digitalnD/KnSpace.h"
 #include "ImaGene/helper/MultiscaleProfile.h"
+#include "ImaGene/helper/C4CTangentialCoverGeometry.h"
 #include "ImaGene/helper/CurveVariationsHelper.h"
-#include "ImaGene/mathutils/SimpleLinearRegression.h"
 #include "ImaGene/helper/DrawingXFIG.h"
 
 #include <istream>
@@ -62,10 +61,10 @@ MeaningfulScales::MeaningfulScales(QImage image){
     stringstream stream;
     GetFreemanChain(stream, image);
 
-    static int samplingSizeMax = 5;//20;
+    static int samplingSizeMax = 6;//10;
 
-    uint mscales_min_size = 0;///args.getOption( "-meaningfulScale" )->getIntValue( 0 );
-    double mscales_max_slope = 1;//args.getOption( "-meaningfulScale" )->getDoubleValue( 1 );
+    uint mscales_min_size = 1;///args.getOption( "-meaningfulScale" )->getIntValue( 0 );
+    double mscales_max_slope = 0;//args.getOption( "-meaningfulScale" )->getDoubleValue( 1 );
 
     // -------------------------------------------------------------------------
     // Read Freeman chain and creates space/contour.
@@ -78,10 +77,10 @@ MeaningfulScales::MeaningfulScales(QImage image){
         return;//2
       }
 
-    uint samplingSizeMaxEstim = estimMaxSamplingSize(fc);
+    //uint samplingSizeMaxEstim = estimMaxSamplingSize(fc);
 
-    if (samplingSizeMaxEstim < samplingSizeMax)
-      samplingSizeMax= samplingSizeMaxEstim;
+    /*if (samplingSizeMaxEstim < samplingSizeMax)
+      samplingSizeMax= samplingSizeMaxEstim;*/
 
     /*if(args.check("-drawContourSRC")){
       uint color = args.getOption("-drawContourSRC")->getIntValue(0);
@@ -92,7 +91,7 @@ MeaningfulScales::MeaningfulScales(QImage image){
 
     //Computing the noise level for each pixel:
 
-    int nbIterationSpikes = 5;
+    int nbIterationSpikes = 3;
 
     FreemanChainSubsample fcsub( 1, 1, 0, 0 );
     FreemanChainCleanSpikesCCW fccs( nbIterationSpikes );
@@ -102,34 +101,50 @@ MeaningfulScales::MeaningfulScales(QImage image){
 
     MultiscaleProfile MP;
     MP.chooseSubsampler( *ptr_fct, *ptr_fcsub );
-    MP.init( fc, samplingSizeMax );
 
     qDebug () << "Contour size: " << fc.chain.size() << " surfels";
     qDebug () << "Sampling size max used: " << samplingSizeMax;
+    if (fc.chain.size() < 300)
+        return;
 
-    QPen noNoise (QColor(0, 255, 0, 50));
-    QPen someNoise (QColor(255, 255, 0, 50));
+
+    MP.init( fc, samplingSizeMax );
+
+    QPen littleNoise (QColor (0, 255, 0, 50));
+    QPen someNoise (QColor (255, 255, 0, 50));
+    QPen outOfScaleNoise (QColor(255, 0, 0, 50));
+
+
     boxes = QImage (image.width(), image.height(), QImage::Format_ARGB32_Premultiplied);
+    boxes.fill(QColor(0, 0, 0, 0));
     QPainter painter;
     painter.begin(&boxes);
     painter.setBrush(QBrush(Qt::NoBrush));
     unsigned int i = 0;
+
+    unsigned int minNoiseLevel = 5, maxNoiseLevel = 0;
+
     for (FreemanChain::const_iterator it = fc.begin () ; it != fc.end (); ++it){
       uint noiseLevel = MP.noiseLevel(i, mscales_min_size, mscales_max_slope);
+      if (minNoiseLevel > noiseLevel)
+          minNoiseLevel = noiseLevel;
+      if (maxNoiseLevel < noiseLevel)
+          maxNoiseLevel = noiseLevel;
 
-     //   DrawingXFIG::setFillIntensity(38);
-        if (noiseLevel == 0){
-            painter.setPen(noNoise);
-            painter.drawRect ((*it).x(), (*it).y(), samplingSizeMax, samplingSizeMax);
-//          DrawingXFIG::drawPixel (args.check("-setFileNameFigure")? ofFig :cout, pt, 2, 2, samplingSizeMax, 50);
-        } else{
-            painter.setPen(someNoise);
-            painter.drawRect ((*it).x(), (*it).y(), noiseLevel * 20, noiseLevel * 20);
-     //     DrawingXFIG::drawPixel (args.check("-setFileNameFigure")? ofFig :cout, pt, 1, 1, noiseLevel, 50);
-        }
+      if (noiseLevel == 0){
+          painter.setPen (outOfScaleNoise);
+          painter.drawRect ((*it).x() - samplingSizeMax, (*it).y() - samplingSizeMax, samplingSizeMax * 2, samplingSizeMax * 2);
+      } else if (noiseLevel == 1){
+          painter.setPen(littleNoise);
+          painter.drawRect ((*it).x() - noiseLevel, (*it).y() - noiseLevel, noiseLevel * 2, noiseLevel * 2);
+      } else if (noiseLevel >= 2){
+          painter.setPen(someNoise);
+          painter.drawRect ((*it).x() - noiseLevel, (*it).y() - noiseLevel, noiseLevel * 2, noiseLevel * 2);
+      }
         i++;
     }
     painter.end();
+    qDebug () << minNoiseLevel << maxNoiseLevel;
 }
 
 

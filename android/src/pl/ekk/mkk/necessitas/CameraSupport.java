@@ -24,8 +24,8 @@ public class CameraSupport{
 	public CameraSupport(){
 		frame = new FrameContainer();
 
-		System.load("/data/local/ImaGene/libhello-jni.so");///sdcard/libhello-jni.so
-		android.util.Log.e("CameraSupport", stringFromJNI());//loadLibrary
+		//System.load("/data/local/ImaGene/libhello-jni.so");///sdcard/libhello-jni.so
+		//android.util.Log.e("CameraSupport", stringFromJNI());//loadLibrary
         //System.load("/sdcard/libtwolib-second.so");///data/local/qt_aux/libffmpeg.so
 	}
 	
@@ -33,7 +33,7 @@ public class CameraSupport{
      * 'hello-jni' native library, which is packaged
      * with this application.
      */
-    public native String  stringFromJNI();
+    //public native String  stringFromJNI();
 
     /* This is another native method declaration that is *not*
      * implemented by 'hello-jni'. This is simply to show that
@@ -45,7 +45,7 @@ public class CameraSupport{
      * Trying to call this function will result in a
      * java.lang.UnsatisfiedLinkError exception !
      */
-    public native String  unimplementedStringFromJNI();
+    //public native String  unimplementedStringFromJNI();
 
     /* this is used to load the 'hello-jni' library on application
      * startup. The library has already been unpacked into
