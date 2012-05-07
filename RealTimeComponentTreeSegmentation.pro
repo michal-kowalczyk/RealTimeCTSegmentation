@@ -42,7 +42,8 @@ SOURCES += main.cpp mainwindow.cpp \
     grayscaleimagehistogram.cpp \
     subimage.cpp \
     markedpixelsindicators.cpp \
-    componenttreeinputgenerator.cpp
+    componenttreeinputgenerator.cpp \
+    meaningfulscalesalphaadjust.cpp
 HEADERS += mainwindow.h \
     include/ImageIterators.h \
     include/ImageIO.hxx \
@@ -67,7 +68,8 @@ HEADERS += mainwindow.h \
     grayscaleimagehistogram.h \
     subimage.h \
     markedpixelsindicators.h \
-    componenttreeinputgenerator.h
+    componenttreeinputgenerator.h \
+    meaningfulscalesalphaadjust.h
 FORMS += mainwindow.ui
 
 # Please do not modify the following two lines. Required for deployment.
@@ -396,6 +398,8 @@ LIBS += QwtPrecompilated/moc_qwt_abstract_slider.o \
     QwtPrecompilated/qwt_text_label.o \
     QwtPrecompilated/qwt_thermo.o \
     QwtPrecompilated/qwt_wheel.o
+
+
 
 
 

@@ -229,3 +229,18 @@ void SegmentationBasedOnComponentTree::convertQImageToLibTIM (QImage &qImage, Im
 void SegmentationBasedOnComponentTree::SetTransparency(int transparency){
     this -> transparency = transparency;
 }
+
+
+Image<U8> SegmentationBasedOnComponentTree::GetResultImage (){
+    return resultImage;
+}
+
+
+unsigned int SegmentationBasedOnComponentTree::FoundedPixelNumber (){
+    unsigned int result = 0;
+    unsigned int size = width * height;
+    for (unsigned int i = 0; i < size; i++)
+        if (resultImage (i) > 0)
+            result++;
+    return result;
+}

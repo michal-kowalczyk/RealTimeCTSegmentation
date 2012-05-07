@@ -11,16 +11,11 @@
 #include <QFile>
 
 #include "camerasupport.h"
-#include "meaningfulscales.h"
-
 #include "grayscaleimagehistogram.h"
-
 #include "imagemarkerfile.h"
+#include "meaningfulscales.h"
+#include "meaningfulscalesalphaadjust.h"
 
-
-/**
-  * IMPORTANT: with complex objects using lighting by average makes segmenation worse!
-  */
 
 //TEST FOR EACH FRAME (SIZE: 400 x 300)
 //200 :  3945 ,  12038 ,  124553 ,  1330 ,  4156 ,  14740
@@ -34,31 +29,21 @@
 //200 :  2848 ,  3266 ,  132376 ,  1730 ,  2562 ,  1855 ,  6510 ,  4940 ,  0 ,  14505 . // using references to images in place of new objects
 
 
-
-/**
-  IDEAS:
-    1. we cannot change values for pixels which are on a border of marker, because we making segmentation harder
-    2. solution for value of shifting marked pixels higher then 255
-       (loosing information about colours but making uniform surface for marker)
-       we could calculate average value of all neighbours of pixels which are not at border of marker.
-       In this way after few iterations there will be no marked pixels with value higher then 255
-    3. reflexes makes segmentation harder; we need find a way to remove them or to not take them into consideration
-    4. consider neighbourhood of border-marker pixels; what kind of information they giving us
-    5. find a way to deal with shadows
-    7. consider if shifting should make area the most light (255) or should leave some place for ligher elements
-       (connect this consideration with neightbours of pixels at a border)
-    **/
-
-
 MainWindow::MainWindow (QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
     cameraSupport (WIDTH, HEIGHT),
     markedPixels (WIDTH * HEIGHT),
     segmentationAlgorithm (WIDTH, HEIGHT),
-    inputGenerator (WIDTH * HEIGHT)
+    inputGenerator (WIDTH * HEIGHT),
+    frame (QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied)),
+    input (QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied)),
+    marker (QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied)),
+    segmentationResult (QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied)),
+    contour (QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied)),
+    boxes (QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied)),
+    groundTruth (QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied))
 {
-
     ui->setupUi(this);
 
     connect (ui -> alphaDial, SIGNAL (valueChanged (int)), this, SLOT (alphaChanged (int)));
@@ -104,26 +89,14 @@ MainWindow::MainWindow (QWidget *parent) :
     ui -> penSizeDial -> setValue (10);
     ui -> transparencyDial -> setValue (100);
 
-    frame = QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
     frame.fill (qRgba (0, 0, 0, 0));
-
-    input = QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
     input.fill (qRgba (0, 0, 0, 0));
-
-    marker = QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
     marker.fill (qRgba (0, 0, 0, 0));
-
-    segmentationResult = QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
     segmentationResult.fill (qRgba (0, 0, 0, 0));
-
-    contour = QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
     contour.fill (qRgba (0, 0, 0, 0));
-
-    boxes = QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
     boxes.fill (qRgba (0, 0, 0, 0));
-
-    groundTruth = QImage (WIDTH, HEIGHT, QImage::Format_ARGB32_Premultiplied);
     groundTruth.fill (qRgba (0, 0, 0, 0));
+
     groundTruthAvaible = false;
 
     changeInput = false;
@@ -149,10 +122,6 @@ MainWindow::MainWindow (QWidget *parent) :
     connect (ui -> fastSwitch2RadioButton, SIGNAL (toggled (bool)), this, SLOT (fastSwitch2 (bool)));
 
     ui -> plotWidget -> hide ();
-
-    ui -> oorCRadioButton -> hide ();
-    ui -> oorDRadioButton -> hide ();
-    ui -> oorERadioButton -> hide ();
 }
 
 
@@ -274,7 +243,7 @@ void MainWindow::fastSwitch2 (bool value){
         ui -> hueCheckBox -> setChecked (true);
         ui -> saturationCheckBox -> setChecked (true);
         ui -> valueCheckBox -> setChecked (true);
-        ui -> lightnessCheckBox -> setChecked (true);
+        ui -> lightnessCheckBox -> setChecked (false);
         ui -> weightedMeanRadioButton -> setChecked (true);
         if (!ui -> fastSwitch2RadioButton -> isChecked ())
             ui -> fastSwitch2RadioButton -> setChecked (true);
@@ -300,17 +269,19 @@ void MainWindow::updateFrame (){
         createComponentTreeInput ();
         timers[10].StopCycle ();
 
-        if (ui -> contourCheckbox -> isChecked ())
-            segmentationAlgorithm.Compute (alpha, input, marker, segmentationResult, contour, timers);
-        else
-            segmentationAlgorithm.Compute (alpha, input, marker, segmentationResult, timers);
+        if (markedPixels.Size () > 0){
+            if (ui -> contourCheckbox -> isChecked ())
+                segmentationAlgorithm.Compute (alpha, input, marker, segmentationResult, contour, timers);
+            else
+                segmentationAlgorithm.Compute (alpha, input, marker, segmentationResult, timers);
 
-        if (groundTruthAvaible)
-            qDebug () << "Jaccard Index:" << jaccardIndex (segmentationResult, groundTruth);
+            if (groundTruthAvaible)
+                qDebug () << "Jaccard Index:" << jaccardIndex (segmentationResult, groundTruth);
 
-        changeResult = false;
-        if (ui -> meaningulScalesCheckBox -> isChecked ())
-            changeMeaningulScales = true;
+            changeResult = false;
+            if (ui -> meaningulScalesCheckBox -> isChecked ())
+                changeMeaningulScales = true;
+        }
     }
 
     if (changeResult){
@@ -430,6 +401,11 @@ void MainWindow::mouseMoveEvent (QMouseEvent* event){
         painter.drawEllipse (rect);
 
         markedPixels.Update (marker);
+        if (markedPixels.Size () == 0){
+            segmentationResult.fill (QColor (0, 0, 0, 0));
+            boxes.fill (QColor (0, 0, 0, 0));
+            contour.fill (QColor (0, 0, 0, 0));
+        }
 
         changeInput = true;
     }
@@ -708,4 +684,27 @@ void MainWindow::changeImageTransformationMode (bool checked){
         ui -> fastSwitchCustomRadioButton -> setChecked (true);
         changeInput = true;
     }
+}
+
+
+void MainWindow::on_msForAlphaPushButton_clicked (){
+    unsigned char indicator = 1;
+    if (ui -> msIndicator1RadioButton -> isChecked ())
+        indicator = 1;
+    else if (ui -> msIndicator2RadioButton -> isChecked ())
+        indicator = 2;
+    else if (ui -> msIndicator3RadioButton -> isChecked ())
+        indicator = 3;
+    else if (ui -> msIndicator4RadioButton -> isChecked ())
+        indicator = 4;
+    else if (ui -> msIndicator5RadioButton -> isChecked ())
+        indicator = 5;
+    else if (ui -> msIndicator6RadioButton -> isChecked ())
+        indicator = 6;
+    else if (ui -> msIndicator7RadioButton -> isChecked ())
+        indicator = 7;
+
+    MeaningfulScalesAlphaAdjust msAlphaAdjust (segmentationAlgorithm, segmentationResult, indicator);
+    ui -> alphaDial -> setValue (msAlphaAdjust.FindAlpha (0.01, 4) * 100000);
+    changeResult = true;
 }

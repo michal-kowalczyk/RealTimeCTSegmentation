@@ -55,18 +55,18 @@ private:
     QTimer *timer;
 
     CameraSupport cameraSupport;
+    Subimage markedPixels;
+    SegmentationBasedOnComponentTree segmentationAlgorithm;
+    ComponentTreeInputGenerator inputGenerator;
 
-    QImage input;
     QImage frame;
+    QImage input;
     QImage marker;
     QImage segmentationResult;
     QImage contour;
     QImage boxes;
     QImage groundTruth;
 
-    Subimage markedPixels;
-
-    SegmentationBasedOnComponentTree segmentationAlgorithm;
     double alpha;
 
     unsigned long long *frameTime;
@@ -84,8 +84,6 @@ private:
     bool changeMeaningulScales;
 
     bool groundTruthAvaible;
-
-    ComponentTreeInputGenerator inputGenerator;
 
 private slots:
     void updateFrame ();
@@ -108,6 +106,7 @@ private slots:
     void on_meaningulScalesCheckBox_toggled(bool checked);
     void on_plotMarkerHistogramPushButton_clicked();
     void on_bisectionWithGroundTruthPushButton_clicked();
+    void on_msForAlphaPushButton_clicked();
 };
 
 #endif // MAINWINDOW_H

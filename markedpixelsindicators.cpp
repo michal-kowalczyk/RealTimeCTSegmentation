@@ -4,19 +4,26 @@
 
 #include "markedpixelsindicators.h"
 
+
+/**
+  remember copy initialization functions to Reuse function
+  */
 MarkedPixelsIndicators::MarkedPixelsIndicators (unsigned char *image, Subimage &markedPixels, unsigned char outOfRangeSolutionNumber, unsigned int size) :
     image (image),
     markedPixels (markedPixels),
     outOfRangeSolutionNumber (outOfRangeSolutionNumber),
-    size (size)
+    size (size),
+    markedSumCalculated (false),
+    markedAverageCalculated (false),
+    imageSumCalculated (false),
+    imageAverageCalculated (false),
+    notMarkedSumCalculated (false),
+    notMarkedAverageCalculated (false),
+    valuesCalculated (false),
+    values (0),
+    maximalValueCalculated (false),
+    shiftMaximazingAverageCalculated (false)
 {
-    sumCalculated = false;
-    averageCalculated = false;
-    imageSumCalculated = false;
-    imageAverageCalculated = false;
-    valuesCalculated = false;
-    maximalValueCalculated = false;
-    shiftMaximazingAverageCalculated = false;
 }
 
 
@@ -26,17 +33,38 @@ MarkedPixelsIndicators::~MarkedPixelsIndicators (){
 }
 
 
+void MarkedPixelsIndicators::Reuse (unsigned char *image, Subimage &markedPixels, unsigned char outOfRangeSolutionNumber, unsigned int size){
+    this -> image = image;
+    if (valuesCalculated){
+        if (this -> markedPixels.Size () != markedPixels.Size())
+            delete []values;
+        valuesCalculated = false;
+    }
+    this -> markedPixels = markedPixels;
+    this -> outOfRangeSolutionNumber = outOfRangeSolutionNumber;
+    this -> size = size;
+    markedSumCalculated = false;
+    markedAverageCalculated = false;
+    imageSumCalculated = false;
+    imageAverageCalculated = false;
+    notMarkedSumCalculated = false;
+    notMarkedAverageCalculated = false;
+    maximalValueCalculated = false;
+    shiftMaximazingAverageCalculated = false;
+}
+
+
 unsigned int MarkedPixelsIndicators::GetSumOfMarkedPixels (){
-    if (sumCalculated)
-        return sum;
+    if (markedSumCalculated)
+        return markedSum;
 
-    sum = 0;
+    markedSum = 0;
     for (Subimage::PixelsPositionsIterator i = markedPixels.begin (); i != markedPixels.end (); ++i)
-        sum += image[*i];
+        markedSum += image[*i];
 
-    sumCalculated = true;
+    markedSumCalculated = true;
 
-    return sum;
+    return markedSum;
 }
 
 
@@ -44,14 +72,14 @@ unsigned int MarkedPixelsIndicators::GetSumOfMarkedPixels (){
   Average value of marked pixels
   */
 unsigned char MarkedPixelsIndicators::GetAverageOfMarkedPixels (){
-    if (averageCalculated)
-        return average;
+    if (markedAverageCalculated)
+        return markedAverage;
 
-    average = GetSumOfMarkedPixels () / markedPixels.Size ();
+    markedAverage = GetSumOfMarkedPixels () / markedPixels.Size ();
 
-    averageCalculated = true;
+    markedAverageCalculated = true;
 
-    return average;
+    return markedAverage;
 }
 
 
@@ -91,13 +119,47 @@ unsigned char MarkedPixelsIndicators::GetAverageOfImagePixels (){
 
 
 /**
-  Creating array with marked pixel values
+  Calculating sum of not marked pixels
+  */
+unsigned int MarkedPixelsIndicators::GetSumOfNotMarkedPixels (){
+    if (notMarkedSumCalculated)
+        return notMarkedSum;
+
+    notMarkedSum = GetSumOfImagePixels () - GetSumOfMarkedPixels ();
+
+    notMarkedSumCalculated = true;
+
+    return notMarkedSum;
+}
+
+
+/**
+  Average value of not marked pixels
+  */
+unsigned char MarkedPixelsIndicators::GetAverageOfNotMarkedPixels (){
+    if (notMarkedAverageCalculated)
+        return notMarkedAverage;
+
+    if (size - markedPixels.Size () > 0)
+        notMarkedAverage = GetSumOfNotMarkedPixels () / (size - markedPixels.Size ());
+    else
+        notMarkedAverage = 0;
+
+    imageAverageCalculated = true;
+
+    return notMarkedAverage;
+}
+
+
+/**
+  Create array with marked pixel values
   */
 unsigned char* MarkedPixelsIndicators::GetMarkedPixelsValues (){
     if (valuesCalculated)
         return values;
 
-    values = new unsigned char[markedPixels.Size ()];
+    if (values == 0)
+        values = new unsigned char[markedPixels.Size ()];
     unsigned char* valuesPointer = values;
     for (Subimage::PixelsPositionsIterator i = markedPixels.begin (); i != markedPixels.end (); ++i){
         *valuesPointer = image[*i];

@@ -20,6 +20,9 @@ public:
     void DoSegmentationWithPreviousComponentTree (double alpha, QImage &segmentationResult, Timer timers[]);
     void SetTransparency(int transparency);
 
+    Image<U8> GetResultImage ();
+    unsigned int FoundedPixelNumber ();
+
 protected:
     void convertQImageToLibTIM (QImage &qImage, Image<U8> &image);
     void convertLibTIMToQImage(Image<U8> &image, QImage &qImage, int transparency);

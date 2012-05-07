@@ -24,7 +24,7 @@ Subimage::Subimage (const Subimage& subimage) :
     beginIterator (pixelsCoordinates),
     endIterator (pixelsCoordinates + pixelNumber)
 {
-    memcpy (pixelsCoordinates, subimage.pixelsCoordinates, pixelNumber);
+    memcpy (pixelsCoordinates, subimage.pixelsCoordinates, pixelNumber * sizeof (unsigned int));
 }
 
 

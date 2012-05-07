@@ -6,16 +6,17 @@
 
 #include "timeseries/src/tsutil.h"
 
-
-Histogram::Histogram (unsigned int size){
-    data = new unsigned int[size];
-    this -> size = size;
-
-    unsigned int *dataPointer = data, *dataEndPointer = data + size;
+Histogram::Histogram (unsigned int size) :
+    size (size),
+    data ((unsigned int *)calloc (size, sizeof (unsigned int))),//new unsigned int[size]),
+    beginIterator (data),
+    endIterator (data + size)
+{
+/*    unsigned int *dataPointer = data, *dataEndPointer = data + size;
     while (dataPointer < dataEndPointer){
         *dataPointer = 0;
         dataPointer++;
-    }
+    }*/
 }
 
 
@@ -24,18 +25,24 @@ Histogram::~Histogram (){
 }
 
 
-/**
-  @todo iterators for histograms
-  */
+Histogram::Histogram (const Histogram& histogram) :
+    size (histogram.size),
+    data (new unsigned int[size]),
+    beginIterator (data),
+    endIterator (data + size)
+{
+    memcpy (data, histogram.data, size * sizeof (unsigned int));
+}
+
+
 unsigned short Histogram::BinaryCompare (Histogram &histogram1, Histogram &histogram2){
     unsigned short result = 0;
 
-    unsigned int size = histogram1.Size ();
-    if (size != histogram2.Size ())
+    if (histogram1.Size () != histogram2.Size ())
         throw "Histograms have different sizes!";
 
-    for (unsigned int i = 0; i < size; i++)
-        if (histogram1[i] && histogram2[i])
+    for (DataIterator i1 = histogram1.begin(), i2 = histogram2.begin(); i1 != histogram1.end(); ++i1, ++i2)
+        if (*i1 && *i2)
             result++;
 
     return result;
@@ -47,14 +54,14 @@ unsigned short Histogram::BinaryCompare (Histogram &histogram1, Histogram &histo
   @todo change dtw implementation to use arrays, not vectors
   */
 double Histogram::DynamicTimeWarping (Histogram &histogram1, Histogram &histogram2){
-    std::vector<double> vector1, vector2;
+/*    std::vector<double> vector1, vector2;
 
     for (unsigned int i = 0; i < histogram1.Size (); i++)
         vector1.push_back (histogram1[i]);
     for (unsigned int i = 0; i < histogram2.Size (); i++)
         vector2.push_back (histogram2[i]);
 
-    return TimeSeries::dtw (vector1, vector2);
+    return TimeSeries::dtw (vector1, vector2);*/
 }
 
 
@@ -65,15 +72,14 @@ double Histogram::DynamicTimeWarping (Histogram &histogram1, Histogram &histogra
 unsigned short Histogram::AverageDifferenceCompare (Histogram &histogram1, Histogram &histogram2){
     unsigned short result = 0;
 
-    unsigned int size = histogram1.Size ();
-    if (size != histogram2.Size ())
+    if (histogram1.Size () != histogram2.Size ())
         throw "Histograms have different sizes!";
 
     unsigned int value1, value2;
 
-    for (unsigned int i = 0; i < size; i++){
-        value1 = histogram1[i];
-        value2 = histogram2[i];
+    for (DataIterator i1 = histogram1.begin(), i2 = histogram2.begin(); i1 != histogram1.end(); ++i1, ++i2){
+        value1 = *i1;
+        value2 = *i2;
         if (value1 && value2){
             if (value1 > value2)
                 result += (value2 * 10000) / value1;

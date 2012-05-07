@@ -11,11 +11,14 @@ class MarkedPixelsIndicators{
 public:
     MarkedPixelsIndicators (unsigned char *image, Subimage &markedPixels, unsigned char outOfRangeSolutionNumber, unsigned int size);
     ~MarkedPixelsIndicators ();
+    void Reuse (unsigned char *image, Subimage &markedPixels, unsigned char outOfRangeSolutionNumber, unsigned int size);
 
     unsigned int GetSumOfMarkedPixels ();
     unsigned char GetAverageOfMarkedPixels ();
     unsigned int GetSumOfImagePixels ();
     unsigned char GetAverageOfImagePixels ();
+    unsigned int GetSumOfNotMarkedPixels ();
+    unsigned char GetAverageOfNotMarkedPixels ();
     unsigned char *GetMarkedPixelsValues ();
     unsigned char GetMaximalValueOfMarkedPixels ();
     unsigned char GetShiftMaximazingAverageValueOfMarkedPixels ();
@@ -30,17 +33,23 @@ protected:
 
     unsigned int size;
 
-    bool sumCalculated;
-    unsigned int sum;
+    bool markedSumCalculated;
+    unsigned int markedSum;
 
-    bool averageCalculated;
-    unsigned char average;
+    bool markedAverageCalculated;
+    unsigned char markedAverage;
 
     bool imageSumCalculated;
     unsigned int imageSum;
 
     bool imageAverageCalculated;
     unsigned char imageAverage;
+
+    bool notMarkedSumCalculated;
+    unsigned int notMarkedSum;
+
+    bool notMarkedAverageCalculated;
+    unsigned char notMarkedAverage;
 
     bool valuesCalculated;
     unsigned char *values;
